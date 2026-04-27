@@ -129,4 +129,3 @@ If Git reports `detected dubious ownership`, mark the repo as safe once on your 
 git config --global --add safe.directory "C:/Users/shiva/Downloads/project/nivesh saathi financialapp/nivesh-saathi"
 ```
 
-See [docs/APPLICATION_COMPLETION_CHECKLIST.md](docs/APPLICATION_COMPLETION_CHECKLIST.md) for remaining production-readiness work.
