@@ -343,8 +343,8 @@ export default function ChatInterfacePage() {
 
         <section className="mx-auto max-w-6xl px-4 py-6 md:px-6">
           <AuthGate
-            title="Phone sign-in unlocks the full advisor flow"
-            body="Use your mobile number to keep your shortlist, continue the same conversation later, and make the demo feel like a trusted personal finance assistant instead of a stateless chatbot."
+            title="Sign in to unlock the full advisor flow"
+            body="Use Firebase email, phone, or Google sign-in to keep your shortlist, continue the same conversation later, and make the demo feel like a trusted personal finance assistant instead of a stateless chatbot."
           >
             <div className="grid gap-4">
               {shortlistBanks.length > 0 && (

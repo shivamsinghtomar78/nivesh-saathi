@@ -1,81 +1,69 @@
-"use client";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowLeft, ShieldCheck, Sparkles } from "lucide-react";
 
-import { LockKeyhole, ShieldCheck, Smartphone } from "lucide-react";
-
-import PhoneAuthCard from "@/components/auth/PhoneAuthCard";
-import BottomNav from "@/components/layout/BottomNav";
-import Footer from "@/components/layout/Footer";
-import Navbar from "@/components/layout/Navbar";
-import { useChatStore } from "@/stores/chatStore";
-
-function LoginPageContent() {
-  const language = useChatStore((state) => state.language);
-
-  return (
-    <>
-      <Navbar />
-      <main className="min-h-screen px-4 pb-24 pt-20 md:px-6 lg:pb-10">
-        <section className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-[32px] border border-outline bg-panel p-6 shadow-soft">
-            <p className="text-xs uppercase tracking-[0.24em] text-highlight">
-              Secure sign-in
-            </p>
-            <h1 className="mt-3 text-4xl font-semibold text-text-strong">
-              Mobile auth makes the advisor feel trustworthy.
-            </h1>
-            <p className="mt-4 text-sm leading-7 text-text-muted">
-              Phone authentication gives the demo a real user identity, lets us
-              save shortlists and conversation history, and removes the
-              &quot;stateless hackathon toy&quot; feeling from the product flow.
-            </p>
-
-            <div className="mt-8 grid gap-3">
-              {[
-                {
-                  icon: Smartphone,
-                  title: "Phone-first UX",
-                  body: "Natural for Tier 2 and Tier 3 users who may not want email-password flows.",
-                },
-                {
-                  icon: ShieldCheck,
-                  title: "Secure shortlist sync",
-                  body: "Keep compare results and chat context across refreshes and devices.",
-                },
-                {
-                  icon: LockKeyhole,
-                  title: "Production-style session",
-                  body: "Firebase phone auth plus session cookies creates a more launch-ready backbone.",
-                },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={item.title}
-                    className="rounded-[24px] border border-outline bg-panel-strong p-4"
-                  >
-                    <Icon className="h-5 w-5 text-highlight" />
-                    <h2 className="mt-3 text-lg font-semibold text-text-strong">
-                      {item.title}
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-text-muted">{item.body}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="rounded-[32px] border border-outline bg-panel p-6 shadow-soft">
-            <PhoneAuthCard language={language} />
-          </div>
-        </section>
-      </main>
-
-      <Footer />
-      <BottomNav />
-    </>
-  );
-}
+import FirebaseAuthCard from "@/components/auth/FirebaseAuthCard";
+import { ROUTES } from "@/lib/routes";
 
 export default function LoginPage() {
-  return <LoginPageContent />;
+  return (
+    <main className="min-h-screen bg-black text-text-strong">
+      <section className="grid min-h-screen lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <div className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-8 lg:px-12">
+          <div className="w-full max-w-xl">
+            <Link
+              href={ROUTES.HOME}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-text-muted transition hover:text-highlight"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Nivesh Saathi
+            </Link>
+
+            <div className="mt-10 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-highlight text-black">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-xl font-semibold text-text-strong">
+                  Nivesh Saathi
+                </p>
+                <p className="text-xs uppercase tracking-[0.22em] text-text-muted">
+                  Secure Firebase auth
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-10">
+              <FirebaseAuthCard />
+            </div>
+          </div>
+        </div>
+
+        <div className="relative hidden min-h-screen overflow-hidden border-l border-outline bg-panel lg:block">
+          <Image
+            src="/hero-illustration.png"
+            alt="Family reviewing fixed deposit options together"
+            fill
+            priority
+            sizes="50vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/18 to-transparent" />
+          <div className="absolute bottom-10 left-10 right-10">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/45 px-4 py-2 text-xs uppercase tracking-[0.2em] text-highlight backdrop-blur">
+              <ShieldCheck className="h-4 w-4" />
+              Email, phone, and Google sign-in
+            </div>
+            <h2 className="mt-5 max-w-2xl text-4xl font-semibold leading-tight text-white">
+              Keep the compare-to-advisor journey personal and secure.
+            </h2>
+            <p className="mt-4 max-w-xl text-sm leading-7 text-white/78">
+              Firebase Auth gives Nivesh Saathi a real user identity, synced
+              shortlist context, and a more production-ready demo flow.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
 }

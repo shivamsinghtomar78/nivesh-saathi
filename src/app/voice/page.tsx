@@ -184,7 +184,7 @@ export default function VoiceInputPage() {
           <div className="relative mx-auto max-w-5xl">
             <AuthGate
               title="Voice guidance works best with a signed-in session"
-              body="Phone sign-in makes the experience feel personal, keeps your conversation context, and lets the voice flow fit naturally into the compare-to-chat journey."
+              body="Firebase sign-in keeps your conversation context and lets the voice flow fit naturally into the compare-to-chat journey."
             >
               <div className="rounded-[36px] border border-outline bg-panel p-6 shadow-soft md:p-8">
                 <div className="text-center">

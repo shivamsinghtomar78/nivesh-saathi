@@ -9,9 +9,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import BottomNav from "@/components/layout/BottomNav";
 import Footer from "@/components/layout/Footer";
-import Navbar from "@/components/layout/Navbar";
 import { FD_RATES } from "@/lib/fd-data";
 import { ROUTES } from "@/lib/routes";
 import { formatCurrency } from "@/lib/utils";
@@ -44,11 +42,24 @@ const workflow = [
 export default function LandingPage() {
   return (
     <>
-      <Navbar />
-      <main className="pb-24 pt-20 lg:pb-10">
-        <section className="relative overflow-hidden px-4 py-10 md:px-6 md:py-16">
+      <main className="pb-16">
+        <section className="relative flex min-h-screen items-center overflow-hidden px-4 py-8 md:px-6 md:py-14">
           <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
+              <div className="mb-10 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-highlight text-black">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold text-text-strong">
+                    Nivesh Saathi
+                  </p>
+                  <p className="text-xs uppercase tracking-[0.22em] text-text-muted">
+                    Aapka bharosemand FD guide
+                  </p>
+                </div>
+              </div>
+
               <div className="inline-flex items-center gap-2 rounded-full border border-outline bg-panel px-4 py-2 text-xs uppercase tracking-[0.22em] text-highlight">
                 <Sparkles className="h-4 w-4" />
                 Voice-first FD advisor for Bharat
@@ -225,7 +236,6 @@ export default function LandingPage() {
       </main>
 
       <Footer />
-      <BottomNav />
     </>
   );
 }

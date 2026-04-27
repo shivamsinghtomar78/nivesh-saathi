@@ -19,7 +19,11 @@ export default function AuthBootstrap() {
       if (user) {
         setUser({
           uid: user.uid,
+          email: user.email,
           phoneNumber: user.phoneNumber,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          providerId: user.providerData[0]?.providerId ?? null,
         });
         return;
       }

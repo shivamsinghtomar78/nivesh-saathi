@@ -40,7 +40,7 @@ export default function AuthGate({
           href={ROUTES.LOGIN}
           className="mt-6 inline-flex rounded-xl bg-highlight px-5 py-3 text-sm font-semibold text-black transition hover:brightness-110"
         >
-          Sign in with phone
+          Sign in securely
         </Link>
       </div>
     );

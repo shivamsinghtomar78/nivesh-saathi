@@ -5,7 +5,11 @@ import { persist } from "zustand/middleware";
 
 type AuthUser = {
   uid: string;
+  email: string | null;
   phoneNumber: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  providerId: string | null;
 };
 
 type AuthStatus = "idle" | "loading" | "authenticated" | "unauthenticated";

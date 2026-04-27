@@ -16,7 +16,7 @@ This file tracks the remaining APIs, credentials, and product work needed to tur
 | Deepgram transcription route | Implemented | `POST /api/voice/transcribe` supports browser fallback speech upload. |
 | Firebase client config | Implemented | Browser SDK initializer reads `NEXT_PUBLIC_FIREBASE_*`. |
 | Firebase session route | Implemented | Needs Firebase Admin credentials to work outside client-only auth. |
-| Phone auth UI | Implemented | Login page and OTP flow are wired with Firebase client auth. |
+| Firebase auth UI | Implemented | Email/Password, Google, and Phone OTP flows are wired with Firebase client auth. |
 | Voice page | Implemented | Browser STT first, Deepgram fallback, advisor call, spoken response. |
 | Compare page | Implemented | Uses `/api/fd-rates` with loading, error, empty, and sticky CTA states. |
 | Chat page | Implemented | Auth-gated, shortlist-aware, voice-capable advisor flow. |
@@ -61,6 +61,6 @@ This file tracks the remaining APIs, credentials, and product work needed to tur
 6. `/api/maturity` calculates maturity for amount, rate, and tenor.
 7. Chat actions open compare, voice, and official bank pages without referencing booking.
 8. Voice flow works with browser STT, and falls back to `/api/voice/transcribe` when needed.
-9. Phone Auth test number can complete login and create `__session`.
+9. Email/Password, Google, and Phone Auth test users can complete login and create `__session`.
 10. PWA install prompt appears after deploy on supported devices.
 11. Vercel production env vars match local env names.

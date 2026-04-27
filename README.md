@@ -5,7 +5,7 @@ Voice-first, multilingual Fixed Deposit advisor for Hindi, Tamil, Bengali, and E
 - compare FD options
 - save a shortlist
 - ask Saathi by chat or voice
-- sign in with phone to keep context across devices
+- sign in with Email/Password, Phone, or Google to keep context across devices
 
 The older booking flow has been removed from the product and backend contracts.
 
@@ -26,7 +26,7 @@ The older booking flow has been removed from the product and backend contracts.
 ## What Is Implemented
 
 - Dark-theme mobile-first landing, compare, chat, voice, and login flows
-- Firebase phone auth UI with session-cookie exchange route
+- Firebase Email/Password, Phone, and Google auth UI with session-cookie exchange route
 - Persisted shortlist and chat state
 - LangGraph advisor with Gemini primary and OpenRouter fallback
 - Prompt-injection guard for chat requests
@@ -118,4 +118,4 @@ Verified in this workspace:
 Known runtime note:
 
 - `next build` emits a `punycode` deprecation warning from a dependency during static generation. The build still completes successfully.
-- Browser-native phone auth still depends on Firebase console setup for allowed domains, test numbers, and the phone provider.
+- Firebase auth depends on the Email/Password, Phone, and Google providers being enabled in the Firebase console for the deployment domain.
