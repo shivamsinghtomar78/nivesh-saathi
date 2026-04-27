@@ -3,6 +3,12 @@ import Link from "next/link";
 import { ArrowLeft, ShieldCheck, Sparkles } from "lucide-react";
 
 import FirebaseAuthCard from "@/components/auth/FirebaseAuthCard";
+import {
+  MotionFloat,
+  MotionReveal,
+  MotionStagger,
+  MotionStaggerItem,
+} from "@/components/motion/MotionPrimitives";
 import { ROUTES } from "@/lib/routes";
 
 export default function LoginPage() {
@@ -10,36 +16,45 @@ export default function LoginPage() {
     <main className="min-h-screen bg-black text-text-strong">
       <section className="grid min-h-screen lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-8 lg:px-12">
-          <div className="w-full max-w-xl">
-            <Link
-              href={ROUTES.HOME}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-text-muted transition hover:text-highlight"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Nivesh Saathi
-            </Link>
+          <MotionStagger className="w-full max-w-xl">
+            <MotionStaggerItem>
+              <Link
+                href={ROUTES.HOME}
+                className="inline-flex items-center gap-2 text-sm font-semibold text-text-muted transition hover:text-highlight"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Nivesh Saathi
+              </Link>
+            </MotionStaggerItem>
 
-            <div className="mt-10 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-highlight text-black">
-                <Sparkles className="h-6 w-6" />
+            <MotionStaggerItem>
+              <div className="mt-10 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-highlight text-black">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xl font-semibold text-text-strong">
+                    Nivesh Saathi
+                  </p>
+                  <p className="text-xs uppercase tracking-[0.22em] text-text-muted">
+                    Secure Firebase auth
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xl font-semibold text-text-strong">
-                  Nivesh Saathi
-                </p>
-                <p className="text-xs uppercase tracking-[0.22em] text-text-muted">
-                  Secure Firebase auth
-                </p>
-              </div>
-            </div>
+            </MotionStaggerItem>
 
-            <div className="mt-10">
-              <FirebaseAuthCard />
-            </div>
-          </div>
+            <MotionStaggerItem>
+              <div className="mt-10">
+                <FirebaseAuthCard />
+              </div>
+            </MotionStaggerItem>
+          </MotionStagger>
         </div>
 
-        <div className="relative hidden min-h-screen overflow-hidden border-l border-outline bg-panel lg:block">
+        <MotionReveal
+          className="relative hidden min-h-screen overflow-hidden border-l border-outline bg-panel lg:block"
+          direction="left"
+        >
           <Image
             src="/hero-illustration.png"
             alt="Family reviewing fixed deposit options together"
@@ -49,7 +64,7 @@ export default function LoginPage() {
             className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/18 to-transparent" />
-          <div className="absolute bottom-10 left-10 right-10">
+          <MotionFloat className="absolute bottom-10 left-10 right-10">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/45 px-4 py-2 text-xs uppercase tracking-[0.2em] text-highlight backdrop-blur">
               <ShieldCheck className="h-4 w-4" />
               Email, phone, and Google sign-in
@@ -61,8 +76,8 @@ export default function LoginPage() {
               Firebase Auth gives Nivesh Saathi a real user identity, synced
               shortlist context, and a more production-ready demo flow.
             </p>
-          </div>
-        </div>
+          </MotionFloat>
+        </MotionReveal>
       </section>
     </main>
   );
