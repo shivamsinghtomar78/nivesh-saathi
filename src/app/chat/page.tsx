@@ -20,11 +20,14 @@ import AuthGate from "@/components/auth/AuthGate";
 import BottomNav from "@/components/layout/BottomNav";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
+import StructuredAnswer from "@/components/shared/StructuredAnswer";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { APP_COPY } from "@/lib/copy";
+import { withCsrfHeaders } from "@/lib/csrf";
 import { FD_RATES } from "@/lib/fd-data";
-import { LANGUAGE_META } from "@/lib/languages";
+import { LANGUAGE_META, type SupportedLanguage } from "@/lib/languages";
 import { ROUTES } from "@/lib/routes";
+import { useAuthStore } from "@/stores/authStore";
 import { useChatStore, type ChatMessage } from "@/stores/chatStore";
 import { useCompareStore } from "@/stores/compareStore";
 
@@ -95,6 +98,7 @@ export default function ChatInterfacePage() {
     clearMessages,
   } = useChatStore();
   const shortlist = useCompareStore((state) => state.shortlist);
+  const user = useAuthStore((state) => state.user);
   const shortlistBanks = useMemo(
     () => FD_RATES.filter((rate) => shortlist.includes(rate.id)),
     [shortlist]
@@ -133,13 +137,15 @@ export default function ChatInterfacePage() {
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
+        headers: withCsrfHeaders({
           "Content-Type": "application/json",
-        },
+        }),
         body: JSON.stringify({
           message: outgoingMessage,
           language,
           threadId: threadId ?? undefined,
+          userId: user?.uid,
+          shortlistBankIds: shortlist,
         }),
       });
 
@@ -319,15 +325,25 @@ export default function ChatInterfacePage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => setLanguage(language === "hi" ? "en" : "hi")}
-                className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-outline bg-panel px-4 py-3 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
-                aria-label="Switch language"
-              >
+              <label className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-outline bg-panel px-4 py-3 text-sm font-semibold text-text-strong transition focus-within:border-highlight">
                 <Languages className="h-4 w-4" />
-                {LANGUAGE_META[language].label}
-              </button>
+                <select
+                  value={language}
+                  onChange={(event) =>
+                    setLanguage(event.target.value as SupportedLanguage)
+                  }
+                  className="bg-transparent text-sm font-semibold text-text-strong outline-none"
+                  aria-label="Choose response language"
+                >
+                  {(Object.keys(LANGUAGE_META) as SupportedLanguage[]).map(
+                    (code) => (
+                      <option key={code} value={code} className="bg-slate-950">
+                        {LANGUAGE_META[code].label}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
               <button
                 type="button"
                 onClick={clearMessages}
@@ -388,7 +404,11 @@ export default function ChatInterfacePage() {
                               : "border border-outline bg-panel-strong text-text-strong"
                           }`}
                         >
-                          <p className="text-sm leading-7">{msg.content}</p>
+                          {msg.role === "bot" ? (
+                            <StructuredAnswer text={msg.content} compact />
+                          ) : (
+                            <p className="text-sm leading-7">{msg.content}</p>
+                          )}
 
                           {msg.rateCards?.length ? (
                             <div className="mt-4 grid gap-3">

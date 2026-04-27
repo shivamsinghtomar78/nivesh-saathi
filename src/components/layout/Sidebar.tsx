@@ -11,8 +11,8 @@ import { useAuthStore } from "@/stores/authStore";
 import { useChatStore } from "@/stores/chatStore";
 
 const sidebarLinks = [
-  { href: ROUTES.CHAT, key: "chat", icon: MessageCircleMore },
   { href: ROUTES.COMPARE, key: "compare", icon: Radar },
+  { href: ROUTES.CHAT, key: "chat", icon: MessageCircleMore },
   { href: ROUTES.VOICE, key: "voice", icon: Mic },
 ] as const;
 
@@ -21,6 +21,8 @@ export default function Sidebar() {
   const language = useChatStore((state) => state.language);
   const user = useAuthStore((state) => state.user);
   const copy = APP_COPY[language];
+  const sessionLabel =
+    user?.displayName || user?.email || user?.phoneNumber || "Guest mode";
 
   return (
     <aside className="fixed left-0 top-16 z-40 hidden h-[calc(100vh-64px)] w-72 flex-col border-r border-outline bg-panel/92 backdrop-blur-xl lg:flex">
@@ -34,7 +36,7 @@ export default function Sidebar() {
               Secure session
             </p>
             <p className="mt-1 truncate font-semibold text-text-strong">
-              {user?.phoneNumber || "Guest mode"}
+              {sessionLabel}
             </p>
           </div>
         </div>

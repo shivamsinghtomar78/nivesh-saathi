@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { jsonError, jsonSuccess, handleRouteError } from "@/lib/server/api";
+import { requireCsrfProtection, SESSION_COOKIE_NAME } from "@/lib/server/auth";
 import { getFirebaseAdminAuth } from "@/lib/server/firebase-admin";
 
 export const runtime = "nodejs";
@@ -12,6 +13,11 @@ const sessionRequestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const csrfError = requireCsrfProtection(request);
+    if (csrfError) {
+      return csrfError;
+    }
+
     const body = await request.json();
     const { idToken } = sessionRequestSchema.parse(body);
     const adminAuth = getFirebaseAdminAuth();
@@ -26,7 +32,7 @@ export async function POST(request: Request) {
     });
 
     const cookieStore = await cookies();
-    cookieStore.set("__session", sessionCookie, {
+    cookieStore.set(SESSION_COOKIE_NAME, sessionCookie, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -42,9 +48,14 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  const csrfError = requireCsrfProtection(request);
+  if (csrfError) {
+    return csrfError;
+  }
+
   const cookieStore = await cookies();
-  cookieStore.delete("__session");
+  cookieStore.delete(SESSION_COOKIE_NAME);
 
   return jsonSuccess({ success: true });
 }

@@ -6,6 +6,7 @@ import { LoaderCircle, LogIn, ShieldCheck, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 
 import { APP_COPY } from "@/lib/copy";
+import { withCsrfHeaders } from "@/lib/csrf";
 import { firebaseAuth } from "@/lib/firebase";
 import type { AppLanguage } from "@/lib/server/advisor-schemas";
 import { useAuthStore } from "@/stores/authStore";
@@ -96,9 +97,9 @@ export default function PhoneAuthCard({
       const idToken = await credential.user.getIdToken();
       const sessionResponse = await fetch("/api/auth/session", {
         method: "POST",
-        headers: {
+        headers: withCsrfHeaders({
           "Content-Type": "application/json",
-        },
+        }),
         body: JSON.stringify({ idToken }),
       });
 
@@ -121,7 +122,10 @@ export default function PhoneAuthCard({
 
   const handleSignOut = async () => {
     await signOut(firebaseAuth);
-    await fetch("/api/auth/session", { method: "DELETE" }).catch(() => undefined);
+    await fetch("/api/auth/session", {
+      method: "DELETE",
+      headers: withCsrfHeaders(),
+    }).catch(() => undefined);
     clearUser();
     toast.success("Signed out.");
   };

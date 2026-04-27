@@ -6,19 +6,19 @@ export const LANGUAGE_META = {
     deepgram: "en",
   },
   hi: {
-    label: "हिंदी",
+    label: "Hindi",
     speechRecognition: "hi-IN",
     speechSynthesis: "hi-IN",
     deepgram: "hi",
   },
   ta: {
-    label: "தமிழ்",
+    label: "Tamil",
     speechRecognition: "ta-IN",
     speechSynthesis: "ta-IN",
     deepgram: "ta",
   },
   bn: {
-    label: "বাংলা",
+    label: "Bengali",
     speechRecognition: "bn-IN",
     speechSynthesis: "bn-IN",
     deepgram: "bn",

@@ -290,44 +290,88 @@ export function buildFallbackText(params: {
   }
 
   if (language === "hi") {
-    return `${topCard.bankName} ${formatTenorLabel(
+    return `Summary:
+- ${topCard.bankName} ${formatTenorLabel(
       tenorMonths,
       language
-    )} ke liye sabse strong option dikh raha hai. ${formatCurrency(
+    )} ke liye sabse strong option dikh raha hai.
+
+Top options:
+- ${formatCurrency(
       amount
     )} par maturity lagbhag ${formatCurrency(
       topCard.maturityAmount
-    )} ho sakti hai. Neeche 3 compare options aur simple jargon help di gayi hai.`;
+    )} ho sakti hai.
+- Neeche 3 compare options aur simple jargon help di gayi hai.
+
+Safety:
+- Ek bank mein Rs 5 lakh tak ki deposit amount par aam taur par DICGC cover rehta hai.
+
+Next step:
+- Amount, tenure, ya safety concern batayiye aur main options aur narrow kar dunga.`;
   }
 
   if (language === "ta") {
-    return `${topCard.bankName} ${formatTenorLabel(
+    return `Summary:
+- ${topCard.bankName} ${formatTenorLabel(
       tenorMonths,
       language
-    )} kaalathukku nalla option-aa therigiradhu. ${formatCurrency(
+    )} kaalathukku nalla option-aa therigiradhu.
+
+Top options:
+- ${formatCurrency(
       amount
     )} meedhu maturity summaaru ${formatCurrency(
       topCard.maturityAmount
-    )} aagum. Keezhe 3 compare options-um simple jargon help-um irukku.`;
+    )} aagum.
+- Keezhe 3 compare options-um simple jargon help-um irukku.
+
+Safety:
+- Oru bank-il Rs 5 lakh varai deposits-ku DICGC paadhukaappu irukkum.
+
+Next step:
+- Thogai, tenure, allathu safety concern sollunga; naan options-ai innum narrow seyyuven.`;
   }
 
   if (language === "bn") {
-    return `${topCard.bankName} ${formatTenorLabel(
+    return `Summary:
+- ${topCard.bankName} ${formatTenorLabel(
       tenorMonths,
       language
-    )} meyader jonno bhalo option mone hocche. ${formatCurrency(
+    )} meyader jonno bhalo option mone hocche.
+
+Top options:
+- ${formatCurrency(
       amount
     )} e maturity prai ${formatCurrency(
       topCard.maturityAmount
-    )} hobe. Niche 3 ta compare option aar shohoj jargon help deya holo.`;
+    )} hobe.
+- Niche 3 ta compare option aar shohoj jargon help deya holo.
+
+Safety:
+- Ek bank-e Rs 5 lakh porjonto deposit-e sadharonoto DICGC cover thake.
+
+Next step:
+- Poriman, meyad ba safety concern bolun; ami options aro narrow kore debo.`;
   }
 
-  return `${topCard.bankName} looks strongest for a ${formatTenorLabel(
+  return `Summary:
+- ${topCard.bankName} looks strongest for a ${formatTenorLabel(
     tenorMonths,
     language
-  )} FD. On ${formatCurrency(amount)}, maturity is about ${formatCurrency(
+  )} FD.
+
+Top options:
+- On ${formatCurrency(amount)}, maturity is about ${formatCurrency(
     topCard.maturityAmount
-  )}. I have added three clear options and jargon help below.`;
+  )}.
+- I added three clear options below so you can compare return and safety quickly.
+
+Safety:
+- Deposits up to Rs 5 lakh per bank are typically protected by DICGC cover.
+
+Next step:
+- Share your amount, tenure, or safety concern and I will narrow this further.`;
 }
 
 export async function buildDeterministicAdvisorResponse(params: {
@@ -336,20 +380,33 @@ export async function buildDeterministicAdvisorResponse(params: {
   tenorMonths: number;
   seniorCitizen?: boolean;
   bankType?: BankTypeFilter;
+  preferredBankIds?: string[];
   glossaryTermIds: string[];
 }) {
-  const { amount, bankType, glossaryTermIds, language, seniorCitizen, tenorMonths } =
-    params;
+  const {
+    amount,
+    bankType,
+    glossaryTermIds,
+    language,
+    preferredBankIds,
+    seniorCitizen,
+    tenorMonths,
+  } = params;
 
   const rates = await getFDRates({
     amount,
     tenorMonths,
     seniorCitizen,
     bankType,
-    limit: 3,
   });
+  const preferredBankSet = new Set(preferredBankIds ?? []);
+  const candidateRates =
+    preferredBankSet.size > 0
+      ? rates.filter((rate) => preferredBankSet.has(rate.id))
+      : rates;
+  const topRates = candidateRates.slice(0, 3);
 
-  const rateCards = rates.map((rate) =>
+  const rateCards = topRates.map((rate) =>
     createAdvisorRateCard({
       rate,
       amount,

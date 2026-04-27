@@ -18,6 +18,34 @@ type StoredChatSession = {
 
 const chatSessionMemoryStore = new Map<string, StoredChatSession>();
 
+export async function getChatSessionOwner(threadId: string) {
+  const memorySession = chatSessionMemoryStore.get(threadId);
+  if (memorySession?.userId) {
+    return memorySession.userId;
+  }
+
+  const db = getFirebaseAdminDb();
+  if (!db) {
+    return null;
+  }
+
+  try {
+    const snapshot = await db.collection("chatSessions").doc(threadId).get();
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    const data = snapshot.data() as Partial<StoredChatSession> | undefined;
+    return data?.userId ?? null;
+  } catch (error) {
+    logServerError("chat_session_owner_lookup_failed", {
+      threadId,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return null;
+  }
+}
+
 export async function persistChatSessionTurn(input: {
   threadId: string;
   userId?: string;

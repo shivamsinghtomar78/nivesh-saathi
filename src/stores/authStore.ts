@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 type AuthUser = {
   uid: string;
@@ -23,24 +22,15 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      status: "idle",
-      setStatus: (status) => set({ status }),
-      setUser: (user) =>
-        set({
-          user,
-          status: user ? "authenticated" : "unauthenticated",
-        }),
-      clearUser: () => set({ user: null, status: "unauthenticated" }),
-    }),
-    {
-      name: "nivesh-auth",
-      partialize: (state) => ({
-        user: state.user,
-        status: state.status,
+  (set) => ({
+    user: null,
+    status: "loading",
+    setStatus: (status) => set({ status }),
+    setUser: (user) =>
+      set({
+        user,
+        status: user ? "authenticated" : "unauthenticated",
       }),
-    }
-  )
+    clearUser: () => set({ user: null, status: "unauthenticated" }),
+  })
 );

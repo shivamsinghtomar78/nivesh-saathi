@@ -23,7 +23,6 @@ import { toast } from "sonner";
 
 import JargonSidebar from "@/components/compare/JargonSidebar";
 import BottomNav from "@/components/layout/BottomNav";
-import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import EmptyRatesState from "@/components/shared/EmptyRatesState";
@@ -458,7 +457,6 @@ export default function FDComparisonPage() {
         </section>
       </main>
 
-      <Footer />
       <BottomNav />
 
       <AnimatePresence>

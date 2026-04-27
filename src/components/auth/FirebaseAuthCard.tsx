@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { withCsrfHeaders } from "@/lib/csrf";
 import { firebaseAuth } from "@/lib/firebase";
 import { ROUTES } from "@/lib/routes";
 import { useAuthStore } from "@/stores/authStore";
@@ -81,9 +82,9 @@ async function createServerSession(user: User) {
   const idToken = await user.getIdToken();
   const response = await fetch("/api/auth/session", {
     method: "POST",
-    headers: {
+    headers: withCsrfHeaders({
       "Content-Type": "application/json",
-    },
+    }),
     body: JSON.stringify({ idToken }),
   });
 
@@ -223,7 +224,10 @@ export default function FirebaseAuthCard() {
   const handleSignOut = async () => {
     setBusyAction("sign-out");
     await signOut(firebaseAuth).catch(() => undefined);
-    await fetch("/api/auth/session", { method: "DELETE" }).catch(() => undefined);
+    await fetch("/api/auth/session", {
+      method: "DELETE",
+      headers: withCsrfHeaders(),
+    }).catch(() => undefined);
     clearUser();
     setBusyAction(null);
     toast.success("Signed out.");

@@ -69,13 +69,14 @@ export type AdvisorResponse = z.infer<typeof advisorResponseSchema>;
 
 export const chatRequestSchema = z.object({
   message: z.string().trim().min(1).max(800),
-  language: appLanguageSchema.default("hi"),
+  language: appLanguageSchema.default("en"),
   threadId: z.string().trim().optional(),
   userId: z.string().trim().optional(),
   amount: z.number().int().positive().optional(),
   tenorMonths: z.number().int().positive().optional(),
   seniorCitizen: z.boolean().optional(),
   bankType: bankTypeFilterSchema.optional(),
+  shortlistBankIds: z.array(z.string().trim().min(1)).max(10).optional(),
 });
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
 

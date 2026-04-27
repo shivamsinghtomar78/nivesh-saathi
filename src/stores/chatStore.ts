@@ -73,11 +73,19 @@ const initialMessages = (language: AppLanguage): ChatMessage[] => [
   },
 ];
 
+function getInitialEnglishState() {
+  return {
+    messages: initialMessages("en"),
+    language: "en" as AppLanguage,
+    threadId: null,
+  };
+}
+
 export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
-      messages: initialMessages("hi"),
-      language: "hi",
+      messages: initialMessages("en"),
+      language: "en",
       threadId: null,
       isTyping: false,
       addMessage: (msg) =>
@@ -97,11 +105,13 @@ export const useChatStore = create<ChatState>()(
     }),
     {
       name: "nivesh-chat",
+      version: 2,
       partialize: (state) => ({
         messages: state.messages,
         language: state.language,
         threadId: state.threadId,
       }),
+      migrate: () => getInitialEnglishState(),
     }
   )
 );

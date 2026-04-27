@@ -50,6 +50,7 @@ const agentState = new StateSchema({
   requestedTenorMonths: z.number().optional(),
   seniorCitizen: z.boolean().optional(),
   bankType: z.enum(["all", "public", "private", "small-finance"]).optional(),
+  shortlistBankIds: z.array(z.string()).optional(),
   intent: detectedIntentSchema.optional(),
   response: advisorResponseSchema.optional(),
 });
@@ -292,7 +293,7 @@ async function assembleResponseNode(state: typeof agentState.State) {
   const amount = intent.amount ?? state.requestedAmount ?? DEFAULT_AMOUNT;
   const tenorMonths =
     intent.tenorMonths ?? state.requestedTenorMonths ?? DEFAULT_TENOR_MONTHS;
-  const language = (state.language ?? "hi") as AppLanguage;
+  const language = (state.language ?? "en") as AppLanguage;
 
   const response = await buildDeterministicAdvisorResponse({
     language,
@@ -300,6 +301,7 @@ async function assembleResponseNode(state: typeof agentState.State) {
     tenorMonths,
     seniorCitizen: intent.seniorCitizen || state.seniorCitizen,
     bankType: intent.bankType,
+    preferredBankIds: state.shortlistBankIds,
     glossaryTermIds: intent.termsToExplain,
   });
 
@@ -308,13 +310,14 @@ async function assembleResponseNode(state: typeof agentState.State) {
 
 async function narrateNode(state: typeof agentState.State) {
   const response = state.response;
-  const language = (state.language ?? "hi") as AppLanguage;
+  const language = (state.language ?? "en") as AppLanguage;
 
   if (!response) {
     const fallback = await buildDeterministicAdvisorResponse({
       language,
       amount: DEFAULT_AMOUNT,
       tenorMonths: DEFAULT_TENOR_MONTHS,
+      preferredBankIds: state.shortlistBankIds,
       glossaryTermIds: ["pa", "tenor", "dicgc"],
     });
 
@@ -339,7 +342,7 @@ async function narrateNode(state: typeof agentState.State) {
     {
       role: "system",
       content:
-        "You are Nivesh Saathi, a warm fixed deposit guide for India. Write in the user's requested language, keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings.",
+        "You are Nivesh Saathi, a warm fixed deposit guide for India. Write in the user's requested language, keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings. Structure text with short labelled sections and hyphen bullets. Use plain text only: no markdown bold markers, no asterisks, and no tables. If language is en, answer in English only.",
     },
     {
       role: "user",
@@ -407,6 +410,7 @@ export async function invokeFdAdvisor(input: ChatRequest) {
       requestedTenorMonths: input.tenorMonths,
       seniorCitizen: input.seniorCitizen,
       bankType: input.bankType,
+      shortlistBankIds: input.shortlistBankIds,
     },
     {
       configurable: {
@@ -425,6 +429,7 @@ export async function invokeFdAdvisor(input: ChatRequest) {
         tenorMonths: input.tenorMonths ?? DEFAULT_TENOR_MONTHS,
         seniorCitizen: input.seniorCitizen,
         bankType: input.bankType,
+        preferredBankIds: input.shortlistBankIds,
         glossaryTermIds: ["pa", "tenor", "dicgc"],
       })),
   };

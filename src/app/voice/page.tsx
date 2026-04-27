@@ -1,26 +1,43 @@
 "use client";
 
-import { startTransition, useEffect, useState } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AudioLines,
+  Bot,
   ExternalLink,
+  Languages,
   Mic,
+  MicOff,
   Send,
+  Sparkles,
+  Square,
+  Volume2,
   Waves,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import AuthGate from "@/components/auth/AuthGate";
 import BottomNav from "@/components/layout/BottomNav";
-import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
+import StructuredAnswer from "@/components/shared/StructuredAnswer";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { APP_COPY } from "@/lib/copy";
+import { withCsrfHeaders } from "@/lib/csrf";
 import { LANGUAGE_META, type SupportedLanguage } from "@/lib/languages";
 import { ROUTES } from "@/lib/routes";
+import { useAuthStore } from "@/stores/authStore";
+import { useChatStore } from "@/stores/chatStore";
+import { useCompareStore } from "@/stores/compareStore";
 
 type VoiceAdvisorResponse = {
   ok: boolean;
@@ -59,13 +76,17 @@ type VoiceAdvisorResponse = {
 const quickSuggestions = [
   "Best FD for Rs 50,000 for 12 months",
   "Is a small finance bank safe for my FD?",
-  "Explain p.a. and maturity in simple words",
+  "Explain p.a., tenure, and maturity in simple words",
 ];
 
 export default function VoiceInputPage() {
   const router = useRouter();
-  const [selectedLang, setSelectedLang] = useState<SupportedLanguage>("hi");
-  const copy = APP_COPY[selectedLang];
+  const language = useChatStore((state) => state.language);
+  const setLanguage = useChatStore((state) => state.setLanguage);
+  const shortlist = useCompareStore((state) => state.shortlist);
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.uid;
+  const copy = APP_COPY[language];
   const [query, setQuery] = useState("");
   const [threadId, setThreadId] = useState<string | null>(null);
   const [advisorText, setAdvisorText] = useState("");
@@ -77,73 +98,129 @@ export default function VoiceInputPage() {
   >([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [duplexEnabled, setDuplexEnabled] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const duplexRef = useRef(false);
+  const lastSpokenTextRef = useRef("");
 
-  const submitQuery = async (rawMessage?: string) => {
-    const message = (rawMessage ?? query).trim();
-    if (!message || isSubmitting) {
-      return;
-    }
+  useEffect(() => {
+    duplexRef.current = duplexEnabled;
+  }, [duplexEnabled]);
 
-    setIsSubmitting(true);
-    setSubmitError(null);
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message,
-          language: selectedLang,
-          threadId: threadId ?? undefined,
-        }),
-      });
-      const payload = (await response.json()) as VoiceAdvisorResponse;
-
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || "Unable to reach the advisor right now.");
+  const submitQuery = useCallback(
+    async (rawMessage?: string) => {
+      const message = (rawMessage ?? query).trim();
+      if (!message || isSubmitting) {
+        return;
       }
 
-      setThreadId(payload.threadId);
-      setAdvisorText(payload.response.text);
-      setRateCards(payload.response.rateCards ?? []);
-      setActions(payload.response.actions ?? []);
-      setQuery(message);
-    } catch (error) {
-      const nextError =
-        error instanceof Error
-          ? error.message
-          : "Unable to reach the advisor right now.";
-      setSubmitError(nextError);
-      toast.error(nextError);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      setIsSubmitting(true);
+      setSubmitError(null);
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: withCsrfHeaders({
+            "Content-Type": "application/json",
+          }),
+          body: JSON.stringify({
+            message,
+            language,
+            threadId: threadId ?? undefined,
+            userId,
+            shortlistBankIds: shortlist,
+          }),
+        });
+        const payload = (await response.json()) as VoiceAdvisorResponse;
+
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error || "Unable to reach the advisor right now.");
+        }
+
+        setThreadId(payload.threadId);
+        setAdvisorText(payload.response.text);
+        setRateCards(payload.response.rateCards ?? []);
+        setActions(payload.response.actions ?? []);
+        setQuery(message);
+      } catch (error) {
+        const nextError =
+          error instanceof Error
+            ? error.message
+            : "Unable to reach the advisor right now.";
+        setSubmitError(nextError);
+        toast.error(nextError);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [isSubmitting, language, query, shortlist, threadId, userId]
+  );
 
   const voice = useVoiceInput({
-    language: selectedLang,
+    language,
     onTranscript: (transcript) => {
       setQuery(transcript);
       void submitQuery(transcript);
     },
   });
 
+  const startListeningRef = useRef(voice.startListening);
+
+  useEffect(() => {
+    startListeningRef.current = voice.startListening;
+  }, [voice.startListening]);
+
   useEffect(() => {
     if (!advisorText || typeof window === "undefined" || !window.speechSynthesis) {
       return;
     }
 
+    if (lastSpokenTextRef.current === advisorText) {
+      return;
+    }
+
+    lastSpokenTextRef.current = advisorText;
     window.speechSynthesis.cancel();
+
     const utterance = new SpeechSynthesisUtterance(advisorText);
-    utterance.lang = LANGUAGE_META[selectedLang].speechSynthesis;
+    utterance.lang = LANGUAGE_META[language].speechSynthesis;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      if (duplexRef.current) {
+        window.setTimeout(() => {
+          void startListeningRef.current();
+        }, 450);
+      }
+    };
+    utterance.onerror = () => setIsSpeaking(false);
+
     window.speechSynthesis.speak(utterance);
 
     return () => {
-      window.speechSynthesis.cancel();
+      utterance.onstart = null;
+      utterance.onend = null;
+      utterance.onerror = null;
     };
-  }, [advisorText, selectedLang]);
+  }, [advisorText, language]);
+
+  const stopConversation = useCallback(() => {
+    setDuplexEnabled(false);
+    voice.stopListening();
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  }, [voice]);
+
+  const startDuplexConversation = () => {
+    setDuplexEnabled(true);
+    setSubmitError(null);
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    void voice.startListening();
+  };
 
   const handleAction = (
     action: NonNullable<VoiceAdvisorResponse["response"]["actions"]>[number]
@@ -173,68 +250,130 @@ export default function VoiceInputPage() {
   };
 
   const transcriptPreview = voice.transcript || query;
+  const status = useMemo(() => {
+    if (isSpeaking) {
+      return {
+        label: "Speaking",
+        body: "Saathi is answering out loud. Duplex mode will listen again after this reply.",
+      };
+    }
+
+    if (isSubmitting) {
+      return {
+        label: "Thinking",
+        body: "Saathi is checking rates, safety context, and plain-language explanation.",
+      };
+    }
+
+    if (voice.isProcessing) {
+      return {
+        label: "Transcribing",
+        body: "Converting your voice into text before sending it to Saathi.",
+      };
+    }
+
+    if (voice.isListening) {
+      return {
+        label: "Listening",
+        body: "Ask your FD question naturally. Pause when you are done.",
+      };
+    }
+
+    if (duplexEnabled) {
+      return {
+        label: "Ready",
+        body: "Duplex mode is on. Tap the mic if your browser needs a manual restart.",
+      };
+    }
+
+    return {
+      label: "Idle",
+      body: "Start a two-way voice conversation or ask one question by mic.",
+    };
+  }, [
+    duplexEnabled,
+    isSpeaking,
+    isSubmitting,
+    voice.isListening,
+    voice.isProcessing,
+  ]);
 
   return (
     <>
       <Navbar />
       <Sidebar />
 
-      <main className="min-h-screen pt-16 lg:ml-72">
-        <section className="relative overflow-hidden px-4 py-8 md:px-6">
-          <div className="relative mx-auto max-w-5xl">
-            <AuthGate
-              title="Voice guidance works best with a signed-in session"
-              body="Firebase sign-in keeps your conversation context and lets the voice flow fit naturally into the compare-to-chat journey."
-            >
-              <div className="rounded-[36px] border border-outline bg-panel p-6 shadow-soft md:p-8">
-                <div className="text-center">
-                  <p className="text-xs uppercase tracking-[0.24em] text-highlight">
-                    Voice advisor
-                  </p>
-                  <h1 className="mt-3 text-4xl font-semibold text-text-strong md:text-5xl">
-                    {copy.voice.title}
-                  </h1>
-                  <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-text-muted">
-                    {copy.voice.subtitle}
-                  </p>
+      <main className="min-h-screen bg-app pb-24 pt-16 lg:ml-72 lg:pb-10">
+        <section className="mx-auto max-w-6xl px-4 py-6 md:px-6">
+          <AuthGate
+            title="Voice guidance works best with a signed-in session"
+            body="Firebase sign-in keeps your conversation context and lets the voice flow feel like a trusted advisor instead of a one-off recorder."
+          >
+            <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+              <motion.section
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-[32px] border border-outline bg-panel p-5 shadow-soft md:p-6"
+              >
+                <div className="inline-flex items-center gap-2 rounded-full border border-outline bg-panel-strong px-4 py-2 text-xs uppercase tracking-[0.2em] text-highlight">
+                  <Sparkles className="h-4 w-4" />
+                  Duplex voice agent
                 </div>
 
-                <div className="mt-8 flex flex-wrap justify-center gap-3">
-                  {(Object.keys(LANGUAGE_META) as SupportedLanguage[]).map((language) => (
-                    <button
-                      key={language}
-                      type="button"
-                      onClick={() => setSelectedLang(language)}
-                      className={`min-h-12 rounded-full px-5 text-sm font-semibold transition ${
-                        selectedLang === language
-                          ? "bg-highlight text-black"
-                          : "border border-outline bg-panel-strong text-text-strong hover:border-highlight hover:text-highlight"
-                      }`}
-                    >
-                      {LANGUAGE_META[language].label}
-                    </button>
-                  ))}
-                </div>
+                <h1 className="mt-5 text-3xl font-semibold leading-tight text-text-strong md:text-4xl">
+                  Talk to Saathi, then hear the answer back.
+                </h1>
+                <p className="mt-4 text-sm leading-7 text-text-muted">
+                  English is the default. Change the language before speaking if you
+                  want Saathi to listen and respond in Hindi, Tamil, or Bengali.
+                </p>
 
-                <div className="mt-10 flex flex-col items-center">
-                  <div className="relative flex items-center justify-center">
-                    {voice.isListening && (
-                      <>
-                        <div className="absolute h-32 w-32 rounded-full border border-highlight/30 animate-pulse-ring" />
-                        <div
-                          className="absolute h-44 w-44 rounded-full border border-highlight/20 animate-pulse-ring"
-                          style={{ animationDelay: "0.4s" }}
-                        />
-                        <div
-                          className="absolute h-56 w-56 rounded-full border border-highlight/10 animate-pulse-ring"
-                          style={{ animationDelay: "0.8s" }}
-                        />
-                      </>
+                <label className="mt-5 flex min-h-12 items-center gap-3 rounded-2xl border border-outline bg-app px-4 text-sm font-semibold text-text-strong focus-within:border-highlight">
+                  <Languages className="h-4 w-4 text-highlight" />
+                  <select
+                    value={language}
+                    onChange={(event) =>
+                      setLanguage(event.target.value as SupportedLanguage)
+                    }
+                    className="w-full bg-transparent outline-none"
+                    aria-label="Choose voice language"
+                  >
+                    {(Object.keys(LANGUAGE_META) as SupportedLanguage[]).map(
+                      (code) => (
+                        <option key={code} value={code} className="bg-slate-950">
+                          {LANGUAGE_META[code].label}
+                        </option>
+                      )
                     )}
+                  </select>
+                </label>
+
+                <div className="mt-8 flex justify-center">
+                  <div className="relative flex h-56 w-56 items-center justify-center">
+                    <AnimatePresence>
+                      {(voice.isListening || isSpeaking) && (
+                        <>
+                          {[0, 1, 2].map((index) => (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0.4, scale: 0.7 }}
+                              animate={{ opacity: 0, scale: 1.35 + index * 0.2 }}
+                              exit={{ opacity: 0 }}
+                              transition={{
+                                duration: 1.8,
+                                repeat: Infinity,
+                                delay: index * 0.32,
+                              }}
+                              className="absolute h-36 w-36 rounded-full border border-highlight/40"
+                            />
+                          ))}
+                        </>
+                      )}
+                    </AnimatePresence>
 
                     <motion.button
                       type="button"
-                      whileTap={{ scale: 0.96 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() =>
                         voice.isListening
                           ? voice.stopListening()
@@ -242,38 +381,94 @@ export default function VoiceInputPage() {
                       }
                       disabled={!voice.isSupported || voice.isProcessing || isSubmitting}
                       className={`relative z-10 flex h-28 w-28 items-center justify-center rounded-full text-black shadow-soft transition ${
-                        voice.isListening ? "bg-emerald-400" : "bg-highlight"
+                        voice.isListening
+                          ? "bg-emerald-400"
+                          : isSpeaking
+                            ? "bg-sky-300"
+                            : "bg-highlight"
                       } disabled:opacity-60`}
-                      aria-label="Mic dabao aur bol do"
+                      aria-label={
+                        voice.isListening ? "Stop listening" : "Start voice input"
+                      }
                     >
-                      <Mic className="h-10 w-10" />
+                      {voice.isListening ? (
+                        <MicOff className="h-10 w-10" />
+                      ) : isSpeaking ? (
+                        <Volume2 className="h-10 w-10" />
+                      ) : (
+                        <Mic className="h-10 w-10" />
+                      )}
                     </motion.button>
-                  </div>
-
-                  <div className="mt-8 max-w-3xl text-center">
-                    <p className="min-h-16 text-xl leading-8 text-text-strong md:text-2xl">
-                      {transcriptPreview ||
-                        "Press the mic and ask your FD question in your language."}
-                    </p>
-                    <div className="mt-4 flex items-center justify-center gap-3 text-sm text-text-muted">
-                      <Waves className="h-4 w-4 text-highlight" />
-                      <span>
-                        {voice.error
-                          ? voice.error
-                          : voice.isProcessing || isSubmitting
-                            ? "Processing your request..."
-                            : voice.isListening
-                              ? "Listening..."
-                              : "Browser speech runs first. Deepgram handles the fallback."}
-                      </span>
-                    </div>
-                    {submitError ? (
-                      <p className="mt-3 text-sm text-red-300">{submitError}</p>
-                    ) : null}
                   </div>
                 </div>
 
-                <div className="mt-8 rounded-[28px] border border-outline bg-app p-4">
+                <div className="mt-4 rounded-[26px] border border-outline bg-app p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-highlight/12 text-highlight">
+                      <Waves className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-text-strong">
+                        {status.label}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-text-muted">
+                        {voice.error || status.body}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={startDuplexConversation}
+                    disabled={!voice.isSupported || isSubmitting || isSpeaking}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-highlight px-5 text-sm font-semibold text-black transition hover:brightness-110 disabled:opacity-60"
+                  >
+                    <AudioLines className="h-4 w-4" />
+                    Start duplex
+                  </button>
+                  <button
+                    type="button"
+                    onClick={stopConversation}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-outline bg-panel-strong px-5 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
+                  >
+                    <Square className="h-4 w-4" />
+                    Stop
+                  </button>
+                </div>
+              </motion.section>
+
+              <motion.section
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.08 }}
+                className="rounded-[32px] border border-outline bg-panel p-5 shadow-soft md:p-6"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-highlight text-black">
+                    <Bot className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-highlight">
+                      Voice workspace
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold text-text-strong">
+                      Question, answer, and actions in one place
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="mt-5 rounded-[26px] border border-outline bg-app p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-text-muted">
+                    Current question
+                  </p>
+                  <p className="mt-3 min-h-14 text-base leading-7 text-text-strong">
+                    {transcriptPreview || "Tap the mic or type your FD question."}
+                  </p>
+                </div>
+
+                <div className="mt-4 rounded-[26px] border border-outline bg-app p-3">
                   <div className="flex flex-col gap-3 md:flex-row">
                     <input
                       className="min-h-12 flex-1 rounded-2xl border border-outline bg-panel px-4 text-base text-text-strong outline-none transition focus:border-highlight"
@@ -295,7 +490,7 @@ export default function VoiceInputPage() {
                     </button>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap justify-center gap-3">
+                  <div className="mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1">
                     {quickSuggestions.map((suggestion) => (
                       <button
                         key={suggestion}
@@ -304,7 +499,7 @@ export default function VoiceInputPage() {
                           setQuery(suggestion);
                           void submitQuery(suggestion);
                         }}
-                        className="rounded-full border border-outline bg-panel px-4 py-2 text-sm text-text-muted transition hover:border-highlight hover:text-text-strong"
+                        className="min-h-10 shrink-0 snap-start rounded-full border border-outline bg-panel px-4 text-sm text-text-muted transition hover:border-highlight hover:text-text-strong"
                       >
                         {suggestion}
                       </button>
@@ -312,27 +507,28 @@ export default function VoiceInputPage() {
                   </div>
                 </div>
 
+                {submitError ? (
+                  <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                    {submitError}
+                  </div>
+                ) : null}
+
                 {(advisorText || rateCards.length > 0) && (
-                  <motion.section
-                    initial={{ opacity: 0, y: 18 }}
+                  <motion.div
+                    initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-8 rounded-[32px] border border-outline bg-panel-strong p-5"
+                    className="mt-5 rounded-[28px] border border-outline bg-panel-strong p-4"
                   >
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.24em] text-highlight">
-                        Saathi response
-                      </p>
-                      <p className="mt-3 text-base leading-7 text-text-strong">
-                        {advisorText}
-                      </p>
-                    </div>
+                    {advisorText ? (
+                      <StructuredAnswer text={advisorText} />
+                    ) : null}
 
                     {rateCards.length > 0 && (
-                      <div className="mt-5 grid gap-4 md:grid-cols-3">
+                      <div className="mt-5 grid gap-3 md:grid-cols-3">
                         {rateCards.map((card) => (
                           <div
                             key={card.bankId}
-                            className="rounded-[24px] border border-outline bg-app p-4"
+                            className="rounded-[22px] border border-outline bg-app p-4"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div>
@@ -347,7 +543,7 @@ export default function VoiceInputPage() {
                                 ) : null}
                               </div>
                               {card.badge ? (
-                                <span className="rounded-full border border-highlight/30 bg-highlight/12 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-highlight">
+                                <span className="rounded-full border border-highlight/30 bg-highlight/12 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-highlight">
                                   {card.badge}
                                 </span>
                               ) : null}
@@ -356,7 +552,9 @@ export default function VoiceInputPage() {
                             <p className="mt-4 font-mono text-3xl font-semibold text-highlight">
                               {card.rate}
                             </p>
-                            <p className="mt-1 text-sm text-text-muted">{card.tenorLabel}</p>
+                            <p className="mt-1 text-sm text-text-muted">
+                              {card.tenorLabel}
+                            </p>
                             <p className="mt-3 text-sm font-medium text-emerald-300">
                               {card.maturityPreview}
                             </p>
@@ -405,20 +603,14 @@ export default function VoiceInputPage() {
                         ))}
                       </div>
                     )}
-
-                    <div className="mt-5 flex items-center gap-3 rounded-2xl border border-outline bg-panel px-4 py-3 text-sm text-text-muted">
-                      <AudioLines className="h-4 w-4 text-highlight" />
-                      Spoken reply is enabled for the selected language when your browser supports it.
-                    </div>
-                  </motion.section>
+                  </motion.div>
                 )}
-              </div>
-            </AuthGate>
-          </div>
+              </motion.section>
+            </div>
+          </AuthGate>
         </section>
       </main>
 
-      <Footer />
       <BottomNav />
     </>
   );

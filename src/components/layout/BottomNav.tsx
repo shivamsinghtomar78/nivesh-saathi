@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageCircleMore, Mic, Radar, Sparkles } from "lucide-react";
+import { MessageCircleMore, Mic, Radar } from "lucide-react";
 
 import { APP_COPY } from "@/lib/copy";
 import { ROUTES } from "@/lib/routes";
@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import { useChatStore } from "@/stores/chatStore";
 
 const tabs = [
-  { href: ROUTES.HOME, key: "home", icon: Sparkles },
   { href: ROUTES.COMPARE, key: "compare", icon: Radar },
   { href: ROUTES.CHAT, key: "chat", icon: MessageCircleMore },
   { href: ROUTES.VOICE, key: "voice", icon: Mic },
@@ -23,7 +22,7 @@ export default function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline bg-panel/95 backdrop-blur-xl lg:hidden">
-      <div className="mx-auto grid h-16 max-w-xl grid-cols-4">
+      <div className="mx-auto grid h-16 max-w-xl grid-cols-3">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = pathname === tab.href;
