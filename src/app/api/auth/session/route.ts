@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 
+import { jsonError, jsonSuccess, handleRouteError } from "@/lib/server/api";
 import { getFirebaseAdminAuth } from "@/lib/server/firebase-admin";
 
 export const runtime = "nodejs";
@@ -16,10 +17,7 @@ export async function POST(request: Request) {
     const adminAuth = getFirebaseAdminAuth();
 
     if (!adminAuth) {
-      return Response.json(
-        { error: "Firebase admin is not configured" },
-        { status: 503 }
-      );
+      return jsonError("Firebase admin is not configured", 503);
     }
 
     const expiresIn = 60 * 60 * 24 * 7 * 1000;
@@ -36,19 +34,11 @@ export async function POST(request: Request) {
       path: "/",
     });
 
-    return Response.json({ success: true });
+    return jsonSuccess({ success: true });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return Response.json(
-        { error: "Invalid session request", details: error.flatten() },
-        { status: 400 }
-      );
-    }
-
-    return Response.json(
-      { error: "Unable to create session" },
-      { status: 500 }
-    );
+    return handleRouteError(error, "Unable to create session", {
+      zodMessage: "Invalid session request",
+    });
   }
 }
 
@@ -56,5 +46,5 @@ export async function DELETE() {
   const cookieStore = await cookies();
   cookieStore.delete("__session");
 
-  return Response.json({ success: true });
+  return jsonSuccess({ success: true });
 }

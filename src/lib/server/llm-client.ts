@@ -3,6 +3,7 @@ import {
   hasOpenRouterConfig,
   serverEnv,
 } from "@/lib/server/env";
+import { logServerWarn } from "@/lib/server/telemetry";
 
 export type LlmMessage = {
   role: "system" | "user" | "assistant";
@@ -12,6 +13,7 @@ export type LlmMessage = {
 type InvokeLlmOptions = {
   temperature?: number;
   maxTokens?: number;
+  timeoutMs?: number;
 };
 
 function splitSystemPrompt(messages: LlmMessage[]) {
@@ -24,38 +26,56 @@ function splitSystemPrompt(messages: LlmMessage[]) {
   return { system, conversation };
 }
 
-async function invokeGemini(messages: LlmMessage[], options: InvokeLlmOptions) {
-  if (!serverEnv.GEMINI_API_KEY) {
-    throw new Error("Gemini API key is missing");
-  }
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number
+) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function invokeGemini(messages: LlmMessage[], options: InvokeLlmOptions) {
   const { system, conversation } = splitSystemPrompt(messages);
   const endpoint = new URL(
     `https://generativelanguage.googleapis.com/v1beta/models/${serverEnv.GEMINI_MODEL}:generateContent`
   );
   endpoint.searchParams.set("key", serverEnv.GEMINI_API_KEY);
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      systemInstruction: system
-        ? {
-            parts: [{ text: system }],
-          }
-        : undefined,
-      contents: conversation.map((message) => ({
-        role: message.role === "assistant" ? "model" : "user",
-        parts: [{ text: message.content }],
-      })),
-      generationConfig: {
-        temperature: options.temperature ?? 0.2,
-        maxOutputTokens: options.maxTokens ?? 900,
+  const response = await fetchWithTimeout(
+    endpoint,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    }),
-  });
+      body: JSON.stringify({
+        systemInstruction: system
+          ? {
+              parts: [{ text: system }],
+            }
+          : undefined,
+        contents: conversation.map((message) => ({
+          role: message.role === "assistant" ? "model" : "user",
+          parts: [{ text: message.content }],
+        })),
+        generationConfig: {
+          temperature: options.temperature ?? 0.2,
+          maxOutputTokens: options.maxTokens ?? 900,
+        },
+      }),
+    },
+    options.timeoutMs ?? 12000
+  );
 
   if (!response.ok) {
     throw new Error(`Gemini request failed with ${response.status}`);
@@ -86,25 +106,25 @@ async function invokeOpenRouter(
   messages: LlmMessage[],
   options: InvokeLlmOptions
 ) {
-  if (!serverEnv.OPENROUTER_API_KEY) {
-    throw new Error("OpenRouter API key is missing");
-  }
-
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${serverEnv.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": serverEnv.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-      "X-Title": "Nivesh Saathi",
+  const response = await fetchWithTimeout(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${serverEnv.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": serverEnv.NEXT_PUBLIC_APP_URL,
+        "X-Title": "Nivesh Saathi",
+      },
+      body: JSON.stringify({
+        model: serverEnv.OPENROUTER_MODEL,
+        messages,
+        temperature: options.temperature ?? 0.2,
+        max_tokens: options.maxTokens ?? 900,
+      }),
     },
-    body: JSON.stringify({
-      model: serverEnv.OPENROUTER_MODEL,
-      messages,
-      temperature: options.temperature ?? 0.2,
-      max_tokens: options.maxTokens ?? 900,
-    }),
-  });
+    options.timeoutMs ?? 15000
+  );
 
   if (!response.ok) {
     throw new Error(`OpenRouter request failed with ${response.status}`);
@@ -134,6 +154,10 @@ export async function invokeLlm(
     try {
       return await invokeGemini(messages, options);
     } catch (error) {
+      logServerWarn("gemini_fallback_triggered", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+
       if (!hasOpenRouterConfig) {
         throw error;
       }

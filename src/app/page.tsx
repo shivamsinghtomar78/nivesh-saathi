@@ -1,300 +1,227 @@
-"use client";
-
-import Link from "next/link";
 import Image from "next/image";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import Link from "next/link";
+import {
+  ArrowRight,
+  AudioLines,
+  Banknote,
+  Mic,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+
 import BottomNav from "@/components/layout/BottomNav";
+import Footer from "@/components/layout/Footer";
+import Navbar from "@/components/layout/Navbar";
 import { FD_RATES } from "@/lib/fd-data";
+import { ROUTES } from "@/lib/routes";
+import { formatCurrency } from "@/lib/utils";
 
-const topRates = FD_RATES.sort((a, b) => b.regularRate - a.regularRate).slice(0, 3);
+const topRates = [...FD_RATES]
+  .sort((left, right) => right.regularRate - left.regularRate)
+  .slice(0, 3);
 
+const trustPoints = [
+  { icon: ShieldCheck, label: "Plain-language safety context" },
+  { icon: Banknote, label: "Starts from Rs 500 style guidance" },
+  { icon: AudioLines, label: "Voice-led, low-friction flow" },
+];
 
-
-const badgeLabels: Record<string, { text: string; color: string }> = {
-  "best-value": { text: "Best Value", color: "bg-forest text-white" },
-  popular: { text: "Popular", color: "bg-saffron text-white" },
-  "safe-choice": { text: "Safe Choice", color: "bg-forest-light text-forest-dark" },
-};
+const workflow = [
+  {
+    title: "Compare clearly",
+    body: "Start with a filtered list of FD options instead of a generic chatbot answer.",
+  },
+  {
+    title: "Shortlist with confidence",
+    body: "Save the banks that look promising and keep them across refreshes or sign-ins.",
+  },
+  {
+    title: "Ask Saathi what changed",
+    body: "Use chat or voice to understand safety, maturity, and jargon in plain language.",
+  },
+];
 
 export default function LandingPage() {
   return (
     <>
       <Navbar />
-      <main className="pt-16">
-        {/* ============ HERO SECTION ============ */}
-        <section className="max-w-[1200px] mx-auto px-6 py-12 md:py-24 flex flex-col md:flex-row items-center gap-12">
-          <div className="w-full md:w-[55%] space-y-8">
-            <div className="space-y-4 animate-fade-in">
-              <h1 className="font-heading text-[40px] md:text-[60px] leading-tight text-ink font-bold">
-                Keep your money safe,{" "}
-                <span className="text-saffron">earn more</span>
+      <main className="pb-24 pt-20 lg:pb-10">
+        <section className="relative overflow-hidden px-4 py-10 md:px-6 md:py-16">
+          <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-outline bg-panel px-4 py-2 text-xs uppercase tracking-[0.22em] text-highlight">
+                <Sparkles className="h-4 w-4" />
+                Voice-first FD advisor for Bharat
+              </div>
+
+              <h1 className="clamp-title mt-6 max-w-4xl font-heading font-semibold leading-[0.96] text-text-strong">
+                Apna paisa samajhkar
+                <span className="block text-highlight">FD choose kijiye.</span>
               </h1>
-              <p className="text-lg text-ink-light max-w-lg">
-                Compare 15+ bank FD rates, guided in your language. Build your
-                wealth with certainty and local trust.
+
+              <p className="clamp-section mt-5 max-w-2xl text-text-muted">
+                Nivesh Saathi turns confusing FD tables into a guided flow:
+                compare rates, save a shortlist, then ask in chat or by voice
+                what actually matters for your amount, tenure, and safety needs.
               </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href={ROUTES.COMPARE}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-highlight px-6 py-3 text-sm font-semibold text-black transition hover:brightness-110"
+                >
+                  Compare FD rates
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href={ROUTES.VOICE}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-outline bg-panel px-6 py-3 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
+                >
+                  <Mic className="h-4 w-4" />
+                  Ask by voice
+                </Link>
+              </div>
+
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                {trustPoints.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={item.label}
+                      className="rounded-2xl border border-outline bg-panel px-4 py-4 shadow-soft"
+                    >
+                      <Icon className="h-5 w-5 text-highlight" />
+                      <p className="mt-3 text-sm leading-6 text-text">{item.label}</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* CTAs */}
-            <div className="flex flex-wrap gap-4">
-              <Link
-                href="/compare"
-                className="h-12 px-8 bg-saffron text-white font-bold rounded-lg flex items-center justify-center card-shadow hover:opacity-90 active:scale-95 transition-all"
-                id="cta-compare"
-              >
-                Compare FDs
-              </Link>
-              <Link
-                href="/voice"
-                className="h-12 px-8 border-2 border-saffron text-saffron font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-saffron-bg transition-colors"
-                id="cta-voice"
-              >
-                <span className="material-symbols-outlined text-xl">mic</span>
-                Ask by Voice
-              </Link>
-            </div>
+            <div className="relative">
+              <div className="relative rounded-[32px] border border-outline bg-panel p-4 shadow-soft">
+                <div className="rounded-[28px] border border-outline bg-panel-strong p-3">
+                  <Image
+                    src="/hero-illustration.png"
+                    alt="Family using a phone to compare safe fixed deposit choices"
+                    width={880}
+                    height={880}
+                    priority
+                    sizes="(max-width: 768px) 100vw, 42vw"
+                    className="aspect-[4/4.2] w-full rounded-[22px] object-cover"
+                  />
+                </div>
 
-            {/* Trust Strip */}
-            <div className="pt-6 flex flex-wrap gap-x-6 gap-y-3 items-center border-t border-outline/30">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-forest text-xl">
-                  group
-                </span>
-                <span className="text-sm font-semibold text-ink-muted">
-                  3 Lakh+ users
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-forest text-xl">
-                  payments
-                </span>
-                <span className="text-sm font-semibold text-ink-muted">
-                  Starts at ₹500
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-forest text-xl">
-                  account_balance
-                </span>
-                <span className="text-sm font-semibold text-ink-muted">
-                  15+ Banks
-                </span>
-              </div>
-              <div className="flex items-center gap-2 bg-forest-bg px-3 py-1 rounded-full">
-                <span className="material-symbols-outlined text-forest text-sm">
-                  verified_user
-                </span>
-                <span className="text-xs font-bold text-forest">
-                  DICGC Insured
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Hero Illustration */}
-          <div className="w-full md:w-[45%] flex justify-center">
-            <div className="relative w-full aspect-square max-w-md">
-              <div className="absolute inset-0 bg-saffron-bg hero-mask opacity-40 animate-float"></div>
-              <div className="absolute inset-4 overflow-hidden hero-mask card-shadow-lg bg-white">
-                <Image
-                  src="/hero-illustration.png"
-                  alt="Indian family discussing investments on tablet"
-                  width={500}
-                  height={500}
-                  className="w-full h-full object-cover"
-                  priority
-                />
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {topRates.map((rate) => (
+                    <div
+                      key={rate.id}
+                      className="rounded-2xl border border-outline bg-app px-4 py-4"
+                    >
+                      <p className="text-xs uppercase tracking-[0.2em] text-text-muted">
+                        {rate.bankCode}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-text-strong">
+                        {rate.bankName}
+                      </p>
+                      <p className="mt-4 font-mono text-3xl font-semibold text-highlight">
+                        {rate.regularRate.toFixed(2)}%
+                      </p>
+                      <p className="mt-2 text-xs text-text-muted">{rate.tenorLabel}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ============ LIVE RATES SECTION ============ */}
-        <section className="bg-surface py-16 md:py-20 px-6" id="live-rates">
-          <div className="max-w-[1200px] mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
+        <section className="px-4 py-8 md:px-6 md:py-14">
+          <div className="mx-auto max-w-7xl rounded-[32px] border border-outline bg-panel p-6 shadow-soft md:p-8">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="font-heading text-2xl md:text-3xl font-semibold text-ink">
-                  Today&apos;s Highest Interest Rates
-                </h2>
-                <p className="text-ink-light mt-1">
-                  Live FD rates from top-rated banks updated daily.
+                <p className="text-xs uppercase tracking-[0.24em] text-highlight">
+                  Why this flow wins demos
                 </p>
+                <h2 className="mt-3 text-3xl font-semibold text-text-strong">
+                  One decision path, not five disconnected screens
+                </h2>
               </div>
               <Link
-                href="/compare"
-                className="text-saffron font-bold flex items-center gap-1 hover:underline"
+                href={ROUTES.LOGIN}
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-outline bg-panel-strong px-5 py-3 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
               >
-                View All Rates
-                <span className="material-symbols-outlined">chevron_right</span>
+                Sign in to sync shortlist
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {topRates.map((rate, i) => {
-                const borderColor =
-                  i === 0
-                    ? "border-saffron"
-                    : i === 1
-                    ? "border-forest"
-                    : "border-gold";
-                const rateColor =
-                  i === 0
-                    ? "text-saffron"
-                    : i === 1
-                    ? "text-forest"
-                    : "text-gold";
-                return (
+            <div className="mt-8 grid gap-4 lg:grid-cols-3">
+              {workflow.map((step, index) => (
+                <div
+                  key={step.title}
+                  className="rounded-[28px] border border-outline bg-panel-strong p-5"
+                >
+                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-highlight text-sm font-semibold text-black">
+                    0{index + 1}
+                  </div>
+                  <h3 className="mt-5 text-xl font-semibold text-text-strong">
+                    {step.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-text-muted">{step.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 py-8 md:px-6 md:py-10">
+          <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-[32px] border border-outline bg-panel p-6 shadow-soft">
+              <p className="text-xs uppercase tracking-[0.24em] text-highlight">
+                FD in plain words
+              </p>
+              <h2 className="mt-3 text-3xl font-semibold text-text-strong">
+                Fixed deposit means locked money, fixed return, low drama.
+              </h2>
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-text-muted">
+                You place a fixed amount with a bank for a chosen tenure. The
+                bank gives a known interest rate, so your maturity amount is more
+                predictable than market-linked products. Saathi explains terms
+                like p.a., tenor, DICGC cover, and maturity in a way first-time
+                savers can actually use.
+              </p>
+            </div>
+
+            <div className="rounded-[32px] border border-outline bg-panel p-6 shadow-soft">
+              <p className="text-xs uppercase tracking-[0.24em] text-highlight">
+                Quick lens
+              </p>
+              <div className="mt-4 grid gap-3">
+                {topRates.map((rate) => (
                   <div
-                    key={rate.id}
-                    className={`bg-white p-6 rounded-xl card-shadow border-t-4 ${borderColor} hover:card-shadow-lg transition-shadow animate-fade-in`}
-                    style={{ animationDelay: `${i * 100}ms` }}
+                    key={`${rate.id}-summary`}
+                    className="flex items-center justify-between rounded-2xl border border-outline bg-panel-strong px-4 py-3"
                   >
-                    <div className="flex justify-between items-start mb-5">
-                      <div className="w-12 h-12 bg-cream-dark rounded-lg flex items-center justify-center font-bold text-ink-muted text-sm">
-                        {rate.bankCode}
-                      </div>
-                      {rate.badge && badgeLabels[rate.badge] && (
-                        <span
-                          className={`text-xs px-3 py-1 rounded-full font-bold ${badgeLabels[rate.badge].color}`}
-                        >
-                          {badgeLabels[rate.badge].text}
-                        </span>
-                      )}
+                    <div>
+                      <p className="text-sm font-semibold text-text-strong">
+                        {rate.bankName}
+                      </p>
+                      <p className="mt-1 text-xs text-text-muted">{rate.tenorLabel}</p>
                     </div>
-                    <p className="text-ink-muted text-sm font-semibold mb-1">
-                      Max Interest
-                    </p>
-                    <p className={`font-mono text-[32px] font-semibold ${rateColor} mb-4`}>
-                      {rate.regularRate.toFixed(2)}%{" "}
-                      <span className="text-sm text-ink-muted font-normal">
-                        p.a.
-                      </span>
-                    </p>
-                    <div className="flex justify-between border-t border-cream-dark pt-3 text-sm text-ink-muted">
-                      <span>Tenure: {rate.tenorLabel}</span>
-                      <span className="font-bold">DICGC Insured</span>
+                    <div className="text-right">
+                      <p className="font-mono text-lg font-semibold text-highlight">
+                        {rate.regularRate.toFixed(2)}%
+                      </p>
+                      <p className="text-xs text-text-muted">
+                        {formatCurrency(100000)} demo amount
+                      </p>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* ============ FEATURES BENTO GRID ============ */}
-        <section className="py-16 md:py-24 px-6 max-w-[1200px] mx-auto">
-          <h2 className="font-heading text-2xl md:text-3xl text-center mb-12 font-semibold">
-            Why choose Nivesh Saathi?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-5 md:h-[520px]">
-            {/* Voice — Large Card */}
-            <div className="md:col-span-2 md:row-span-2 bg-saffron-bg/50 p-8 rounded-xl flex flex-col justify-between border border-saffron/20 hover:border-saffron/40 transition-colors">
-              <div className="w-16 h-16 bg-saffron rounded-full flex items-center justify-center text-white mb-6">
-                <span className="material-symbols-outlined text-4xl">
-                  mic_none
-                </span>
-              </div>
-              <div>
-                <h3 className="font-heading text-xl font-semibold mb-2 text-saffron">
-                  Invest by speaking your language
-                </h3>
-                <p className="text-ink-light">
-                  Just ask &quot;Best FD for 1 year?&quot; and we&apos;ll guide
-                  you in Hindi, Tamil, or 5 other languages.
-                </p>
-              </div>
-            </div>
-
-            {/* Compare */}
-            <div className="md:col-span-2 bg-forest-bg/50 p-6 rounded-xl border border-forest/20 flex gap-5 items-center hover:border-forest/40 transition-colors">
-              <div className="w-12 h-12 bg-forest rounded-full flex items-center justify-center text-white shrink-0">
-                <span className="material-symbols-outlined">
-                  compare_arrows
-                </span>
-              </div>
-              <div>
-                <h3 className="font-heading text-lg font-semibold text-forest mb-1">
-                  Accurate Comparison
-                </h3>
-                <p className="text-sm text-ink-light">
-                  No hidden charges. Compare real returns after tax.
-                </p>
-              </div>
-            </div>
-
-            {/* Guided */}
-            <div className="bg-cream-dark/40 p-6 rounded-xl border border-outline/20 hover:border-outline/40 transition-colors">
-              <div className="w-10 h-10 bg-ink-light/10 rounded-full flex items-center justify-center text-ink-light mb-4">
-                <span className="material-symbols-outlined">verified</span>
-              </div>
-              <h3 className="text-sm font-bold mb-2">Guided Booking</h3>
-              <p className="text-xs text-ink-light">
-                Step-by-step help for first-time investors.
-              </p>
-            </div>
-
-            {/* Safe */}
-            <div className="bg-cream-dark/40 p-6 rounded-xl border border-outline/20 hover:border-outline/40 transition-colors">
-              <div className="w-10 h-10 bg-ink-light/10 rounded-full flex items-center justify-center text-ink-light mb-4">
-                <span className="material-symbols-outlined">shield</span>
-              </div>
-              <h3 className="text-sm font-bold mb-2">Safe &amp; Insured</h3>
-              <p className="text-xs text-ink-light">
-                Your money stays in the bank, always.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ============ FD EXPLAINER STRIP ============ */}
-        <section className="bg-ink text-white py-16 md:py-24 px-6 overflow-hidden relative">
-          <div className="absolute right-[-10%] top-0 w-1/2 h-full opacity-5 pointer-events-none flex items-center">
-            <span className="material-symbols-outlined text-[400px]">
-              account_balance
-            </span>
-          </div>
-          <div className="max-w-[800px] mx-auto text-center space-y-6 relative z-10">
-            <h2 className="font-heading text-2xl md:text-3xl font-semibold">
-              What is an FD?
-            </h2>
-            <p className="text-lg text-outline">
-              A Fixed Deposit (FD) is a secure way to keep your money in a bank
-              for a fixed period. In return, the bank gives you much higher
-              interest than a savings account. It is risk-free and your money is
-              insured up to ₹5 Lakhs by DICGC.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-              <div className="space-y-2">
-                <p className="font-mono text-lg text-saffron-light font-semibold">
-                  Guaranteed Returns
-                </p>
-                <p className="text-sm text-ink-muted">
-                  Away from market fluctuations
-                </p>
-              </div>
-              <div className="space-y-2">
-                <p className="font-mono text-lg text-saffron-light font-semibold">
-                  Withdraw Anytime
-                </p>
-                <p className="text-sm text-ink-muted">
-                  Withdrawal possible when needed
-                </p>
-              </div>
-              <div className="space-y-2">
-                <p className="font-mono text-lg text-saffron-light font-semibold">
-                  Loan Facility
-                </p>
-                <p className="text-sm text-ink-muted">
-                  Get an instant loan against your FD
-                </p>
+                ))}
               </div>
             </div>
           </div>
         </section>
-
-
       </main>
 
       <Footer />

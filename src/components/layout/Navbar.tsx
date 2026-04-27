@@ -2,121 +2,171 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogOut, Menu, MessageCircleMore, Mic, Shield, Sparkles, X } from "lucide-react";
 import { useState } from "react";
+import { signOut } from "firebase/auth";
+
+import { APP_COPY, LANGUAGE_LABELS } from "@/lib/copy";
+import { firebaseAuth } from "@/lib/firebase";
+import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
+import { useChatStore } from "@/stores/chatStore";
 
 const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/compare", label: "Invest" },
-  { href: "/voice", label: "Save" },
-  { href: "/chat", label: "Profile" },
-];
+  { href: ROUTES.HOME, key: "home", icon: Sparkles },
+  { href: ROUTES.COMPARE, key: "compare", icon: Shield },
+  { href: ROUTES.CHAT, key: "chat", icon: MessageCircleMore },
+  { href: ROUTES.VOICE, key: "voice", icon: Mic },
+] as const;
 
 export default function Navbar() {
   const pathname = usePathname();
+  const language = useChatStore((state) => state.language);
+  const setLanguage = useChatStore((state) => state.setLanguage);
+  const user = useAuthStore((state) => state.user);
+  const clearUser = useAuthStore((state) => state.clearUser);
   const [langOpen, setLangOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const copy = APP_COPY[language];
+
+  const handleLogout = async () => {
+    await signOut(firebaseAuth).catch(() => undefined);
+    await fetch("/api/auth/session", { method: "DELETE" }).catch(() => undefined);
+    clearUser();
+  };
 
   return (
-    <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 md:px-6 h-16 bg-cream border-b border-ink/10 card-shadow">
-      {/* Logo */}
-      <div className="flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl md:text-2xl font-black text-saffron tracking-tight font-heading">
-            Nivesh Saathi
-          </span>
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-outline bg-panel-glass backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
+        <Link href={ROUTES.HOME} className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-highlight text-black shadow-soft">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="font-heading text-lg font-semibold text-text-strong">
+              Nivesh Saathi
+            </p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted">
+              {copy.tagline}
+            </p>
+          </div>
         </Link>
-      </div>
 
-      {/* Desktop Nav */}
-      <nav className="hidden md:flex items-center gap-8">
-        {navLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={cn(
-              "text-lg font-heading font-medium transition-colors hover:text-saffron",
-              pathname === link.href
-                ? "text-saffron border-b-2 border-saffron pb-1 font-bold"
-                : "text-ink-light"
-            )}
-          >
-            {link.label}
-          </Link>
-        ))}
-      </nav>
+        <nav className="hidden items-center gap-2 md:flex">
+          {navLinks.map((link) => {
+            const Icon = link.icon;
+            const label = copy.nav[link.key];
 
-      {/* Right Actions */}
-      <div className="flex items-center gap-3">
-        {/* Language Switcher */}
-        <div className="relative">
-          <button
-            onClick={() => setLangOpen(!langOpen)}
-            className="p-2 rounded-full hover:bg-cream-dark transition-colors"
-            id="lang-switcher"
-          >
-            <span className="material-symbols-outlined text-saffron">
-              translate
-            </span>
-          </button>
-          {langOpen && (
-            <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg card-shadow border border-outline/30 py-2 animate-fade-in">
-              {["English", "हिंदी", "தமிழ்", "বাংলা"].map((lang) => (
-                <button
-                  key={lang}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-saffron-bg transition-colors"
-                  onClick={() => setLangOpen(false)}
-                >
-                  {lang}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Notifications */}
-        <button className="p-2 rounded-full hover:bg-cream-dark transition-colors relative">
-          <span className="material-symbols-outlined text-saffron">
-            notifications
-          </span>
-          <span className="absolute top-2 right-2 w-2 h-2 bg-saffron rounded-full"></span>
-        </button>
-
-        {/* Profile */}
-        <div className="w-8 h-8 rounded-full bg-saffron text-white flex items-center justify-center text-sm font-bold">
-          N
-        </div>
-
-        {/* Mobile Hamburger */}
-        <button
-          className="md:hidden p-2 rounded-full hover:bg-cream-dark transition-colors"
-          onClick={() => setMobileOpen(!mobileOpen)}
-        >
-          <span className="material-symbols-outlined text-ink">
-            {mobileOpen ? "close" : "menu"}
-          </span>
-        </button>
-      </div>
-
-      {/* Mobile Menu Overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 top-16 bg-cream z-40 md:hidden animate-fade-in">
-          <nav className="flex flex-col p-6 gap-2">
-            {navLinks.map((link) => (
+            return (
               <Link
                 key={link.href}
                 href={link.href}
-                onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "px-4 py-3 rounded-lg text-lg font-heading transition-colors",
+                  "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition",
                   pathname === link.href
-                    ? "bg-saffron-bg text-saffron font-bold"
-                    : "text-ink-light hover:bg-cream-dark"
+                    ? "bg-highlight text-black"
+                    : "text-text-muted hover:bg-panel-strong hover:text-text-strong"
                 )}
               >
-                {link.label}
+                <Icon className="h-4 w-4" />
+                <span>{label}</span>
               </Link>
-            ))}
+            );
+          })}
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="Change language"
+              onClick={() => setLangOpen((value) => !value)}
+              className="inline-flex h-10 items-center rounded-full border border-outline px-3 text-xs font-medium text-text-muted transition hover:border-highlight hover:text-text-strong"
+            >
+              {LANGUAGE_LABELS[language]}
+            </button>
+            {langOpen && (
+              <div className="absolute right-0 mt-2 w-40 rounded-2xl border border-outline bg-panel p-2 shadow-soft">
+                {Object.entries(LANGUAGE_LABELS).map(([code, label]) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => {
+                      setLanguage(code as keyof typeof LANGUAGE_LABELS);
+                      setLangOpen(false);
+                    }}
+                    className="w-full rounded-xl px-3 py-2 text-left text-sm text-text-muted transition hover:bg-panel-strong hover:text-text-strong"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {user ? (
+            <button
+              type="button"
+              aria-label={copy.nav.logout}
+              onClick={() => void handleLogout()}
+              className="hidden items-center gap-2 rounded-full border border-outline px-4 py-2 text-sm text-text-muted transition hover:border-highlight hover:text-highlight md:inline-flex"
+            >
+              <LogOut className="h-4 w-4" />
+              {copy.nav.logout}
+            </button>
+          ) : (
+            <Link
+              href={ROUTES.LOGIN}
+              className="hidden rounded-full bg-highlight px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110 md:inline-flex"
+            >
+              {copy.nav.login}
+            </Link>
+          )}
+
+          <button
+            type="button"
+            aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline text-text-strong md:hidden"
+            onClick={() => setMobileOpen((value) => !value)}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+      </div>
+
+      {mobileOpen && (
+        <div className="border-t border-outline bg-panel px-4 py-4 md:hidden">
+          <nav className="grid gap-2">
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition",
+                    pathname === link.href
+                      ? "bg-highlight text-black"
+                      : "text-text-muted hover:bg-panel-strong hover:text-text-strong"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {copy.nav[link.key]}
+                </Link>
+              );
+            })}
+            {!user && (
+              <Link
+                href={ROUTES.LOGIN}
+                onClick={() => setMobileOpen(false)}
+                className="mt-2 inline-flex justify-center rounded-2xl bg-highlight px-4 py-3 text-sm font-semibold text-black"
+              >
+                {copy.nav.login}
+              </Link>
+            )}
           </nav>
         </div>
       )}

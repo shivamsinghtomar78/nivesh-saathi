@@ -1,9 +1,9 @@
-import { ZodError } from "zod";
-
 import { fdRatesQuerySchema } from "@/lib/server/advisor-schemas";
+import { handleRouteError, jsonSuccess } from "@/lib/server/api";
 import { getFDRates } from "@/lib/server/fd-service";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
+export const preferredRegion = "bom1";
 
 export async function GET(request: Request) {
   try {
@@ -27,22 +27,14 @@ export async function GET(request: Request) {
 
     const rates = await getFDRates(query);
 
-    return Response.json({
+    return jsonSuccess({
       filters: query,
       count: rates.length,
       rates,
     });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return Response.json(
-        { error: "Invalid fd-rates query", details: error.flatten() },
-        { status: 400 }
-      );
-    }
-
-    return Response.json(
-      { error: "Unable to load FD rates" },
-      { status: 500 }
-    );
+    return handleRouteError(error, "Unable to load FD rates", {
+      zodMessage: "Invalid fd-rates query",
+    });
   }
 }

@@ -1,17 +1,42 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  startTransition,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  AudioLines,
+  BadgeIndianRupee,
+  ExternalLink,
+  Filter,
+  ShieldCheck,
+  Sparkles,
+  Star,
+} from "lucide-react";
+import { toast } from "sonner";
 
 import JargonSidebar from "@/components/compare/JargonSidebar";
 import BottomNav from "@/components/layout/BottomNav";
 import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
+import EmptyRatesState from "@/components/shared/EmptyRatesState";
+import Skeleton from "@/components/shared/Skeleton";
+import { APP_COPY } from "@/lib/copy";
 import { type FDRate } from "@/lib/fd-data";
 import { getJargonTerm, JARGON_DICTIONARY } from "@/lib/jargon";
 import { calculateMaturity } from "@/lib/maturity";
+import { ROUTES } from "@/lib/routes";
 import { formatCurrency } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
+import { useChatStore } from "@/stores/chatStore";
+import { useCompareStore } from "@/stores/compareStore";
 
 const tenorOptions = [
   { label: "6M", months: 6 },
@@ -22,21 +47,51 @@ const tenorOptions = [
 ];
 
 const bankTypeOptions = [
-  { label: "All Banks", value: "all" },
+  { label: "All banks", value: "all" },
   { label: "Public", value: "public" },
   { label: "Private", value: "private" },
-  { label: "Small Finance", value: "small-finance" },
+  { label: "Small finance", value: "small-finance" },
 ] as const;
-
-const badgeLabels: Record<string, { text: string; color: string }> = {
-  "best-value": { text: "Best Value", color: "bg-forest text-white" },
-  popular: { text: "Popular", color: "bg-saffron/10 text-saffron" },
-  "safe-choice": { text: "Safe Choice", color: "bg-forest-light text-forest-dark" },
-};
 
 type BankTypeFilter = (typeof bankTypeOptions)[number]["value"];
 
+function CompareSkeleton() {
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={index}
+          className="rounded-[28px] border border-outline bg-panel p-5 shadow-soft"
+        >
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-12 w-12 rounded-2xl" />
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+          <Skeleton className="mt-5 h-5 w-40 rounded-full" />
+          <Skeleton className="mt-3 h-12 w-28 rounded-2xl" />
+          <Skeleton className="mt-4 h-20 rounded-2xl" />
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Skeleton className="h-16 rounded-2xl" />
+            <Skeleton className="h-16 rounded-2xl" />
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Skeleton className="h-11 rounded-2xl" />
+            <Skeleton className="h-11 rounded-2xl" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function FDComparisonPage() {
+  const router = useRouter();
+  const language = useChatStore((state) => state.language);
+  const copy = APP_COPY[language].compare;
+  const user = useAuthStore((state) => state.user);
+  const shortlist = useCompareStore((state) => state.shortlist);
+  const toggleShortlist = useCompareStore((state) => state.toggleShortlist);
+  const clearShortlist = useCompareStore((state) => state.clearShortlist);
   const [selectedTenor, setSelectedTenor] = useState(12);
   const [amountInput, setAmountInput] = useState("100000");
   const [bankType, setBankType] = useState<BankTypeFilter>("all");
@@ -55,7 +110,7 @@ export default function FDComparisonPage() {
   useEffect(() => {
     let active = true;
 
-    const loadRates = async () => {
+    const timeout = setTimeout(async () => {
       setLoading(true);
       setError(null);
 
@@ -80,24 +135,24 @@ export default function FDComparisonPage() {
         }
       } catch (loadError) {
         if (active) {
-          setError(
+          const message =
             loadError instanceof Error
               ? loadError.message
-              : "Unable to load FD rates"
-          );
+              : "Unable to load FD rates";
+          setError(message);
           setRates([]);
+          toast.error(message);
         }
       } finally {
         if (active) {
           setLoading(false);
         }
       }
-    };
-
-    void loadRates();
+    }, 180);
 
     return () => {
       active = false;
+      clearTimeout(timeout);
     };
   }, [amount, bankType, selectedTenor]);
 
@@ -109,99 +164,151 @@ export default function FDComparisonPage() {
     }
   };
 
+  const shortlistedRates = rates.filter((rate) => shortlist.includes(rate.id));
+
   return (
     <>
       <Navbar />
       <Sidebar />
 
-      <main className="lg:ml-64 pt-16 min-h-screen">
-        <div className="sticky top-16 z-30 bg-cream border-b border-outline/20 card-shadow">
-          <div className="max-w-[1200px] mx-auto px-4 py-3 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold text-ink-light mr-1">
-                Tenure:
-              </span>
-              {tenorOptions.map((option) => (
-                <button
-                  key={option.months}
-                  onClick={() => setSelectedTenor(option.months)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
-                    selectedTenor === option.months
-                      ? "bg-saffron text-white"
-                      : "bg-white border border-outline/30 text-ink-light hover:border-saffron"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+      <main className="min-h-screen pt-16 lg:ml-72">
+        <div className="sticky top-16 z-30 border-b border-outline bg-panel-glass backdrop-blur-xl">
+          <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 md:px-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-highlight">
+                  Compare flow
+                </p>
+                <h1 className="mt-3 text-3xl font-semibold text-text-strong">
+                  {copy.title}
+                </h1>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-text-muted">
+                  {copy.subtitle}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-outline bg-panel px-4 py-3 text-sm text-text-muted">
+                {user ? (
+                  <span>Signed in. Your shortlist is ready to sync across devices.</span>
+                ) : (
+                  <span>
+                    Local shortlist is active.{" "}
+                    <Link href={ROUTES.LOGIN} className="text-highlight hover:underline">
+                      Sign in
+                    </Link>{" "}
+                    to keep it across devices.
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="flex gap-3 items-center">
-              <div className="flex items-center bg-white border border-outline/30 rounded-lg px-3 h-9">
-                <span className="text-ink-muted text-sm mr-1">Rs</span>
-                <input
-                  type="text"
-                  value={Number(amountInput || 0).toLocaleString("en-IN")}
-                  onChange={(event) =>
-                    setAmountInput(event.target.value.replace(/[^0-9]/g, ""))
-                  }
-                  className="w-28 bg-transparent text-sm font-mono outline-none"
-                  id="filter-amount"
-                />
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {tenorOptions.map((option) => (
+                  <button
+                    key={option.months}
+                    type="button"
+                    onClick={() => setSelectedTenor(option.months)}
+                    className={`min-h-12 rounded-full px-4 text-sm font-semibold transition ${
+                      selectedTenor === option.months
+                        ? "bg-highlight text-black"
+                        : "border border-outline bg-panel text-text-muted hover:border-highlight hover:text-text-strong"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
 
-              <select
-                value={bankType}
-                onChange={(event) => setBankType(event.target.value as BankTypeFilter)}
-                className="bg-white border border-outline/30 rounded-lg px-3 h-9 text-sm text-ink-light outline-none"
-                id="filter-bank-type"
-              >
-                {bankTypeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,180px)_minmax(0,220px)_auto]">
+                <label className="grid gap-2 text-sm text-text-muted">
+                  <span>Amount</span>
+                  <div className="flex min-h-12 items-center rounded-2xl border border-outline bg-panel px-4">
+                    <BadgeIndianRupee className="h-4 w-4 text-highlight" />
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={Number(amountInput || 0).toLocaleString("en-IN")}
+                      onChange={(event) =>
+                        setAmountInput(event.target.value.replace(/[^0-9]/g, ""))
+                      }
+                      className="w-full bg-transparent pl-2 text-base text-text-strong outline-none"
+                      aria-label="Filter by deposit amount"
+                    />
+                  </div>
+                </label>
+
+                <label className="grid gap-2 text-sm text-text-muted">
+                  <span>Bank type</span>
+                  <div className="flex min-h-12 items-center rounded-2xl border border-outline bg-panel px-4">
+                    <Filter className="h-4 w-4 text-highlight" />
+                    <select
+                      value={bankType}
+                      onChange={(event) =>
+                        setBankType(event.target.value as BankTypeFilter)
+                      }
+                      className="w-full bg-transparent pl-2 text-base text-text-strong outline-none"
+                      aria-label="Filter by bank type"
+                    >
+                      {bankTypeOptions.map((option) => (
+                        <option key={option.value} value={option.value} className="bg-slate-950">
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => openJargon("compound-interest")}
+                  className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-outline bg-panel px-5 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
+                >
+                  Explain compound interest
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="max-w-[1200px] mx-auto px-4 pt-8 pb-4">
-          <h1 className="font-heading text-2xl md:text-3xl font-bold text-ink">
-            Compare FD Rates
-          </h1>
-          <p className="text-ink-light mt-1">
-            Live results use the same backend filters as the advisor.{" "}
-            <button
-              onClick={() => openJargon("compound-interest")}
-              className="text-saffron underline decoration-dotted underline-offset-2 hover:text-saffron-dark cursor-pointer"
-            >
-              Explain compound interest
-            </button>
-          </p>
-        </div>
-
-        <div className="max-w-[1200px] mx-auto px-4 pb-24">
-          {loading && (
-            <div className="rounded-2xl border border-outline/20 bg-white px-6 py-10 text-center text-ink-light">
-              Loading the latest available FD options...
+        <section className="mx-auto max-w-7xl px-4 py-6 md:px-6">
+          {shortlist.length > 0 && (
+            <div className="mb-5 flex flex-col gap-3 rounded-[28px] border border-outline bg-panel p-5 shadow-soft md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-highlight">
+                  Shortlist
+                </p>
+                <p className="mt-2 text-sm text-text-muted">
+                  {shortlist.length} bank{shortlist.length > 1 ? "s" : ""} saved for
+                  deeper comparison with Saathi.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={clearShortlist}
+                className="rounded-2xl border border-outline px-4 py-3 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
+              >
+                Clear shortlist
+              </button>
             </div>
           )}
 
-          {!loading && error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-10 text-center text-red-700">
+          {loading ? <CompareSkeleton /> : null}
+
+          {!loading && error ? (
+            <div className="rounded-[28px] border border-red-500/30 bg-red-500/10 px-6 py-12 text-center text-red-200">
               {error}
             </div>
-          )}
+          ) : null}
 
-          {!loading && !error && rates.length === 0 && (
-            <div className="rounded-2xl border border-outline/20 bg-white px-6 py-10 text-center text-ink-light">
-              No FD matched this amount and tenure. Try a different amount, bank type, or tenor.
-            </div>
-          )}
+          {!loading && !error && rates.length === 0 ? (
+            <EmptyRatesState
+              title={copy.emptyTitle}
+              body={copy.emptyBody}
+            />
+          ) : null}
 
-          {!loading && !error && rates.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {!loading && !error && rates.length > 0 ? (
+            <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible xl:grid-cols-3">
               {rates.map((rate, index) => {
                 const maturity = calculateMaturity({
                   principal: amount,
@@ -209,114 +316,185 @@ export default function FDComparisonPage() {
                   tenorMonths: selectedTenor,
                   compounding: rate.compounding,
                 });
+                const activeShortlist = shortlist.includes(rate.id);
 
                 return (
-                  <div
-                    key={rate.id}
-                    className={`bg-white rounded-xl card-shadow border hover:card-shadow-lg transition-all animate-fade-in ${
-                      index === 0 ? "border-saffron/40" : "border-outline/10"
-                    }`}
-                    style={{ animationDelay: `${index * 60}ms` }}
-                  >
-                    {index === 0 && (
-                      <div className="bg-forest text-white text-xs font-bold px-4 py-1.5 rounded-t-xl text-center">
-                        Highest return for this filter
-                      </div>
-                    )}
-                    {rate.badge && index !== 0 && badgeLabels[rate.badge] && (
-                      <div className="flex justify-end px-4 pt-3">
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${badgeLabels[rate.badge].color}`}
-                        >
-                          {badgeLabels[rate.badge].text}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="p-5">
-                      <div className="flex items-start gap-3 mb-4">
-                        <div
-                          className="w-12 h-12 rounded-lg flex items-center justify-center font-bold text-white text-sm shrink-0"
-                          style={{ backgroundColor: rate.color }}
-                        >
-                          {rate.bankCode.slice(0, 3)}
+                  <motion.article
+                      key={rate.id}
+                      layout
+                      initial={{ opacity: 0, y: 18 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.03, duration: 0.28 }}
+                      className="min-w-[88%] snap-start rounded-[28px] border border-outline bg-panel p-5 shadow-soft md:min-w-0"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          <div
+                            className="flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-semibold text-white"
+                            style={{ backgroundColor: rate.color }}
+                          >
+                            {rate.bankCode.slice(0, 3)}
+                          </div>
+                          <div>
+                            <p className="text-base font-semibold text-text-strong">
+                              {rate.bankName}
+                            </p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.16em] text-text-muted">
+                              {rate.bankType.replace("-", " ")}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-heading text-base font-semibold text-ink">
-                            {rate.bankName}
-                          </h3>
-                          <p className="text-xs text-ink-muted uppercase">
-                            {rate.bankNameHi}
-                          </p>
-                        </div>
+                        {index === 0 || rate.badge ? (
+                          <span className="rounded-full border border-highlight/30 bg-highlight/12 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-highlight">
+                            {index === 0 ? "Top return" : rate.badge?.replace("-", " ")}
+                          </span>
+                        ) : null}
                       </div>
 
-                      <p className="font-mono text-[36px] font-semibold text-saffron leading-none mb-1">
-                        {rate.regularRate.toFixed(2)}%
-                      </p>
-                      <p className="text-sm text-ink-muted">per year</p>
-
-                      <div className="mt-3 bg-saffron-bg/40 rounded-lg px-3 py-2 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-saffron text-lg">
-                          trending_up
-                        </span>
-                        <p className="text-sm text-saffron-dark font-medium">
-                          {formatCurrency(amount)} to {formatCurrency(maturity.maturityAmount)}
+                      <div className="mt-5">
+                        <p className="font-mono text-4xl font-semibold text-highlight">
+                          {rate.regularRate.toFixed(2)}%
+                        </p>
+                        <p className="mt-1 text-sm text-text-muted">
+                          {selectedTenor} months tenor
                         </p>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-2 gap-4 pt-3 border-t border-cream-dark text-sm text-ink-muted">
-                        <div>
-                          <p className="text-xs">Min Amount</p>
-                          <p className="font-mono font-medium text-ink">
+                      <div className="mt-4 rounded-[24px] border border-outline bg-app p-4">
+                        <div className="flex items-center gap-2 text-highlight">
+                          <Sparkles className="h-4 w-4" />
+                          <span className="text-xs uppercase tracking-[0.2em]">
+                            Maturity preview
+                          </span>
+                        </div>
+                        <p className="mt-3 text-lg font-semibold text-text-strong">
+                          {formatCurrency(amount)} to{" "}
+                          {formatCurrency(maturity.maturityAmount)}
+                        </p>
+                        <p className="mt-2 text-sm text-text-muted">
+                          Estimated gain {formatCurrency(maturity.interestEarned)}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="rounded-2xl border border-outline bg-panel-strong px-4 py-3">
+                          <p className="text-xs uppercase tracking-[0.18em] text-text-muted">
+                            Min amount
+                          </p>
+                          <p className="mt-2 text-sm font-semibold text-text-strong">
                             {formatCurrency(rate.minAmount)}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs">Tenure Range</p>
-                          <p className="font-mono font-medium text-ink">
-                            {rate.tenorLabel}
+                        <div className="rounded-2xl border border-outline bg-panel-strong px-4 py-3">
+                          <p className="text-xs uppercase tracking-[0.18em] text-text-muted">
+                            Safety
                           </p>
-                        </div>
-                        <div>
-                          <p className="text-xs">Bank Type</p>
-                          <p className="font-medium text-ink capitalize">
-                            {rate.bankType.replace("-", " ")}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs">Insurance</p>
-                          <p className="font-medium text-forest">
-                            {rate.dicgcInsured ? "DICGC Covered" : "Check Bank"}
+                          <p className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-emerald-300">
+                            <ShieldCheck className="h-4 w-4" />
+                            DICGC context
                           </p>
                         </div>
                       </div>
 
-                      <div className="mt-4 flex gap-3">
+                      <div className="mt-4 grid grid-cols-2 gap-3">
                         <button
+                          type="button"
                           onClick={() => openJargon("pa")}
-                          className="flex-1 h-10 border border-saffron text-saffron rounded-lg font-semibold text-sm hover:bg-saffron-bg transition-colors"
+                          className="min-h-12 rounded-2xl border border-outline bg-panel-strong px-4 py-3 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
                         >
-                          Learn More
+                          Learn term
                         </button>
-                        <Link
-                          href={`/book?bank=${encodeURIComponent(rate.id)}&amount=${amount}&tenorMonths=${selectedTenor}`}
-                          className="flex-1 h-10 bg-saffron text-white rounded-lg font-semibold text-sm flex items-center justify-center hover:opacity-90 transition-opacity"
+                        <button
+                          type="button"
+                          onClick={() => {
+                            toggleShortlist(rate.id);
+                            toast.success(
+                              activeShortlist
+                                ? `${rate.bankName} removed from shortlist`
+                                : `${rate.bankName} saved to shortlist`
+                            );
+                          }}
+                          className={`min-h-12 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                            activeShortlist
+                              ? "bg-highlight text-black"
+                              : "border border-outline bg-panel-strong text-text-strong hover:border-highlight hover:text-highlight"
+                          }`}
                         >
-                          Book Now
+                          {activeShortlist ? "Saved" : copy.shortlist}
+                        </button>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            startTransition(() => {
+                              router.push(ROUTES.CHAT);
+                            })
+                          }
+                          className="inline-flex items-center gap-2 text-sm font-semibold text-highlight"
+                        >
+                          <AudioLines className="h-4 w-4" />
+                          {copy.askSaathi}
+                        </button>
+
+                        <Link
+                          href={rate.officialUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 text-sm font-medium text-text-muted transition hover:text-text-strong"
+                        >
+                          Official site
+                          <ExternalLink className="h-4 w-4" />
                         </Link>
                       </div>
-                    </div>
-                  </div>
+                  </motion.article>
                 );
               })}
             </div>
-          )}
-        </div>
+          ) : null}
+        </section>
       </main>
 
       <Footer />
       <BottomNav />
+
+      <AnimatePresence>
+        {shortlistedRates.length > 0 ? (
+          <motion.div
+            initial={{ y: 120, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 120, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 220, damping: 24 }}
+            className="fixed inset-x-4 bottom-20 z-40 rounded-[28px] border border-outline bg-panel-glass p-4 shadow-soft backdrop-blur-xl lg:bottom-6 lg:left-auto lg:right-6 lg:w-[420px]"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-highlight text-black">
+                <Star className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-text-strong">
+                  {copy.stickyTitle}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-text-muted">
+                  {shortlistedRates.map((rate) => rate.bankName).join(", ")}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                startTransition(() => {
+                  router.push(ROUTES.CHAT);
+                })
+              }
+              className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-highlight px-5 py-3 text-sm font-semibold text-black transition hover:brightness-110"
+            >
+              {copy.stickyCta}
+            </button>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <JargonSidebar
         isOpen={jargonOpen}

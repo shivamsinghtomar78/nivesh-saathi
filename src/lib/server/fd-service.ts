@@ -1,6 +1,7 @@
-import { calculateMaturity } from "@/lib/maturity";
 import { FD_RATES, type FDRate } from "@/lib/fd-data";
+import { calculateMaturity } from "@/lib/maturity";
 import { formatCurrency } from "@/lib/utils";
+import { ROUTES } from "@/lib/routes";
 import {
   type AdvisorAction,
   type AdvisorRateCard,
@@ -18,53 +19,61 @@ const LOCALIZED_COPY: Record<
   AppLanguage,
   {
     compareLabel: string;
-    bookLabel: string;
+    voiceLabel: string;
     explainLabel: string;
-    kycLabel: string;
+    officialLabel: string;
     followUp: string;
     noMatch: string;
     safety: string;
   }
 > = {
   en: {
-    compareLabel: "Compare more options",
-    bookLabel: "Start booking",
+    compareLabel: "Compare more rates",
+    voiceLabel: "Ask by voice",
     explainLabel: "Explain a term",
-    kycLabel: "Show KYC steps",
-    followUp: "Tell me your amount or preferred tenure and I will narrow this down further.",
+    officialLabel: "Official bank page",
+    followUp:
+      "Share your amount, tenure, or safety concern and I will narrow the options further.",
     noMatch: "I could not find a matching FD in the current rate list.",
-    safety: "Deposits up to Rs 5 lakh per bank are protected by DICGC.",
+    safety:
+      "Deposits up to Rs 5 lakh per bank are typically protected by DICGC cover.",
   },
   hi: {
-    compareLabel: "और options compare करें",
-    bookLabel: "Booking शुरू करें",
-    explainLabel: "Term समझाएं",
-    kycLabel: "KYC steps दिखाएं",
-    followUp: "राशि या अवधि बताइए, मैं options और छोटा करके बता दूंगा.",
-    noMatch: "मौजूदा rate list में इस filter के लिए FD नहीं मिली.",
-    safety: "एक बैंक में Rs 5 लाख तक की जमा राशि DICGC से सुरक्षित रहती है.",
+    compareLabel: "Aur rates compare kijiye",
+    voiceLabel: "Aawaz se poochhiye",
+    explainLabel: "Koi term samjhaiye",
+    officialLabel: "Bank ki official site",
+    followUp:
+      "Rashi, avadhi ya suraksha concern batayiye, main aur theek options dikhaunga.",
+    noMatch: "Is filter ke liye current list mein koi matching FD nahi mili.",
+    safety:
+      "Ek bank mein Rs 5 lakh tak ki deposit amount par aam taur par DICGC cover rehta hai.",
   },
   ta: {
-    compareLabel: "மேலும் options பார்க்க",
-    bookLabel: "Booking தொடங்கு",
-    explainLabel: "Term விளக்கம்",
-    kycLabel: "KYC படிகள்",
-    followUp: "தொகை அல்லது காலத்தை சொல்லுங்கள், நான் இன்னும் சரியாக தேர்வு செய்து தருகிறேன்.",
-    noMatch: "இந்த filter-க்கு தற்போதைய பட்டியலில் பொருத்தமான FD கிடைக்கவில்லை.",
-    safety: "ஒரு வங்கிக்கு Rs 5 லட்சம் வரை வைப்பு DICGC பாதுகாப்பில் இருக்கும்.",
+    compareLabel: "Innum rates compare pannunga",
+    voiceLabel: "Kuralal kelunga",
+    explainLabel: "Oru term-ai vilakkunga",
+    officialLabel: "Bank official page",
+    followUp:
+      "Thogai, tenure, allathu safety concern sollunga, naan innum sariyana options theruven.",
+    noMatch: "Indha filter-kku porundhiya FD current list-il illai.",
+    safety:
+      "Oru bank-il Rs 5 lakh varai deposits-ku DICGC paadhukaappu irukkum.",
   },
   bn: {
-    compareLabel: "আরও option তুলনা করুন",
-    bookLabel: "Booking শুরু করুন",
-    explainLabel: "Term বুঝিয়ে দিন",
-    kycLabel: "KYC ধাপ দেখান",
-    followUp: "আপনার পরিমাণ বা মেয়াদ বলুন, আমি আরও ঠিকমতো বেছে দেব.",
-    noMatch: "এই filter-এর জন্য বর্তমান তালিকায় মানানসই FD পাওয়া গেল না.",
-    safety: "একটি ব্যাংকে Rs 5 লাখ পর্যন্ত আমানত DICGC সুরক্ষায় থাকে.",
+    compareLabel: "Aro rate tulona korun",
+    voiceLabel: "Kotha bole jiggesh korun",
+    explainLabel: "Ekta term bujhiye din",
+    officialLabel: "Banker official page",
+    followUp:
+      "Poriman, meyad ba safety niye bolun, ami aro bhalo kore chhoto kore option debo.",
+    noMatch: "Ei filter-er jonno current list-e kono matching FD pelam na.",
+    safety:
+      "Ek bank-e Rs 5 lakh porjonto deposit-e sadharonoto DICGC cover thake.",
   },
 };
 
-const BANK_BOOKING_LABELS: Record<NonNullable<FDRate["badge"]>, string> = {
+const BADGE_LABELS: Record<NonNullable<FDRate["badge"]>, string> = {
   "best-value": "Best Value",
   popular: "Popular",
   "safe-choice": "Safe Choice",
@@ -100,16 +109,17 @@ export async function getFDRates(query: FDRatesQuery = {}) {
   }
 
   if (query.tenorMonths) {
+    const tenorMonths = query.tenorMonths;
     filtered = filtered.filter(
       (rate) =>
-        rate.tenorMinMonths <= query.tenorMonths! &&
-        rate.tenorMaxMonths >= query.tenorMonths!
+        rate.tenorMinMonths <= tenorMonths && rate.tenorMaxMonths >= tenorMonths
     );
   }
 
   if (query.amount) {
+    const amount = query.amount;
     filtered = filtered.filter(
-      (rate) => rate.minAmount <= query.amount! && rate.maxAmount >= query.amount!
+      (rate) => rate.minAmount <= amount && rate.maxAmount >= amount
     );
   }
 
@@ -140,26 +150,26 @@ export function formatTenorLabel(months: number, language: AppLanguage) {
 
   if (months < 12) {
     if (language === "hi") {
-      return `${months} महीने`;
+      return `${months} mahine`;
     }
     if (language === "ta") {
-      return `${months} மாதங்கள்`;
+      return `${months} maadham`;
     }
     if (language === "bn") {
-      return `${months} মাস`;
+      return `${months} mash`;
     }
     return `${months} months`;
   }
 
   if (Number.isInteger(years)) {
     if (language === "hi") {
-      return `${years} साल`;
+      return `${years} saal`;
     }
     if (language === "ta") {
-      return `${years} ஆண்டு`;
+      return `${years} aandu`;
     }
     if (language === "bn") {
-      return `${years} বছর`;
+      return `${years} bochor`;
     }
     return `${years} year${years > 1 ? "s" : ""}`;
   }
@@ -200,90 +210,54 @@ export function createAdvisorRateCard(params: {
     maturityPreview: `${formatCurrency(amount)} -> ${formatCurrency(
       maturity.maturityAmount
     )}`,
-    badge: rate.badge ? BANK_BOOKING_LABELS[rate.badge] : undefined,
+    badge: rate.badge ? BADGE_LABELS[rate.badge] : undefined,
     safetyNote: LOCALIZED_COPY[language].safety,
+    officialUrl: rate.officialUrl,
   };
-}
-
-export function buildKycSteps(
-  language: AppLanguage,
-  bankName: string,
-  amount: number
-) {
-  if (language === "hi") {
-    return [
-      `${bankName} में FD खोलने के लिए PAN और Aadhaar साथ रखें.`,
-      "अगर KYC पूरा नहीं है, तो nearest branch में verification कराएं.",
-      `${formatCurrency(amount)} जमा करने से पहले tenure और payout option confirm करें.`,
-      "Receipt या FD advice जरूर लें.",
-    ];
-  }
-
-  if (language === "ta") {
-    return [
-      `${bankName} FD தொடங்க PAN மற்றும் Aadhaar தயார் வைத்துக்கொள்ளுங்கள்.`,
-      "KYC முடியவில்லை என்றால் அருகிலுள்ள branch-ல் verification செய்யுங்கள்.",
-      `${formatCurrency(amount)} செலுத்துவதற்கு முன் tenure மற்றும் payout option சரிபார்க்கவும்.`,
-      "Receipt அல்லது FD advice எடுத்துக்கொள்ளுங்கள்.",
-    ];
-  }
-
-  if (language === "bn") {
-    return [
-      `${bankName} FD খুলতে PAN এবং Aadhaar সঙ্গে রাখুন.`,
-      "KYC সম্পূর্ণ না থাকলে নিকটস্থ branch-এ verification করুন.",
-      `${formatCurrency(amount)} জমা দেওয়ার আগে tenure এবং payout option ঠিক করুন.`,
-      "Receipt বা FD advice অবশ্যই নিন.",
-    ];
-  }
-
-  return [
-    `Keep your PAN and Aadhaar ready before opening the FD with ${bankName}.`,
-    "If KYC is incomplete, finish verification at the nearest branch first.",
-    `Confirm the tenure and payout option before depositing ${formatCurrency(
-      amount
-    )}.`,
-    "Collect the receipt or FD advice for your records.",
-  ];
 }
 
 export function buildAdvisorActions(params: {
   language: AppLanguage;
-  topBankId?: string;
+  topRateCard?: AdvisorRateCard;
   glossaryTermId?: string;
 }): AdvisorAction[] {
-  const { glossaryTermId, language, topBankId } = params;
+  const { glossaryTermId, language, topRateCard } = params;
   const copy = LOCALIZED_COPY[language];
 
   return [
     {
       label: copy.compareLabel,
-      type: "secondary",
+      type: "primary",
       action: "open_compare",
-      icon: "compare_arrows",
-      url: "/compare",
+      icon: "shield",
+      url: ROUTES.COMPARE,
     },
     {
-      label: copy.bookLabel,
-      type: "primary",
-      action: "start_booking",
-      icon: "add_task",
-      bankId: topBankId,
-      url: topBankId ? `/book?bank=${encodeURIComponent(topBankId)}` : "/book",
+      label: copy.voiceLabel,
+      type: "secondary",
+      action: "open_voice",
+      icon: "mic",
+      url: ROUTES.VOICE,
     },
     {
       label: copy.explainLabel,
       type: "secondary",
       action: "explain_term",
-      icon: "school",
+      icon: "book-open",
       termId: glossaryTermId,
     },
-    {
-      label: copy.kycLabel,
-      type: "secondary",
-      action: "open_kyc_help",
-      icon: "verified_user",
-    },
+    ...(topRateCard
+      ? [
+          {
+            label: copy.officialLabel,
+            type: "secondary",
+            action: "open_official_site",
+            icon: "external-link",
+            bankId: topRateCard.bankId,
+            url: topRateCard.officialUrl,
+          } satisfies AdvisorAction,
+        ]
+      : []),
   ];
 }
 
@@ -304,41 +278,41 @@ export function buildFallbackText(params: {
     return `${topCard.bankName} ${formatTenorLabel(
       tenorMonths,
       language
-    )} के लिए सबसे मजबूत option दिख रहा है. ${formatCurrency(
+    )} ke liye sabse strong option dikh raha hai. ${formatCurrency(
       amount
-    )} पर maturity लगभग ${formatCurrency(
+    )} par maturity lagbhag ${formatCurrency(
       topCard.maturityAmount
-    )} बन रही है. नीचे 3 आसान options और जरूरी terms की explanation दी है.`;
+    )} ho sakti hai. Neeche 3 compare options aur simple jargon help di gayi hai.`;
   }
 
   if (language === "ta") {
     return `${topCard.bankName} ${formatTenorLabel(
       tenorMonths,
       language
-    )} காலத்திற்கு நல்ல option ஆக தெரிகிறது. ${formatCurrency(
+    )} kaalathukku nalla option-aa therigiradhu. ${formatCurrency(
       amount
-    )} மீது maturity சுமார் ${formatCurrency(
+    )} meedhu maturity summaaru ${formatCurrency(
       topCard.maturityAmount
-    )} ஆகும். கீழே 3 option-களும் முக்கிய term விளக்கங்களும் கொடுத்துள்ளேன்.`;
+    )} aagum. Keezhe 3 compare options-um simple jargon help-um irukku.`;
   }
 
   if (language === "bn") {
     return `${topCard.bankName} ${formatTenorLabel(
       tenorMonths,
       language
-    )} মেয়াদের জন্য ভালো option মনে হচ্ছে. ${formatCurrency(
+    )} meyader jonno bhalo option mone hocche. ${formatCurrency(
       amount
-    )} এ maturity প্রায় ${formatCurrency(
+    )} e maturity prai ${formatCurrency(
       topCard.maturityAmount
-    )} হবে. নিচে 3টি option আর দরকারি term-এর সহজ ব্যাখ্যা দিলাম.`;
+    )} hobe. Niche 3 ta compare option aar shohoj jargon help deya holo.`;
   }
 
   return `${topCard.bankName} looks strongest for a ${formatTenorLabel(
     tenorMonths,
     language
-  )} FD. On ${formatCurrency(amount)}, the maturity is about ${formatCurrency(
+  )} FD. On ${formatCurrency(amount)}, maturity is about ${formatCurrency(
     topCard.maturityAmount
-  )}. I have added three easy options plus simple jargon help below.`;
+  )}. I have added three clear options and jargon help below.`;
 }
 
 export async function buildDeterministicAdvisorResponse(params: {
@@ -348,17 +322,9 @@ export async function buildDeterministicAdvisorResponse(params: {
   seniorCitizen?: boolean;
   bankType?: BankTypeFilter;
   glossaryTermIds: string[];
-  wantsBooking?: boolean;
 }) {
-  const {
-    amount,
-    bankType,
-    glossaryTermIds,
-    language,
-    seniorCitizen,
-    tenorMonths,
-    wantsBooking,
-  } = params;
+  const { amount, bankType, glossaryTermIds, language, seniorCitizen, tenorMonths } =
+    params;
 
   const rates = await getFDRates({
     amount,
@@ -382,22 +348,16 @@ export async function buildDeterministicAdvisorResponse(params: {
     glossaryTermIds.length > 0 ? glossaryTermIds : ["pa", "tenor", "dicgc"],
     language
   );
-  const actions = buildAdvisorActions({
-    language,
-    topBankId: rateCards[0]?.bankId,
-    glossaryTermId: glossary[0]?.termId,
-  });
-  const bookingSteps =
-    wantsBooking && rateCards[0]
-      ? buildKycSteps(language, rateCards[0].bankName, amount)
-      : [];
 
   const response: AdvisorResponse = {
     text: buildFallbackText({ language, amount, tenorMonths, rateCards }),
     rateCards,
-    actions,
+    actions: buildAdvisorActions({
+      language,
+      topRateCard: rateCards[0],
+      glossaryTermId: glossary[0]?.termId,
+    }),
     glossary,
-    bookingSteps,
     followUpPrompt: LOCALIZED_COPY[language].followUp,
     warnings: rateCards.length === 0 ? [LOCALIZED_COPY[language].noMatch] : [],
   };

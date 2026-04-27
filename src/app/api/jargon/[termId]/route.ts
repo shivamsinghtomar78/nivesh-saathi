@@ -1,4 +1,5 @@
 import { appLanguageSchema } from "@/lib/server/advisor-schemas";
+import { jsonError, jsonSuccess } from "@/lib/server/api";
 import { localizeJargonEntry } from "@/lib/server/jargon-catalog";
 
 export const runtime = "nodejs";
@@ -18,8 +19,8 @@ export async function GET(request: Request, context: RouteContext) {
   const term = localizeJargonEntry(termId, language);
 
   if (!term) {
-    return Response.json({ error: "Term not found" }, { status: 404 });
+    return jsonError("Term not found", 404);
   }
 
-  return Response.json(term);
+  return jsonSuccess(term);
 }

@@ -1,4 +1,9 @@
+"use client";
+
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+import type { AppLanguage } from "@/lib/server/advisor-schemas";
 
 export interface ChatMessage {
   id: string;
@@ -15,6 +20,7 @@ export interface ChatMessage {
     maturityPreview?: string;
     safetyNote?: string;
     badge?: string;
+    officialUrl?: string;
   }[];
   actions?: {
     label: string;
@@ -22,10 +28,11 @@ export interface ChatMessage {
     icon?: string;
     action?:
       | "open_compare"
-      | "start_booking"
       | "explain_term"
-      | "open_kyc_help"
-      | "switch_language";
+      | "switch_language"
+      | "open_voice"
+      | "open_official_site"
+      | "sign_in";
     bankId?: string;
     termId?: string;
     url?: string;
@@ -39,36 +46,62 @@ export interface ChatMessage {
 
 interface ChatState {
   messages: ChatMessage[];
-  language: "en" | "hi" | "ta" | "bn";
+  language: AppLanguage;
   threadId: string | null;
   isTyping: boolean;
   addMessage: (msg: ChatMessage) => void;
-  setLanguage: (lang: "en" | "hi" | "ta" | "bn") => void;
+  setLanguage: (lang: AppLanguage) => void;
   setThreadId: (threadId: string | null) => void;
   setTyping: (typing: boolean) => void;
   clearMessages: () => void;
 }
 
-const initialMessages: ChatMessage[] = [
+const initialMessages = (language: AppLanguage): ChatMessage[] => [
   {
-    id: "1",
+    id: "welcome",
     role: "bot",
     content:
-      "Namaste! I am your Nivesh Saathi. Ask me about FD rates, safety, maturity, or booking help.",
+      language === "hi"
+        ? "Namaste. Main Nivesh Saathi hoon. FD rates, safety, maturity aur plain-language explainers ke liye poochhiye."
+        : language === "ta"
+          ? "Vanakkam. Naan Nivesh Saathi. FD rates, safety, maturity matrum simple explainers kaaga kelunga."
+          : language === "bn"
+            ? "Nomoskar. Ami Nivesh Saathi. FD rate, safety, maturity ebong shohoj byakhyar jonno jiggesh korun."
+            : "Hello. I am Nivesh Saathi. Ask about FD rates, safety, maturity, or any jargon you want explained.",
     timestamp: "10:31 AM",
-    language: "EN",
+    language: language.toUpperCase(),
   },
 ];
 
-export const useChatStore = create<ChatState>((set) => ({
-  messages: initialMessages,
-  language: "en",
-  threadId: null,
-  isTyping: false,
-  addMessage: (msg) =>
-    set((state) => ({ messages: [...state.messages, msg] })),
-  setLanguage: (lang) => set({ language: lang }),
-  setThreadId: (threadId) => set({ threadId }),
-  setTyping: (typing) => set({ isTyping: typing }),
-  clearMessages: () => set({ messages: initialMessages, threadId: null }),
-}));
+export const useChatStore = create<ChatState>()(
+  persist(
+    (set, get) => ({
+      messages: initialMessages("hi"),
+      language: "hi",
+      threadId: null,
+      isTyping: false,
+      addMessage: (msg) =>
+        set((state) => ({ messages: [...state.messages, msg] })),
+      setLanguage: (lang) =>
+        set((state) => ({
+          language: lang,
+          messages:
+            state.messages.length <= 1 ? initialMessages(lang) : state.messages,
+        })),
+      setThreadId: (threadId) => set({ threadId }),
+      setTyping: (typing) => set({ isTyping: typing }),
+      clearMessages: () => {
+        const language = get().language;
+        set({ messages: initialMessages(language), threadId: null });
+      },
+    }),
+    {
+      name: "nivesh-chat",
+      partialize: (state) => ({
+        messages: state.messages,
+        language: state.language,
+        threadId: state.threadId,
+      }),
+    }
+  )
+);

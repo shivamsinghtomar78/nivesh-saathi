@@ -1,5 +1,15 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowRight,
+  Banknote,
+  Clock3,
+  Sparkles,
+  TrendingUp,
+  X,
+} from "lucide-react";
+
 import { JARGON_DICTIONARY, type JargonTerm } from "@/lib/jargon";
 
 interface JargonSidebarProps {
@@ -15,178 +25,136 @@ export default function JargonSidebar({
   term,
   onSelectTerm,
 }: JargonSidebarProps) {
-  if (!isOpen || !term) return null;
-
-  const relatedTerms = JARGON_DICTIONARY.filter((t) =>
-    term.relatedTerms.includes(t.id)
-  );
+  const relatedTerms = term
+    ? JARGON_DICTIONARY.filter((candidate) =>
+        term.relatedTerms.includes(candidate.id)
+      )
+    : [];
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/30 z-50 transition-opacity"
-        onClick={onClose}
-      />
-      {/* Sidebar */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 overflow-y-auto animate-slide-in card-shadow-lg">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-outline/20 p-5 flex justify-between items-start">
-          <div>
-            <p className="text-saffron font-heading text-lg font-semibold">
-              {term.termHi}
-            </p>
-            <p className="text-ink font-mono text-sm uppercase tracking-wider mt-1">
-              {term.termEn}
-            </p>
-          </div>
-          <button
+    <AnimatePresence>
+      {isOpen && term ? (
+        <>
+          <motion.button
+            type="button"
+            aria-label="Close jargon panel"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={onClose}
-            className="p-2 hover:bg-cream-dark rounded-full transition-colors"
+          />
+          <motion.aside
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", stiffness: 220, damping: 26 }}
+            className="fixed right-0 top-0 z-[60] flex h-full w-full max-w-xl flex-col border-l border-outline bg-panel"
           >
-            <span className="material-symbols-outlined text-ink">close</span>
-          </button>
-        </div>
-
-        <div className="p-5 space-y-6">
-          {/* Plain Explanation */}
-          <div>
-            <p className="text-ink leading-relaxed">{term.plainEn}</p>
-            <p className="text-ink-light text-sm mt-2 italic leading-relaxed">
-              {term.plainHi}
-            </p>
-          </div>
-
-          {/* Visual Analogy */}
-          <div className="bg-saffron-bg/50 rounded-xl p-5">
-            <h3 className="text-saffron font-semibold flex items-center gap-2 mb-4">
-              <span className="material-symbols-outlined text-lg">
-                auto_awesome
-              </span>
-              How it grows over time
-            </h3>
-            <div className="flex items-center justify-center gap-3">
-              <div className="flex flex-col items-center gap-1">
-                <div className="w-12 h-12 rounded-full bg-forest-light flex items-center justify-center text-forest-dark text-lg font-bold">
-                  ₹
+            <div className="border-b border-outline px-5 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.24em] text-highlight">
+                    Jargon explainer
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold text-text-strong">
+                    {term.termEn}
+                  </h2>
+                  <p className="mt-1 text-sm text-text-muted">{term.termHi}</p>
                 </div>
-                <span className="text-xs text-ink-muted">Start</span>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline text-text-muted transition hover:border-highlight hover:text-text-strong"
+                  aria-label="Close sidebar"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              <span className="material-symbols-outlined text-saffron">
-                arrow_forward
-              </span>
-              <div className="flex flex-col items-center gap-1">
-                <div className="w-12 h-12 rounded-full bg-forest-light flex items-center justify-center text-forest-dark">
-                  <span className="material-symbols-outlined">schedule</span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-5">
+              <div className="rounded-[28px] border border-outline bg-panel-strong p-5">
+                <p className="text-sm uppercase tracking-[0.2em] text-text-muted">
+                  Plain meaning
+                </p>
+                <p className="mt-4 text-base leading-7 text-text-strong">
+                  {term.plainEn}
+                </p>
+                <p className="mt-3 text-sm leading-6 text-text-muted">{term.plainHi}</p>
+              </div>
+
+              <div className="mt-5 rounded-[28px] border border-outline bg-panel-strong p-5">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="h-5 w-5 text-highlight" />
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-text-strong">
+                    How it behaves
+                  </p>
                 </div>
-                <span className="text-xs text-ink-muted">Time</span>
-              </div>
-              <span className="material-symbols-outlined text-saffron">
-                arrow_forward
-              </span>
-              <div className="flex flex-col items-center gap-1">
-                <div className="w-14 h-14 rounded-full bg-forest-light flex items-center justify-center text-forest-dark text-lg font-bold">
-                  ₹₹
+
+                <div className="mt-5 grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-2xl border border-outline bg-app px-3 py-4">
+                    <Banknote className="mx-auto h-5 w-5 text-highlight" />
+                    <p className="mt-3 text-xs uppercase tracking-[0.2em] text-text-muted">
+                      Start
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-outline bg-app px-3 py-4">
+                    <Clock3 className="mx-auto h-5 w-5 text-highlight" />
+                    <p className="mt-3 text-xs uppercase tracking-[0.2em] text-text-muted">
+                      Time
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-outline bg-app px-3 py-4">
+                    <TrendingUp className="mx-auto h-5 w-5 text-highlight" />
+                    <p className="mt-3 text-xs uppercase tracking-[0.2em] text-text-muted">
+                      Growth
+                    </p>
+                  </div>
                 </div>
-                <span className="text-xs text-ink-muted">Grown</span>
               </div>
-            </div>
-          </div>
 
-          {/* Example */}
-          <div>
-            <h4 className="font-semibold text-sm text-ink mb-3">
-              An Example:
-            </h4>
-            <div className="border border-outline/30 rounded-xl overflow-hidden">
-              <div className="px-4 py-3 flex justify-between items-center border-b border-outline/10">
-                <span className="text-ink-light text-sm">Deposit Amount</span>
-                <span className="font-mono font-semibold text-ink">
-                  ₹10,000
-                </span>
+              <div className="mt-5 rounded-[28px] border border-outline bg-panel-strong p-5">
+                <p className="text-sm uppercase tracking-[0.2em] text-text-muted">
+                  Example
+                </p>
+                <p className="mt-4 text-base leading-7 text-text-strong">
+                  {term.exampleEn}
+                </p>
+                <p className="mt-3 text-sm leading-6 text-text-muted">{term.exampleHi}</p>
               </div>
-              <div className="px-4 py-3 flex justify-between items-center border-b border-outline/10">
-                <span className="text-ink-light text-sm">
-                  Year 1 Interest (10%)
-                </span>
-                <span className="font-mono font-semibold text-forest">
-                  + ₹1,000
-                </span>
-              </div>
-              <div className="px-4 py-3 flex justify-between items-center border-b border-outline/10 bg-cream/50">
-                <span className="text-ink-light text-sm">
-                  Year 2 Investment
-                </span>
-                <span className="font-mono font-semibold text-ink">
-                  ₹11,000
-                </span>
-              </div>
-              <div className="px-4 py-3 flex justify-between items-center">
-                <span className="text-saffron font-semibold text-sm">
-                  Year 2 Interest
-                </span>
-                <span className="font-mono font-semibold text-saffron">
-                  ₹1,100
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-ink-muted mt-2 italic">
-              * Here you got ₹100 extra in Year 2 because the interest from Year
-              1 also earned interest!
-            </p>
-          </div>
 
-          {/* Related Terms */}
-          {relatedTerms.length > 0 && (
-            <div className="border-t border-outline/20 pt-5">
-              <h4 className="font-semibold text-sm text-ink mb-3">
-                Related Terms:
-              </h4>
-              <div className="space-y-2">
-                {relatedTerms.map((rt) => (
-                  <button
-                    key={rt.id}
-                    onClick={() => onSelectTerm(rt.id)}
-                    className="w-full text-left px-4 py-3 rounded-lg border border-outline/20 hover:border-saffron hover:bg-saffron-bg/30 transition-all flex justify-between items-center group"
-                  >
-                    <div>
-                      <span className="font-semibold text-sm text-ink">
-                        {rt.termEn}
-                      </span>
-                      <span className="text-ink-muted text-xs ml-2">
-                        {rt.termHi}
-                      </span>
-                    </div>
-                    <span className="material-symbols-outlined text-saffron group-hover:translate-x-1 transition-transform">
-                      chevron_right
-                    </span>
-                  </button>
-                ))}
-              </div>
+              {relatedTerms.length > 0 && (
+                <div className="mt-5 rounded-[28px] border border-outline bg-panel-strong p-5">
+                  <p className="text-sm uppercase tracking-[0.2em] text-text-muted">
+                    Related terms
+                  </p>
+                  <div className="mt-4 grid gap-3">
+                    {relatedTerms.map((relatedTerm) => (
+                      <button
+                        key={relatedTerm.id}
+                        type="button"
+                        onClick={() => onSelectTerm(relatedTerm.id)}
+                        className="flex items-center justify-between rounded-2xl border border-outline bg-app px-4 py-3 text-left transition hover:border-highlight hover:bg-panel"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-text-strong">
+                            {relatedTerm.termEn}
+                          </p>
+                          <p className="mt-1 text-xs text-text-muted">
+                            {relatedTerm.termHi}
+                          </p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-highlight" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-
-          {/* CTA */}
-          <button
-            onClick={() => {
-              const randomTerm =
-                JARGON_DICTIONARY[
-                  Math.floor(Math.random() * JARGON_DICTIONARY.length)
-                ];
-              onSelectTerm(randomTerm.id);
-            }}
-            className="w-full bg-saffron-bg border border-saffron/30 rounded-xl p-4 flex justify-between items-center hover:bg-saffron-bg/80 transition-colors group"
-          >
-            <div>
-              <p className="text-saffron font-semibold text-sm">Curious?</p>
-              <p className="text-ink-light text-sm">Learn another term</p>
-            </div>
-            <span className="material-symbols-outlined text-saffron group-hover:translate-x-1 transition-transform">
-              arrow_forward
-            </span>
-          </button>
-        </div>
-      </div>
-    </>
+          </motion.aside>
+        </>
+      ) : null}
+    </AnimatePresence>
   );
 }

@@ -2,42 +2,48 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { MessageCircleMore, Mic, Radar, Sparkles } from "lucide-react";
+
+import { APP_COPY } from "@/lib/copy";
+import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
+import { useChatStore } from "@/stores/chatStore";
 
 const tabs = [
-  { href: "/", label: "Home", icon: "home" },
-  { href: "/chat", label: "Chat", icon: "forum" },
-  { href: "/compare", label: "Invest", icon: "account_balance_wallet" },
-  { href: "/voice", label: "Voice", icon: "mic" },
-];
+  { href: ROUTES.HOME, key: "home", icon: Sparkles },
+  { href: ROUTES.COMPARE, key: "compare", icon: Radar },
+  { href: ROUTES.CHAT, key: "chat", icon: MessageCircleMore },
+  { href: ROUTES.VOICE, key: "voice", icon: Mic },
+] as const;
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const language = useChatStore((state) => state.language);
+  const copy = APP_COPY[language];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 w-full bg-white flex justify-around items-center h-16 border-t border-ink/10 z-50">
-      {tabs.map((tab) => (
-        <Link
-          key={tab.href}
-          href={tab.href}
-          className={cn(
-            "flex flex-col items-center gap-1 py-1 px-3 transition-colors",
-            pathname === tab.href ? "text-saffron" : "text-ink-muted"
-          )}
-        >
-          <span
-            className="material-symbols-outlined text-2xl"
-            style={
-              pathname === tab.href
-                ? { fontVariationSettings: "'FILL' 1" }
-                : {}
-            }
-          >
-            {tab.icon}
-          </span>
-          <span className="text-[10px] font-semibold">{tab.label}</span>
-        </Link>
-      ))}
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline bg-panel/95 backdrop-blur-xl lg:hidden">
+      <div className="mx-auto grid h-16 max-w-xl grid-cols-4">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const active = pathname === tab.href;
+
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              aria-label={copy.nav[tab.key]}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition",
+                active ? "text-highlight" : "text-text-muted"
+              )}
+            >
+              <Icon className={cn("h-5 w-5", active && "scale-110")} />
+              <span>{copy.nav[tab.key]}</span>
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }

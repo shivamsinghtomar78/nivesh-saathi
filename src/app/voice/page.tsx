@@ -2,14 +2,28 @@
 
 import { startTransition, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import {
+  AudioLines,
+  ExternalLink,
+  Mic,
+  Send,
+  Waves,
+} from "lucide-react";
+import { toast } from "sonner";
 
+import AuthGate from "@/components/auth/AuthGate";
 import BottomNav from "@/components/layout/BottomNav";
 import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
+import Sidebar from "@/components/layout/Sidebar";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { APP_COPY } from "@/lib/copy";
 import { LANGUAGE_META, type SupportedLanguage } from "@/lib/languages";
+import { ROUTES } from "@/lib/routes";
 
 type VoiceAdvisorResponse = {
+  ok: boolean;
   threadId: string;
   response: {
     text: string;
@@ -22,16 +36,24 @@ type VoiceAdvisorResponse = {
       maturityPreview: string;
       badge?: string;
       safetyNote?: string;
+      officialUrl?: string;
     }>;
     actions?: Array<{
       label: string;
       type: "primary" | "secondary";
-      action: string;
+      action:
+        | "open_compare"
+        | "explain_term"
+        | "switch_language"
+        | "open_voice"
+        | "open_official_site"
+        | "sign_in";
       bankId?: string;
       url?: string;
       icon?: string;
     }>;
   };
+  error?: string;
 };
 
 const quickSuggestions = [
@@ -40,13 +62,10 @@ const quickSuggestions = [
   "Explain p.a. and maturity in simple words",
 ];
 
-function getFriendlySpeechError(message: string | null) {
-  return message || "Voice input did not work. You can still type your question below.";
-}
-
 export default function VoiceInputPage() {
   const router = useRouter();
   const [selectedLang, setSelectedLang] = useState<SupportedLanguage>("hi");
+  const copy = APP_COPY[selectedLang];
   const [query, setQuery] = useState("");
   const [threadId, setThreadId] = useState<string | null>(null);
   const [advisorText, setAdvisorText] = useState("");
@@ -80,16 +99,10 @@ export default function VoiceInputPage() {
           threadId: threadId ?? undefined,
         }),
       });
-      const payload = (await response.json()) as
-        | VoiceAdvisorResponse
-        | { error?: string };
+      const payload = (await response.json()) as VoiceAdvisorResponse;
 
-      if (!response.ok || !("response" in payload)) {
-        throw new Error(
-          "error" in payload && payload.error
-            ? payload.error
-            : "Unable to reach the advisor right now."
-        );
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "Unable to reach the advisor right now.");
       }
 
       setThreadId(payload.threadId);
@@ -98,11 +111,12 @@ export default function VoiceInputPage() {
       setActions(payload.response.actions ?? []);
       setQuery(message);
     } catch (error) {
-      setSubmitError(
+      const nextError =
         error instanceof Error
           ? error.message
-          : "Unable to reach the advisor right now."
-      );
+          : "Unable to reach the advisor right now.";
+      setSubmitError(nextError);
+      toast.error(nextError);
     } finally {
       setIsSubmitting(false);
     }
@@ -131,14 +145,23 @@ export default function VoiceInputPage() {
     };
   }, [advisorText, selectedLang]);
 
-  const handleAction = (action: NonNullable<typeof actions>[number]) => {
+  const handleAction = (
+    action: NonNullable<VoiceAdvisorResponse["response"]["actions"]>[number]
+  ) => {
+    if (action.url?.startsWith("http")) {
+      window.open(action.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+
     const destination =
       action.url ||
-      (action.action === "start_booking" && action.bankId
-        ? `/book?bank=${encodeURIComponent(action.bankId)}`
-        : action.action === "open_compare"
-          ? "/compare"
-          : null);
+      (action.action === "open_compare"
+        ? ROUTES.COMPARE
+        : action.action === "sign_in"
+          ? ROUTES.LOGIN
+          : action.action === "open_voice"
+            ? ROUTES.VOICE
+            : null);
 
     if (!destination) {
       return;
@@ -154,205 +177,245 @@ export default function VoiceInputPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen flex flex-col items-center justify-center px-5 pt-20 pb-24 waveform-bg">
-        <div className="w-full max-w-4xl">
-          <div className="flex gap-3 mb-10 flex-wrap justify-center">
-            {(Object.keys(LANGUAGE_META) as SupportedLanguage[]).map((language) => (
-              <button
-                key={language}
-                onClick={() => setSelectedLang(language)}
-                className={`px-6 py-2.5 rounded-full text-base font-semibold border-2 transition-all ${
-                  selectedLang === language
-                    ? "bg-saffron text-white border-saffron shadow-md"
-                    : "bg-white text-ink-light border-outline hover:border-saffron"
-                }`}
-              >
-                {LANGUAGE_META[language].label}
-              </button>
-            ))}
-          </div>
+      <Sidebar />
 
-          <div className="flex flex-col items-center">
-            <div className="relative flex items-center justify-center mb-8">
-              {voice.isListening && (
-                <>
-                  <div className="absolute w-32 h-32 rounded-full border-2 border-saffron/20 animate-pulse-ring" />
-                  <div
-                    className="absolute w-40 h-40 rounded-full border-2 border-saffron/10 animate-pulse-ring"
-                    style={{ animationDelay: "0.5s" }}
-                  />
-                  <div
-                    className="absolute w-48 h-48 rounded-full border-2 border-saffron/5 animate-pulse-ring"
-                    style={{ animationDelay: "1s" }}
-                  />
-                </>
-              )}
-
-              <button
-                onClick={() =>
-                  voice.isListening ? voice.stopListening() : void voice.startListening()
-                }
-                disabled={!voice.isSupported || voice.isProcessing || isSubmitting}
-                className={`relative z-10 w-24 h-24 rounded-full flex items-center justify-center text-white shadow-lg transition-transform duration-150 ${
-                  voice.isListening ? "bg-forest animate-mic-pulse" : "bg-saffron"
-                } ${!voice.isSupported ? "opacity-60 cursor-not-allowed" : "active:scale-95"}`}
-                id="mic-button"
-                aria-label="Mic dabao aur bol do"
-              >
-                <span className="material-symbols-outlined text-5xl">
-                  {voice.isProcessing || isSubmitting ? "hourglass_top" : "mic"}
-                </span>
-              </button>
-            </div>
-
-            <div className="max-w-2xl w-full text-center space-y-3 mb-8">
-              <p className="font-heading text-xl md:text-2xl text-ink opacity-90 leading-snug min-h-14">
-                {transcriptPreview || "Press the mic and ask your FD question in your language."}
-              </p>
-              {voice.isListening && (
-                <p className="text-ink-light italic animate-fade-in">
-                  Listening...
-                </p>
-              )}
-              {(voice.isProcessing || isSubmitting) && (
-                <p className="text-ink-light italic animate-fade-in">
-                  Processing your request...
-                </p>
-              )}
-              {!voice.isListening && !voice.isProcessing && !isSubmitting && (
-                <p className="text-ink-muted text-sm">
-                  Browser speech is used first. If it is unavailable, the app falls back to Deepgram transcription.
-                </p>
-              )}
-              {(voice.error || submitError) && (
-                <p className="text-sm text-red-700">
-                  {submitError ?? getFriendlySpeechError(voice.error)}
-                </p>
-              )}
-            </div>
-
-            <div className="w-full max-w-2xl relative mb-6">
-              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                <span className="material-symbols-outlined text-ink-muted">
-                  keyboard
-                </span>
-              </div>
-              <input
-                className="w-full h-14 pl-12 pr-28 bg-white border border-outline/30 rounded-xl text-base text-ink focus:border-forest focus:ring-2 focus:ring-forest/20 transition-all shadow-sm placeholder:text-ink-muted"
-                placeholder="Or type here..."
-                type="text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => event.key === "Enter" && void submitQuery()}
-                id="voice-text-input"
-              />
-              <button
-                onClick={() => void submitQuery()}
-                disabled={isSubmitting}
-                className="absolute inset-y-2 right-2 px-5 bg-forest text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-colors disabled:opacity-60"
-              >
-                <span>Send</span>
-                <span className="material-symbols-outlined text-sm">send</span>
-              </button>
-            </div>
-
-            <div className="mb-10 flex flex-wrap justify-center gap-3 max-w-3xl">
-              {quickSuggestions.map((suggestion) => (
-                <button
-                  key={suggestion}
-                  onClick={() => {
-                    setQuery(suggestion);
-                    void submitQuery(suggestion);
-                  }}
-                  className="rounded-full border border-outline/30 bg-white px-4 py-2 text-sm text-ink-light hover:border-saffron hover:text-saffron transition-colors"
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-
-            {(advisorText || rateCards.length > 0) && (
-              <section className="w-full max-w-5xl rounded-3xl border border-outline/20 bg-white/95 p-6 shadow-lg">
-                <div className="mb-5">
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-forest">
-                    Saathi Response
+      <main className="min-h-screen pt-16 lg:ml-72">
+        <section className="relative overflow-hidden px-4 py-8 md:px-6">
+          <div className="relative mx-auto max-w-5xl">
+            <AuthGate
+              title="Voice guidance works best with a signed-in session"
+              body="Phone sign-in makes the experience feel personal, keeps your conversation context, and lets the voice flow fit naturally into the compare-to-chat journey."
+            >
+              <div className="rounded-[36px] border border-outline bg-panel p-6 shadow-soft md:p-8">
+                <div className="text-center">
+                  <p className="text-xs uppercase tracking-[0.24em] text-highlight">
+                    Voice advisor
                   </p>
-                  <p className="mt-2 text-base leading-7 text-ink">
-                    {advisorText}
+                  <h1 className="mt-3 text-4xl font-semibold text-text-strong md:text-5xl">
+                    {copy.voice.title}
+                  </h1>
+                  <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-text-muted">
+                    {copy.voice.subtitle}
                   </p>
                 </div>
 
-                {rateCards.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {rateCards.map((card) => (
-                      <div
-                        key={card.bankId}
-                        className="rounded-2xl border border-outline/20 bg-cream p-4"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-ink">{card.bankName}</p>
-                            {card.bankNameLocal &&
-                              card.bankNameLocal !== card.bankName && (
-                                <p className="text-xs text-ink-muted">
-                                  {card.bankNameLocal}
-                                </p>
-                              )}
-                          </div>
-                          {card.badge && (
-                            <span className="rounded-full bg-gold-bg px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-gold-dark">
-                              {card.badge}
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-4 font-mono text-3xl font-bold text-saffron">
-                          {card.rate}
-                        </p>
-                        <p className="mt-1 text-sm text-ink-light">{card.tenorLabel}</p>
-                        <p className="mt-3 text-sm font-medium text-forest">
-                          {card.maturityPreview}
-                        </p>
-                        {card.safetyNote && (
-                          <p className="mt-2 text-xs text-ink-muted">
-                            {card.safetyNote}
-                          </p>
-                        )}
-                        <button
-                          onClick={() =>
-                            startTransition(() => {
-                              router.push(`/book?bank=${encodeURIComponent(card.bankId)}`);
-                            })
-                          }
-                          className="mt-4 w-full rounded-xl bg-saffron px-4 py-3 text-sm font-semibold text-white hover:opacity-90"
-                        >
-                          Book this FD
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className="mt-8 flex flex-wrap justify-center gap-3">
+                  {(Object.keys(LANGUAGE_META) as SupportedLanguage[]).map((language) => (
+                    <button
+                      key={language}
+                      type="button"
+                      onClick={() => setSelectedLang(language)}
+                      className={`min-h-12 rounded-full px-5 text-sm font-semibold transition ${
+                        selectedLang === language
+                          ? "bg-highlight text-black"
+                          : "border border-outline bg-panel-strong text-text-strong hover:border-highlight hover:text-highlight"
+                      }`}
+                    >
+                      {LANGUAGE_META[language].label}
+                    </button>
+                  ))}
+                </div>
 
-                {actions.length > 0 && (
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    {actions.map((action) => (
+                <div className="mt-10 flex flex-col items-center">
+                  <div className="relative flex items-center justify-center">
+                    {voice.isListening && (
+                      <>
+                        <div className="absolute h-32 w-32 rounded-full border border-highlight/30 animate-pulse-ring" />
+                        <div
+                          className="absolute h-44 w-44 rounded-full border border-highlight/20 animate-pulse-ring"
+                          style={{ animationDelay: "0.4s" }}
+                        />
+                        <div
+                          className="absolute h-56 w-56 rounded-full border border-highlight/10 animate-pulse-ring"
+                          style={{ animationDelay: "0.8s" }}
+                        />
+                      </>
+                    )}
+
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() =>
+                        voice.isListening
+                          ? voice.stopListening()
+                          : void voice.startListening()
+                      }
+                      disabled={!voice.isSupported || voice.isProcessing || isSubmitting}
+                      className={`relative z-10 flex h-28 w-28 items-center justify-center rounded-full text-black shadow-soft transition ${
+                        voice.isListening ? "bg-emerald-400" : "bg-highlight"
+                      } disabled:opacity-60`}
+                      aria-label="Mic dabao aur bol do"
+                    >
+                      <Mic className="h-10 w-10" />
+                    </motion.button>
+                  </div>
+
+                  <div className="mt-8 max-w-3xl text-center">
+                    <p className="min-h-16 text-xl leading-8 text-text-strong md:text-2xl">
+                      {transcriptPreview ||
+                        "Press the mic and ask your FD question in your language."}
+                    </p>
+                    <div className="mt-4 flex items-center justify-center gap-3 text-sm text-text-muted">
+                      <Waves className="h-4 w-4 text-highlight" />
+                      <span>
+                        {voice.error
+                          ? voice.error
+                          : voice.isProcessing || isSubmitting
+                            ? "Processing your request..."
+                            : voice.isListening
+                              ? "Listening..."
+                              : "Browser speech runs first. Deepgram handles the fallback."}
+                      </span>
+                    </div>
+                    {submitError ? (
+                      <p className="mt-3 text-sm text-red-300">{submitError}</p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-8 rounded-[28px] border border-outline bg-app p-4">
+                  <div className="flex flex-col gap-3 md:flex-row">
+                    <input
+                      className="min-h-12 flex-1 rounded-2xl border border-outline bg-panel px-4 text-base text-text-strong outline-none transition focus:border-highlight"
+                      placeholder="Or type here..."
+                      type="text"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      onKeyDown={(event) => event.key === "Enter" && void submitQuery()}
+                      aria-label="Voice text fallback input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void submitQuery()}
+                      disabled={isSubmitting}
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-highlight px-5 text-sm font-semibold text-black transition hover:brightness-110 disabled:opacity-60"
+                    >
+                      <Send className="h-4 w-4" />
+                      {copy.voice.send}
+                    </button>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap justify-center gap-3">
+                    {quickSuggestions.map((suggestion) => (
                       <button
-                        key={`${action.action}-${action.label}`}
-                        onClick={() => handleAction(action)}
-                        className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                          action.type === "primary"
-                            ? "bg-saffron text-white hover:opacity-90"
-                            : "border border-forest text-forest hover:bg-forest-bg"
-                        }`}
+                        key={suggestion}
+                        type="button"
+                        onClick={() => {
+                          setQuery(suggestion);
+                          void submitQuery(suggestion);
+                        }}
+                        className="rounded-full border border-outline bg-panel px-4 py-2 text-sm text-text-muted transition hover:border-highlight hover:text-text-strong"
                       >
-                        {action.label}
+                        {suggestion}
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {(advisorText || rateCards.length > 0) && (
+                  <motion.section
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-8 rounded-[32px] border border-outline bg-panel-strong p-5"
+                  >
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-highlight">
+                        Saathi response
+                      </p>
+                      <p className="mt-3 text-base leading-7 text-text-strong">
+                        {advisorText}
+                      </p>
+                    </div>
+
+                    {rateCards.length > 0 && (
+                      <div className="mt-5 grid gap-4 md:grid-cols-3">
+                        {rateCards.map((card) => (
+                          <div
+                            key={card.bankId}
+                            className="rounded-[24px] border border-outline bg-app p-4"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-text-strong">
+                                  {card.bankName}
+                                </p>
+                                {card.bankNameLocal &&
+                                card.bankNameLocal !== card.bankName ? (
+                                  <p className="mt-1 text-xs text-text-muted">
+                                    {card.bankNameLocal}
+                                  </p>
+                                ) : null}
+                              </div>
+                              {card.badge ? (
+                                <span className="rounded-full border border-highlight/30 bg-highlight/12 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-highlight">
+                                  {card.badge}
+                                </span>
+                              ) : null}
+                            </div>
+
+                            <p className="mt-4 font-mono text-3xl font-semibold text-highlight">
+                              {card.rate}
+                            </p>
+                            <p className="mt-1 text-sm text-text-muted">{card.tenorLabel}</p>
+                            <p className="mt-3 text-sm font-medium text-emerald-300">
+                              {card.maturityPreview}
+                            </p>
+                            {card.safetyNote ? (
+                              <p className="mt-2 text-xs leading-5 text-text-muted">
+                                {card.safetyNote}
+                              </p>
+                            ) : null}
+
+                            {card.officialUrl ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  window.open(
+                                    card.officialUrl,
+                                    "_blank",
+                                    "noopener,noreferrer"
+                                  )
+                                }
+                                className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-highlight"
+                              >
+                                Official page
+                                <ExternalLink className="h-4 w-4" />
+                              </button>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {actions.length > 0 && (
+                      <div className="mt-5 flex flex-wrap gap-3">
+                        {actions.map((action) => (
+                          <button
+                            key={`${action.action}-${action.label}`}
+                            type="button"
+                            onClick={() => handleAction(action)}
+                            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                              action.type === "primary"
+                                ? "bg-highlight text-black hover:brightness-110"
+                                : "border border-outline bg-panel text-text-strong hover:border-highlight hover:text-highlight"
+                            }`}
+                          >
+                            {action.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-5 flex items-center gap-3 rounded-2xl border border-outline bg-panel px-4 py-3 text-sm text-text-muted">
+                      <AudioLines className="h-4 w-4 text-highlight" />
+                      Spoken reply is enabled for the selected language when your browser supports it.
+                    </div>
+                  </motion.section>
                 )}
-              </section>
-            )}
+              </div>
+            </AuthGate>
           </div>
-        </div>
+        </section>
       </main>
 
       <Footer />

@@ -1,0 +1,188 @@
+import type { AppLanguage } from "@/lib/server/advisor-schemas";
+
+export const LANGUAGE_LABELS: Record<AppLanguage, string> = {
+  en: "English",
+  hi: "Hindi",
+  ta: "Tamil",
+  bn: "Bengali",
+};
+
+export const APP_COPY: Record<
+  AppLanguage,
+  {
+    tagline: string;
+    nav: {
+      home: string;
+      compare: string;
+      chat: string;
+      voice: string;
+      login: string;
+      logout: string;
+    };
+    auth: {
+      title: string;
+      subtitle: string;
+      phoneLabel: string;
+      sendOtp: string;
+      otpLabel: string;
+      verifyOtp: string;
+      signOut: string;
+    };
+    compare: {
+      title: string;
+      subtitle: string;
+      shortlist: string;
+      askSaathi: string;
+      emptyTitle: string;
+      emptyBody: string;
+      stickyTitle: string;
+      stickyCta: string;
+    };
+    voice: {
+      title: string;
+      subtitle: string;
+      send: string;
+    };
+  }
+> = {
+  en: {
+    tagline: "Your trusted FD guide",
+    nav: {
+      home: "Home",
+      compare: "Compare",
+      chat: "Saathi",
+      voice: "Voice",
+      login: "Sign in",
+      logout: "Sign out",
+    },
+    auth: {
+      title: "Secure your shortlist",
+      subtitle: "Sign in with your phone to save rates and continue across devices.",
+      phoneLabel: "Phone number",
+      sendOtp: "Send OTP",
+      otpLabel: "OTP",
+      verifyOtp: "Verify OTP",
+      signOut: "Sign out",
+    },
+    compare: {
+      title: "Compare FD options clearly",
+      subtitle: "Filter, shortlist, then ask Saathi what really changes your return.",
+      shortlist: "Shortlist",
+      askSaathi: "Ask Saathi",
+      emptyTitle: "No rate matched that combination",
+      emptyBody: "Try another amount, a broader tenure, or switch the bank category.",
+      stickyTitle: "Ready to compare your shortlist with Saathi?",
+      stickyCta: "Open chat",
+    },
+    voice: {
+      title: "Ask by voice",
+      subtitle: "Speak naturally and get a plain-language answer back.",
+      send: "Send",
+    },
+  },
+  hi: {
+    tagline: "Aapka bharosemand FD guide",
+    nav: {
+      home: "Home",
+      compare: "Compare",
+      chat: "Saathi",
+      voice: "Voice",
+      login: "Sign in",
+      logout: "Sign out",
+    },
+    auth: {
+      title: "Apni shortlist surakshit rakhiye",
+      subtitle: "Phone se sign in karke rates save kijiye aur baad mein wahi se continue kijiye.",
+      phoneLabel: "Phone number",
+      sendOtp: "OTP bhejiye",
+      otpLabel: "OTP",
+      verifyOtp: "OTP verify kijiye",
+      signOut: "Sign out",
+    },
+    compare: {
+      title: "FD options seedhe compare kijiye",
+      subtitle: "Filter kijiye, shortlist banaiye, phir Saathi se poochhiye kya farq padta hai.",
+      shortlist: "Shortlist",
+      askSaathi: "Saathi se poochhiye",
+      emptyTitle: "Is filter ke liye rate nahin mila",
+      emptyBody: "Rashi, tenure ya bank category badal kar dekhiye.",
+      stickyTitle: "Ab shortlist ko Saathi ke saath compare karna hai?",
+      stickyCta: "Chat kholo",
+    },
+    voice: {
+      title: "Aawaz se poochhiye",
+      subtitle: "Seedhi bhasha mein sawal poochhiye aur jawab suniye.",
+      send: "Send",
+    },
+  },
+  ta: {
+    tagline: "Ungal nambikkaiyana FD guide",
+    nav: {
+      home: "Home",
+      compare: "Compare",
+      chat: "Saathi",
+      voice: "Voice",
+      login: "Sign in",
+      logout: "Sign out",
+    },
+    auth: {
+      title: "Ungal shortlist-ai kaappom",
+      subtitle: "Phone sign in moolam rates save pannitu appuramum continue pannalaam.",
+      phoneLabel: "Phone number",
+      sendOtp: "OTP anuppu",
+      otpLabel: "OTP",
+      verifyOtp: "OTP urudhi seyyu",
+      signOut: "Sign out",
+    },
+    compare: {
+      title: "FD options-ai thelivaga compare pannunga",
+      subtitle: "Filter pannunga, shortlist seyyunga, apram Saathi kitte vivaram ketkalaam.",
+      shortlist: "Shortlist",
+      askSaathi: "Saathi-ai kelunga",
+      emptyTitle: "Indha filter-kku porundhiya rate illai",
+      emptyBody: "Thogai, tenure allathu bank category-ai maattri paarunga.",
+      stickyTitle: "Shortlist-ai Saathi-oda discuss panna ready-aa?",
+      stickyCta: "Chat thirakkavum",
+    },
+    voice: {
+      title: "Kuralal kelunga",
+      subtitle: "Saadharanama pesaungal, Saathi badhil tharum.",
+      send: "Send",
+    },
+  },
+  bn: {
+    tagline: "Apnar bharoshar FD guide",
+    nav: {
+      home: "Home",
+      compare: "Compare",
+      chat: "Saathi",
+      voice: "Voice",
+      login: "Sign in",
+      logout: "Sign out",
+    },
+    auth: {
+      title: "Apnar shortlist nirapod rakhun",
+      subtitle: "Phone diye sign in kore rate save korun ebong pore abar ekhanei theke cholun.",
+      phoneLabel: "Phone number",
+      sendOtp: "OTP pathan",
+      otpLabel: "OTP",
+      verifyOtp: "OTP verify korun",
+      signOut: "Sign out",
+    },
+    compare: {
+      title: "FD option gulo sohoje tulona korun",
+      subtitle: "Filter korun, shortlist banan, tarpor Saathi-ke jiggesh korun kon ta bhalo.",
+      shortlist: "Shortlist",
+      askSaathi: "Saathi-ke bolun",
+      emptyTitle: "Ei filter-e kono rate pelam na",
+      emptyBody: "Poriman, meyad ba bank category bodle abar dekhen.",
+      stickyTitle: "Shortlist niye Saathi-r sathe kotha bolben?",
+      stickyCta: "Chat khulun",
+    },
+    voice: {
+      title: "Kotha bole jiggesh korun",
+      subtitle: "Sohoj bhashay bolun, Saathi uttor debe.",
+      send: "Send",
+    },
+  },
+};

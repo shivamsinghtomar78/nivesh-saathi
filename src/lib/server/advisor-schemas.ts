@@ -27,6 +27,7 @@ export const advisorRateCardSchema = z.object({
   maturityPreview: z.string(),
   badge: z.string().optional(),
   safetyNote: z.string(),
+  officialUrl: z.string().url(),
 });
 export type AdvisorRateCard = z.infer<typeof advisorRateCardSchema>;
 
@@ -43,10 +44,11 @@ export const advisorActionSchema = z.object({
   type: z.enum(["primary", "secondary"]),
   action: z.enum([
     "open_compare",
-    "start_booking",
     "explain_term",
-    "open_kyc_help",
     "switch_language",
+    "open_voice",
+    "open_official_site",
+    "sign_in",
   ]),
   icon: z.string().optional(),
   bankId: z.string().optional(),
@@ -60,14 +62,13 @@ export const advisorResponseSchema = z.object({
   rateCards: z.array(advisorRateCardSchema).default([]),
   actions: z.array(advisorActionSchema).default([]),
   glossary: z.array(glossaryItemSchema).default([]),
-  bookingSteps: z.array(z.string()).default([]),
   followUpPrompt: z.string().default(""),
   warnings: z.array(z.string()).default([]),
 });
 export type AdvisorResponse = z.infer<typeof advisorResponseSchema>;
 
 export const chatRequestSchema = z.object({
-  message: z.string().trim().min(1),
+  message: z.string().trim().min(1).max(800),
   language: appLanguageSchema.default("hi"),
   threadId: z.string().trim().optional(),
   userId: z.string().trim().optional(),
@@ -95,13 +96,3 @@ export const maturityRequestSchema = z.object({
   compounding: z.enum(["quarterly", "monthly", "annual"]).default("quarterly"),
 });
 export type MaturityRequest = z.infer<typeof maturityRequestSchema>;
-
-export const bookingIntentInputSchema = z.object({
-  bankId: z.string().trim().min(1),
-  amount: z.number().int().positive(),
-  tenorMonths: z.number().int().positive(),
-  language: appLanguageSchema.default("hi"),
-  userId: z.string().trim().optional(),
-  status: z.enum(["draft", "kyc_pending", "redirected"]).default("draft"),
-});
-export type BookingIntentInput = z.infer<typeof bookingIntentInputSchema>;

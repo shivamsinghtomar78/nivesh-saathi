@@ -28,8 +28,6 @@ const detectedIntentSchema = z.object({
     "compare_rates",
     "understand_term",
     "check_safety",
-    "book_fd",
-    "kyc_help",
     "general_fd",
   ]),
   amount: z.number().int().positive().nullable(),
@@ -37,7 +35,6 @@ const detectedIntentSchema = z.object({
   bankType: z.enum(["all", "public", "private", "small-finance"]),
   seniorCitizen: z.boolean(),
   termsToExplain: z.array(z.string()),
-  wantsBooking: z.boolean(),
 });
 
 const narrativeSchema = z.object({
@@ -125,25 +122,25 @@ function detectTerms(message: string) {
   const normalized = message.toLowerCase();
   const terms: string[] = [];
 
-  if (/(p\.a\.|per annum|प्रति वर्ष)/i.test(message)) {
+  if (/(p\.a\.|per annum|prati varsh|oru aandukku|proti bochor)/i.test(message)) {
     terms.push("pa");
   }
-  if (/(tenor|tenure|अवधि|মেয়াদ|காலம்)/i.test(message)) {
+  if (/(tenor|tenure|avadhi|meyad|kaalam)/i.test(message)) {
     terms.push("tenor");
   }
   if (/(tds|tax deducted)/i.test(normalized)) {
     terms.push("tds");
   }
-  if (/(dicgc|insured|insurance|safe|सुरक्षित|নিরাপদ|பாதுகாப்பு)/i.test(message)) {
+  if (/(dicgc|insured|insurance|safe|surakshit|nirapod|paadhukaappu)/i.test(message)) {
     terms.push("dicgc");
   }
-  if (/(small finance|small-finance|स्मॉल फाइनेंस)/i.test(message)) {
+  if (/(small finance|small-finance)/i.test(message)) {
     terms.push("small-finance-bank");
   }
-  if (/(maturity|परिपक्वता)/i.test(message)) {
+  if (/(maturity|paripakwata)/i.test(message)) {
     terms.push("maturity");
   }
-  if (/(compound|चक्रवृद्धि)/i.test(message)) {
+  if (/(compound|chakravriddhi|koottu vatti)/i.test(message)) {
     terms.push("compound-interest");
   }
   if (/(kyc|aadhaar|aadhar|pan)/i.test(normalized)) {
@@ -155,7 +152,7 @@ function detectTerms(message: string) {
 
 function extractAmount(message: string) {
   const explicitCurrencyMatch =
-    message.match(/(?:₹|rs\.?|rupees?|rupay|rupaye)\s*([0-9][0-9,]*)/i) ??
+    message.match(/(?:\u20b9|rs\.?|inr|rupees?|rupay|rupaye)\s*([0-9][0-9,]*)/i) ??
     message.match(/([0-9][0-9,]*)\s*(?:rupees?|rupay|rupaye)/i);
 
   if (!explicitCurrencyMatch) {
@@ -166,16 +163,12 @@ function extractAmount(message: string) {
 }
 
 function extractTenorMonths(message: string) {
-  const monthMatch = message.match(
-    /(\d+)\s*(?:month|months|mo|महिने|महीने|माह|மாதம்|மாதங்கள்|মাস)/i
-  );
+  const monthMatch = message.match(/(\d+)\s*(?:month|months|mo|mahine|maadham|mash)/i);
   if (monthMatch) {
     return Number(monthMatch[1]);
   }
 
-  const yearMatch = message.match(
-    /(\d+)\s*(?:year|years|yr|yrs|साल|वर्ष|ஆண்டு|ஆண்டுகள்|বছর)/i
-  );
+  const yearMatch = message.match(/(\d+)\s*(?:year|years|yr|yrs|saal|aandu|bochor)/i);
   if (yearMatch) {
     return Number(yearMatch[1]) * 12;
   }
@@ -186,19 +179,14 @@ function extractTenorMonths(message: string) {
 function inferObjective(message: string, terms: string[]) {
   const normalized = message.toLowerCase();
 
-  if (/(kyc|aadhaar|aadhar|pan)/i.test(normalized)) {
-    return "kyc_help" as const;
-  }
-
-  if (/(book|open fd|start fd|apply|redirect)/i.test(normalized)) {
-    return "book_fd" as const;
-  }
-
-  if (/(what is|explain|samjhao|समझाओ|মানে|விளக்கு)/i.test(message) && terms.length > 0) {
+  if (
+    /(what is|explain|samjhao|vilakk|bujhiye|meaning|matlab)/i.test(message) &&
+    terms.length > 0
+  ) {
     return "understand_term" as const;
   }
 
-  if (/(safe|safety|insured|surakshit|নিরাপদ|பாதுகாப்பு)/i.test(message)) {
+  if (/(safe|safety|insured|surakshit|nirapod|paadhukaappu)/i.test(message)) {
     return "check_safety" as const;
   }
 
@@ -236,9 +224,8 @@ function detectIntentHeuristically(input: {
             : "all"),
     seniorCitizen:
       input.seniorCitizen ??
-      /(senior citizen|senior|वरिष्ठ|বয়স্ক|மூத்த குடிமகன்)/i.test(input.message),
+      /(senior citizen|senior|varishth|boyoshko|mooththa)/i.test(input.message),
     termsToExplain,
-    wantsBooking: /(book|open fd|apply|start|redirect)/i.test(input.message),
   });
 }
 
@@ -262,7 +249,7 @@ async function detectIntentNode(state: typeof agentState.State) {
     {
       role: "system",
       content:
-        "You extract structured user intent for a fixed deposit advisor. Return raw JSON only with keys objective, amount, tenorMonths, bankType, seniorCitizen, termsToExplain, wantsBooking. Use null for unknown amount or tenorMonths. bankType must be one of all, public, private, small-finance.",
+        "You extract structured user intent for a fixed deposit advisor. Return raw JSON only with keys objective, amount, tenorMonths, bankType, seniorCitizen, termsToExplain. Use null for unknown amount or tenorMonths. bankType must be one of all, public, private, small-finance.",
     },
     {
       role: "user",
@@ -314,10 +301,6 @@ async function assembleResponseNode(state: typeof agentState.State) {
     seniorCitizen: intent.seniorCitizen || state.seniorCitizen,
     bankType: intent.bankType,
     glossaryTermIds: intent.termsToExplain,
-    wantsBooking:
-      intent.wantsBooking ||
-      intent.objective === "book_fd" ||
-      intent.objective === "kyc_help",
   });
 
   return { response };
@@ -347,18 +330,16 @@ async function narrateNode(state: typeof agentState.State) {
     };
   }
 
-  const recentMessages = state.messages
-    .slice(-6)
-    .map((message) => ({
-      role: getMessageRole(message),
-      content: getMessageText(message.content),
-    }));
+  const recentMessages = state.messages.slice(-6).map((message) => ({
+    role: getMessageRole(message),
+    content: getMessageText(message.content),
+  }));
 
   const prompt: LlmMessage[] = [
     {
       role: "system",
       content:
-        "You are Nivesh Saathi, a warm fixed deposit guide for India. Write in the user's requested language, keep the tone simple, do not invent rates, and return raw JSON only with keys text, followUpPrompt, warnings.",
+        "You are Nivesh Saathi, a warm fixed deposit guide for India. Write in the user's requested language, keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings.",
     },
     {
       role: "user",
@@ -368,7 +349,6 @@ async function narrateNode(state: typeof agentState.State) {
         structuredResponse: {
           rateCards: response.rateCards,
           glossary: response.glossary,
-          bookingSteps: response.bookingSteps,
           warnings: response.warnings,
         },
       }),
@@ -437,13 +417,15 @@ export async function invokeFdAdvisor(input: ChatRequest) {
 
   return {
     threadId,
-    response: result.response ?? (await buildDeterministicAdvisorResponse({
-      language: input.language,
-      amount: input.amount ?? DEFAULT_AMOUNT,
-      tenorMonths: input.tenorMonths ?? DEFAULT_TENOR_MONTHS,
-      seniorCitizen: input.seniorCitizen,
-      bankType: input.bankType,
-      glossaryTermIds: ["pa", "tenor", "dicgc"],
-    })),
+    response:
+      result.response ??
+      (await buildDeterministicAdvisorResponse({
+        language: input.language,
+        amount: input.amount ?? DEFAULT_AMOUNT,
+        tenorMonths: input.tenorMonths ?? DEFAULT_TENOR_MONTHS,
+        seniorCitizen: input.seniorCitizen,
+        bankType: input.bankType,
+        glossaryTermIds: ["pa", "tenor", "dicgc"],
+      })),
   };
 }

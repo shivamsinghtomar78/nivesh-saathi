@@ -1,86 +1,57 @@
 import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
+
+import { LANGUAGE_LABELS } from "@/lib/copy";
+import { ROUTES } from "@/lib/routes";
 
 export default function Footer() {
   return (
-    <footer className="bg-cream border-t border-ink/10 w-full pt-12 pb-8">
-      <div className="max-w-[1200px] mx-auto px-6 md:px-8">
-        <div className="flex flex-col md:flex-row justify-between items-start gap-10 mb-12">
-          {/* Brand */}
-          <div className="space-y-3">
-            <span className="font-bold text-saffron text-2xl font-heading">
-              Nivesh Saathi
-            </span>
-            <p className="max-w-xs text-ink-muted text-sm">
-              Your trusted bank manager, now on your phone.
-            </p>
-          </div>
-
-          {/* Links Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-10">
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-ink uppercase tracking-wider">
-                Important Links
-              </h4>
-              <ul className="space-y-2 text-sm text-ink-muted">
-                <li>
-                  <Link
-                    href="#"
-                    className="hover:text-saffron transition-colors"
-                  >
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="hover:text-saffron transition-colors"
-                  >
-                    Terms &amp; Conditions
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="hover:text-saffron transition-colors"
-                  >
-                    Security
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="hover:text-saffron transition-colors"
-                  >
-                    Contact Us
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-ink uppercase tracking-wider">
-                Languages
-              </h4>
-              <ul className="space-y-2 text-sm text-ink-muted">
-                <li>English</li>
-                <li>हिंदी</li>
-                <li>மராठী</li>
-                <li>ગુજરાતી</li>
-              </ul>
-            </div>
+    <footer className="border-t border-outline bg-panel/60 px-6 pb-24 pt-12 lg:pb-10">
+      <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
+        <div>
+          <p className="font-heading text-2xl font-semibold text-text-strong">
+            Nivesh Saathi
+          </p>
+          <p className="mt-3 max-w-md text-sm leading-6 text-text-muted">
+            A voice-first fixed deposit advisor built for clarity, trust, and low-friction decision making.
+          </p>
+          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-outline px-4 py-2 text-xs uppercase tracking-[0.2em] text-highlight">
+            <ShieldCheck className="h-4 w-4" />
+            DICGC context in plain language
           </div>
         </div>
 
-        {/* Disclaimer + Copyright */}
-        <div className="pt-8 border-t border-outline/30 text-center space-y-3">
-          <p className="text-[10px] text-ink-muted uppercase tracking-widest leading-relaxed">
-            DISCLAIMER: Nivesh Saathi is an aggregator platform. Deposits are held
-            with respective banks which are insured by DICGC (RBI&apos;s
-            wholly-owned subsidiary) up to ₹5 Lakhs per individual per bank.
-          </p>
-          <p className="text-ink-muted text-sm font-heading">
-            © 2024 Nivesh Saathi. Regulated by the Government of India.
-          </p>
+        <div>
+          <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-text-strong">
+            App
+          </h4>
+          <div className="mt-4 grid gap-3 text-sm text-text-muted">
+            <Link href={ROUTES.COMPARE} className="transition hover:text-highlight">
+              Compare
+            </Link>
+            <Link href={ROUTES.CHAT} className="transition hover:text-highlight">
+              Saathi chat
+            </Link>
+            <Link href={ROUTES.VOICE} className="transition hover:text-highlight">
+              Voice query
+            </Link>
+          </div>
         </div>
+
+        <div>
+          <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-text-strong">
+            Languages
+          </h4>
+          <div className="mt-4 grid gap-3 text-sm text-text-muted">
+            {Object.values(LANGUAGE_LABELS).map((label) => (
+              <span key={label}>{label}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto mt-10 max-w-7xl border-t border-outline pt-6 text-xs leading-6 text-text-muted">
+        Nivesh Saathi is an education-first FD comparison experience. Deposits remain with the respective regulated banks and DICGC protection applies up to the applicable limit per depositor per bank.
       </div>
     </footer>
   );
