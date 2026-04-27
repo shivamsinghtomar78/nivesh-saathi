@@ -5,6 +5,7 @@ import {
   Noto_Serif_Devanagari,
   Work_Sans,
 } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -67,6 +68,7 @@ export default function RootLayout({
         className={`${notoSerifDevanagari.variable} ${notoSerif.variable} ${workSans.variable} ${ibmPlexMono.variable} overflow-x-hidden`}
       >
         {children}
+        <Analytics />
       </body>
     </html>
   );
