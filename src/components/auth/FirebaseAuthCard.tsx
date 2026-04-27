@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -112,29 +112,35 @@ export default function FirebaseAuthCard() {
     null
   );
   const [busyAction, setBusyAction] = useState<string | null>(null);
-  const verifierReady = useRef(false);
-  const recaptchaId = useMemo(() => "firebase-auth-recaptcha", []);
+  const verifierRef = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaId = "firebase-auth-recaptcha";
 
   useEffect(() => {
-    if (typeof window === "undefined" || verifierReady.current) {
-      return;
+    return () => {
+      verifierRef.current?.clear();
+      verifierRef.current = null;
+      window.firebaseAuthRecaptcha = undefined;
+    };
+  }, []);
+
+  const getPhoneVerifier = () => {
+    if (typeof window === "undefined") {
+      return null;
     }
 
-    window.firebaseAuthRecaptcha = new RecaptchaVerifier(
-      firebaseAuth,
-      recaptchaId,
-      {
-        size: "invisible",
-      }
-    );
-    verifierReady.current = true;
+    if (!verifierRef.current) {
+      verifierRef.current = new RecaptchaVerifier(
+        firebaseAuth,
+        recaptchaId,
+        {
+          size: "invisible",
+        }
+      );
+      window.firebaseAuthRecaptcha = verifierRef.current;
+    }
 
-    return () => {
-      window.firebaseAuthRecaptcha?.clear();
-      window.firebaseAuthRecaptcha = undefined;
-      verifierReady.current = false;
-    };
-  }, [recaptchaId]);
+    return verifierRef.current;
+  };
 
   const handleEmailAuth = async () => {
     if (!email.trim() || password.length < 6) {
@@ -174,17 +180,18 @@ export default function FirebaseAuthCard() {
   };
 
   const sendOtp = async () => {
-    if (!window.firebaseAuthRecaptcha) {
-      toast.error("Secure phone check is still loading.");
-      return;
-    }
-
     setBusyAction("phone");
     try {
+      const verifier = getPhoneVerifier();
+
+      if (!verifier) {
+        throw new Error("Secure phone check is not available in this browser.");
+      }
+
       const result = await signInWithPhoneNumber(
         firebaseAuth,
         normalizeIndianPhone(phoneNumber),
-        window.firebaseAuthRecaptcha
+        verifier
       );
       setConfirmation(result);
       toast.success("OTP sent to your phone.");

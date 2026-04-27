@@ -438,15 +438,17 @@ export default function FDComparisonPage() {
                           {copy.askSaathi}
                         </button>
 
-                        <Link
-                          href={rate.officialUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 text-sm font-medium text-text-muted transition hover:text-text-strong"
-                        >
-                          Official site
-                          <ExternalLink className="h-4 w-4" />
-                        </Link>
+                        {rate.officialUrl ? (
+                          <Link
+                            href={rate.officialUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 text-sm font-medium text-text-muted transition hover:text-text-strong"
+                          >
+                            Official site
+                            <ExternalLink className="h-4 w-4" />
+                          </Link>
+                        ) : null}
                       </div>
                   </motion.article>
                 );

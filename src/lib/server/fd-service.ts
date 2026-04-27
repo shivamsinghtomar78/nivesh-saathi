@@ -14,6 +14,7 @@ import { cacheGet, cacheSet } from "@/lib/server/cache";
 import { resolveGlossary } from "@/lib/server/jargon-catalog";
 
 const SIX_HOURS_IN_SECONDS = 60 * 60 * 6;
+const RATES_CACHE_VERSION = "v2";
 
 const LOCALIZED_COPY: Record<
   AppLanguage,
@@ -82,6 +83,7 @@ const BADGE_LABELS: Record<NonNullable<FDRate["badge"]>, string> = {
 function buildRatesCacheKey(query: FDRatesQuery) {
   return [
     "fd-rates",
+    RATES_CACHE_VERSION,
     query.bankId ?? "all-banks",
     query.tenorMonths ?? "all",
     query.amount ?? "all",
@@ -89,6 +91,17 @@ function buildRatesCacheKey(query: FDRatesQuery) {
     query.seniorCitizen ? "senior" : "regular",
     query.limit ?? "all",
   ].join(":");
+}
+
+function withRuntimeRateDefaults(rate: FDRate): FDRate {
+  return {
+    ...rate,
+    officialUrl:
+      rate.officialUrl ||
+      `https://www.google.com/search?q=${encodeURIComponent(
+        `${rate.bankName} fixed deposit`
+      )}`,
+  };
 }
 
 export function getApplicableRate(rate: FDRate, seniorCitizen?: boolean) {
@@ -137,8 +150,10 @@ export async function getFDRates(query: FDRatesQuery = {}) {
     filtered = filtered.slice(0, query.limit);
   }
 
-  await cacheSet(cacheKey, filtered, SIX_HOURS_IN_SECONDS);
-  return filtered;
+  const normalized = filtered.map(withRuntimeRateDefaults);
+
+  await cacheSet(cacheKey, normalized, SIX_HOURS_IN_SECONDS);
+  return normalized;
 }
 
 export function getBankById(bankId: string) {
