@@ -6,7 +6,7 @@ import {
   Work_Sans,
 } from "next/font/google";
 import "./globals.css";
-
+import { Analytics } from "@vercel/analytics/next";
 export const metadata: Metadata = {
   title: "Nivesh Saathi — Your Trusted Investment Companion",
   description:
@@ -67,6 +67,7 @@ export default function RootLayout({
         className={`${notoSerifDevanagari.variable} ${notoSerif.variable} ${workSans.variable} ${ibmPlexMono.variable} overflow-x-hidden`}
       >
         {children}
+        <Analytics />
       </body>
     </html>
   );
