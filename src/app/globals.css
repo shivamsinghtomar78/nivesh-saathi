@@ -1,20 +1,20 @@
 @import "tailwindcss";
 
 @theme {
-  --color-app: #08121c;
-  --color-panel: #101b28;
-  --color-panel-strong: #172433;
-  --color-panel-glass: rgba(16, 27, 40, 0.82);
-  --color-highlight: #f7b843;
-  --color-highlight-soft: rgba(247, 184, 67, 0.14);
-  --color-accent: #33d3a6;
-  --color-accent-soft: rgba(51, 211, 166, 0.12);
-  --color-text-strong: #f5f7fb;
-  --color-text: #dae1ea;
-  --color-text-muted: #8b9aaa;
-  --color-outline: #263547;
-  --color-danger: #ff6b6b;
-  --color-success: #49d38c;
+  --color-app: #f2efe8;
+  --color-panel: rgba(255, 255, 255, 0.8);
+  --color-panel-strong: #fbf9f4;
+  --color-panel-glass: rgba(255, 255, 255, 0.72);
+  --color-highlight: #f3bfd4;
+  --color-highlight-soft: rgba(243, 191, 212, 0.18);
+  --color-accent: #0f9f73;
+  --color-accent-soft: rgba(15, 159, 115, 0.12);
+  --color-text-strong: #111113;
+  --color-text: #2d3036;
+  --color-text-muted: #6b6f77;
+  --color-outline: rgba(17, 17, 19, 0.08);
+  --color-danger: #d95f5f;
+  --color-success: #0f9f73;
   --font-heading: var(--font-noto-serif-devanagari), var(--font-noto-serif), serif;
   --font-body: var(--font-work-sans), system-ui, sans-serif;
   --font-mono: var(--font-ibm-plex-mono), monospace;
@@ -36,7 +36,9 @@ body {
   font-size: 16px;
   line-height: 1.55;
   background:
-    linear-gradient(180deg, rgba(11, 26, 39, 0.94), var(--color-app) 320px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0) 240px),
+    linear-gradient(135deg, rgba(243, 191, 212, 0.16), transparent 38%),
+    linear-gradient(225deg, rgba(214, 232, 227, 0.2), transparent 42%),
     var(--color-app);
   color: var(--color-text);
 }
@@ -50,12 +52,12 @@ body {
 }
 
 .card-shadow {
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 18px 42px rgba(17, 17, 19, 0.08);
 }
 
 .card-shadow-lg,
 .shadow-soft {
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 28px 70px rgba(17, 17, 19, 0.12);
 }
 
 .bot-bubble {
@@ -130,8 +132,8 @@ body {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(8, 18, 28, 0.12), rgba(8, 18, 28, 0.82)),
-    linear-gradient(90deg, rgba(247, 184, 67, 0.04), rgba(51, 211, 166, 0.04));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(242, 239, 232, 0.9)),
+    linear-gradient(90deg, rgba(243, 191, 212, 0.05), rgba(15, 159, 115, 0.05));
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -143,7 +145,7 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #314253;
+  background: rgba(17, 17, 19, 0.18);
   border-radius: 999px;
 }
 
