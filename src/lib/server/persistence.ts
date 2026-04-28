@@ -18,6 +18,95 @@ type StoredChatSession = {
 
 const chatSessionMemoryStore = new Map<string, StoredChatSession>();
 
+export type ProfileChatSummary = {
+  threadId: string;
+  language: AppLanguage;
+  fdContextIds: string[];
+  messageCount: number;
+  updatedAt: string;
+  latestMessage?: string;
+};
+
+export async function persistUserProfile(input: {
+  uid: string;
+  email?: string | null;
+  phoneNumber?: string | null;
+  name?: string | null;
+  picture?: string | null;
+  provider?: string | null;
+}) {
+  const db = getFirebaseAdminDb();
+  if (!db) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+
+  try {
+    await db.collection("userProfiles").doc(input.uid).set(
+      {
+        uid: input.uid,
+        email: input.email ?? null,
+        phoneNumber: input.phoneNumber ?? null,
+        name: input.name ?? null,
+        picture: input.picture ?? null,
+        provider: input.provider ?? null,
+        updatedAt: now,
+        createdAt: now,
+      },
+      { merge: true }
+    );
+  } catch (error) {
+    logServerError("user_profile_persist_failed", {
+      userId: input.uid,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+  }
+}
+
+export async function getUserChatSummaries(userId: string) {
+  const memorySessions = Array.from(chatSessionMemoryStore.values())
+    .filter((session) => session.userId === userId)
+    .map(toProfileChatSummary);
+
+  const db = getFirebaseAdminDb();
+  if (!db) {
+    return memorySessions;
+  }
+
+  try {
+    const snapshot = await db
+      .collection("chatSessions")
+      .where("userId", "==", userId)
+      .orderBy("updatedAt", "desc")
+      .limit(12)
+      .get();
+
+    return snapshot.docs.map((doc) =>
+      toProfileChatSummary(doc.data() as StoredChatSession)
+    );
+  } catch (error) {
+    logServerError("user_chat_summaries_lookup_failed", {
+      userId,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return memorySessions;
+  }
+}
+
+function toProfileChatSummary(session: StoredChatSession): ProfileChatSummary {
+  const latestMessage = session.messages.at(-1)?.content;
+
+  return {
+    threadId: session.threadId,
+    language: session.language,
+    fdContextIds: session.fdContextIds,
+    messageCount: session.messages.length,
+    updatedAt: session.updatedAt,
+    latestMessage,
+  };
+}
+
 export async function getChatSessionOwner(threadId: string) {
   const memorySession = chatSessionMemoryStore.get(threadId);
   if (memorySession?.userId) {

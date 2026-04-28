@@ -4,6 +4,7 @@ import { z } from "zod";
 import { jsonError, jsonSuccess, handleRouteError } from "@/lib/server/api";
 import { requireCsrfProtection, SESSION_COOKIE_NAME } from "@/lib/server/auth";
 import { getFirebaseAdminAuth } from "@/lib/server/firebase-admin";
+import { persistUserProfile } from "@/lib/server/persistence";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,16 @@ export async function POST(request: Request) {
     const expiresIn = 60 * 60 * 24 * 7 * 1000;
     const sessionCookie = await adminAuth.createSessionCookie(idToken, {
       expiresIn,
+    });
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
+
+    await persistUserProfile({
+      uid: decodedToken.uid,
+      email: decodedToken.email ?? null,
+      phoneNumber: decodedToken.phone_number ?? null,
+      name: decodedToken.name ?? null,
+      picture: decodedToken.picture ?? null,
+      provider: decodedToken.firebase.sign_in_provider ?? null,
     });
 
     const cookieStore = await cookies();

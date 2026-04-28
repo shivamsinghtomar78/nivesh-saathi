@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Sparkles } from "lucide-react";
+import { LogOut, Sparkles, UserRound } from "lucide-react";
 import { useState } from "react";
 import { signOut } from "firebase/auth";
 
@@ -76,15 +76,23 @@ export default function Navbar() {
           </div>
 
           {user ? (
-            <button
-              type="button"
-              aria-label={copy.nav.logout}
-              onClick={() => void handleLogout()}
-              className="inline-flex items-center gap-2 rounded-full border border-outline px-4 py-2 text-sm text-text-muted transition hover:border-highlight hover:text-highlight"
-            >
-              <LogOut className="h-4 w-4" />
-              {copy.nav.logout}
-            </button>
+            <>
+              <Link
+                href={ROUTES.PROFILE}
+                aria-label="Profile"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline text-text-muted transition hover:border-highlight hover:text-highlight"
+              >
+                <UserRound className="h-4 w-4" />
+              </Link>
+              <button
+                type="button"
+                aria-label={copy.nav.logout}
+                onClick={() => void handleLogout()}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline text-text-muted transition hover:border-highlight hover:text-highlight"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </>
           ) : (
             <Link
               href={ROUTES.LOGIN}

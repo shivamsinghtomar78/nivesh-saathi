@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageCircleMore, Mic, Radar, Shield, Sparkles } from "lucide-react";
+import { MessageCircleMore, Mic, Radar, Shield, Sparkles, UserRound } from "lucide-react";
 
 import { APP_COPY } from "@/lib/copy";
 import { ROUTES } from "@/lib/routes";
@@ -14,6 +14,7 @@ const sidebarLinks = [
   { href: ROUTES.COMPARE, key: "compare", icon: Radar },
   { href: ROUTES.CHAT, key: "chat", icon: MessageCircleMore },
   { href: ROUTES.VOICE, key: "voice", icon: Mic },
+  { href: ROUTES.PROFILE, key: "profile", icon: UserRound },
 ] as const;
 
 export default function Sidebar() {
@@ -25,10 +26,10 @@ export default function Sidebar() {
     user?.displayName || user?.email || user?.phoneNumber || "Guest mode";
 
   return (
-    <aside className="fixed left-0 top-16 z-40 hidden h-[calc(100vh-64px)] w-72 flex-col border-r border-outline bg-panel/92 backdrop-blur-xl lg:flex">
-      <div className="border-b border-outline p-6">
+    <aside className="fixed left-0 top-16 z-40 hidden h-[calc(100vh-64px)] w-64 flex-col border-r border-outline bg-panel/92 backdrop-blur-xl lg:flex">
+      <div className="border-b border-outline p-5">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-highlight text-black shadow-soft">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-highlight text-black shadow-soft">
             <Shield className="h-6 w-6" />
           </div>
           <div className="min-w-0">
@@ -42,8 +43,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <div className="p-4">
-        <div className="rounded-2xl border border-outline bg-panel-strong p-4">
+      <div className="p-3">
+        <div className="rounded-lg border border-outline bg-panel-strong p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-text-muted">
             Workflow
           </p>
@@ -67,7 +68,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="px-4">
+      <nav className="px-3">
         {sidebarLinks.map((link) => {
           const Icon = link.icon;
           return (
@@ -75,7 +76,7 @@ export default function Sidebar() {
               key={link.href}
               href={link.href}
               className={cn(
-                "mt-2 flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition",
+                "mt-1 flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition",
                 pathname === link.href
                   ? "bg-highlight text-black"
                   : "text-text-muted hover:bg-panel-strong hover:text-text-strong"

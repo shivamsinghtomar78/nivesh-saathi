@@ -4,4 +4,5 @@ export const ROUTES = {
   COMPARE: "/compare",
   CHAT: "/chat",
   VOICE: "/voice",
+  PROFILE: "/profile",
 } as const;

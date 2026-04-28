@@ -170,22 +170,22 @@ export default function FDComparisonPage() {
       <Navbar />
       <Sidebar />
 
-      <main className="min-h-screen pt-16 lg:ml-72">
+      <main className="min-h-screen pt-16 lg:ml-64">
         <div className="sticky top-16 z-30 border-b border-outline bg-panel-glass backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 md:px-6">
+          <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 md:px-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-highlight">
                   Compare flow
                 </p>
-                <h1 className="mt-3 text-3xl font-semibold text-text-strong">
+                <h1 className="mt-2 text-2xl font-semibold text-text-strong md:text-3xl">
                   {copy.title}
                 </h1>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-text-muted">
                   {copy.subtitle}
                 </p>
               </div>
-              <div className="rounded-2xl border border-outline bg-panel px-4 py-3 text-sm text-text-muted">
+              <div className="rounded-lg border border-outline bg-panel px-4 py-3 text-sm text-text-muted">
                 {user ? (
                   <span>Signed in. Your shortlist is ready to sync across devices.</span>
                 ) : (
@@ -207,7 +207,7 @@ export default function FDComparisonPage() {
                     key={option.months}
                     type="button"
                     onClick={() => setSelectedTenor(option.months)}
-                    className={`min-h-12 rounded-full px-4 text-sm font-semibold transition ${
+                    className={`min-h-11 rounded-full px-4 text-sm font-semibold transition ${
                       selectedTenor === option.months
                         ? "bg-highlight text-black"
                         : "border border-outline bg-panel text-text-muted hover:border-highlight hover:text-text-strong"
@@ -221,7 +221,7 @@ export default function FDComparisonPage() {
               <div className="grid gap-3 sm:grid-cols-[minmax(0,180px)_minmax(0,220px)_auto]">
                 <label className="grid gap-2 text-sm text-text-muted">
                   <span>Amount</span>
-                  <div className="flex min-h-12 items-center rounded-2xl border border-outline bg-panel px-4">
+                  <div className="flex min-h-11 items-center rounded-lg border border-outline bg-panel px-4">
                     <BadgeIndianRupee className="h-4 w-4 text-highlight" />
                     <input
                       type="text"
@@ -238,7 +238,7 @@ export default function FDComparisonPage() {
 
                 <label className="grid gap-2 text-sm text-text-muted">
                   <span>Bank type</span>
-                  <div className="flex min-h-12 items-center rounded-2xl border border-outline bg-panel px-4">
+                  <div className="flex min-h-11 items-center rounded-lg border border-outline bg-panel px-4">
                     <Filter className="h-4 w-4 text-highlight" />
                     <select
                       value={bankType}
@@ -260,7 +260,7 @@ export default function FDComparisonPage() {
                 <button
                   type="button"
                   onClick={() => openJargon("compound-interest")}
-                  className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-outline bg-panel px-5 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg border border-outline bg-panel px-5 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
                 >
                   Explain compound interest
                 </button>
@@ -269,9 +269,9 @@ export default function FDComparisonPage() {
           </div>
         </div>
 
-        <section className="mx-auto max-w-7xl px-4 py-6 md:px-6">
+        <section className="mx-auto max-w-6xl px-4 py-5 md:px-6">
           {shortlist.length > 0 && (
-            <div className="mb-5 flex flex-col gap-3 rounded-[28px] border border-outline bg-panel p-5 shadow-soft md:flex-row md:items-center md:justify-between">
+            <div className="mb-5 flex flex-col gap-3 rounded-lg border border-outline bg-panel p-4 shadow-soft md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-highlight">
                   Shortlist
@@ -324,7 +324,7 @@ export default function FDComparisonPage() {
                       initial={{ opacity: 0, y: 18 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.03, duration: 0.28 }}
-                      className="min-w-[88%] snap-start rounded-[28px] border border-outline bg-panel p-5 shadow-soft md:min-w-0"
+                      className="min-w-[88%] snap-start rounded-lg border border-outline bg-panel p-4 shadow-soft md:min-w-0"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-3">
@@ -359,7 +359,7 @@ export default function FDComparisonPage() {
                         </p>
                       </div>
 
-                      <div className="mt-4 rounded-[24px] border border-outline bg-app p-4">
+                      <div className="mt-4 rounded-lg border border-outline bg-app p-4">
                         <div className="flex items-center gap-2 text-highlight">
                           <Sparkles className="h-4 w-4" />
                           <span className="text-xs uppercase tracking-[0.2em]">
@@ -376,7 +376,7 @@ export default function FDComparisonPage() {
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-2xl border border-outline bg-panel-strong px-4 py-3">
+                        <div className="rounded-lg border border-outline bg-panel-strong px-4 py-3">
                           <p className="text-xs uppercase tracking-[0.18em] text-text-muted">
                             Min amount
                           </p>
@@ -384,7 +384,7 @@ export default function FDComparisonPage() {
                             {formatCurrency(rate.minAmount)}
                           </p>
                         </div>
-                        <div className="rounded-2xl border border-outline bg-panel-strong px-4 py-3">
+                        <div className="rounded-lg border border-outline bg-panel-strong px-4 py-3">
                           <p className="text-xs uppercase tracking-[0.18em] text-text-muted">
                             Safety
                           </p>
@@ -399,7 +399,7 @@ export default function FDComparisonPage() {
                         <button
                           type="button"
                           onClick={() => openJargon("pa")}
-                          className="min-h-12 rounded-2xl border border-outline bg-panel-strong px-4 py-3 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
+                          className="min-h-11 rounded-lg border border-outline bg-panel-strong px-4 py-2 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
                         >
                           Learn term
                         </button>
@@ -413,7 +413,7 @@ export default function FDComparisonPage() {
                                 : `${rate.bankName} saved to shortlist`
                             );
                           }}
-                          className={`min-h-12 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                          className={`min-h-11 rounded-lg px-4 py-2 text-sm font-semibold transition ${
                             activeShortlist
                               ? "bg-highlight text-black"
                               : "border border-outline bg-panel-strong text-text-strong hover:border-highlight hover:text-highlight"

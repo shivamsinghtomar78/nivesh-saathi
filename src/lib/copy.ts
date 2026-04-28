@@ -18,6 +18,7 @@ export const APP_COPY: Record<
       voice: string;
       login: string;
       logout: string;
+      profile: string;
     };
     auth: {
       title: string;
@@ -54,6 +55,7 @@ export const APP_COPY: Record<
       voice: "Voice",
       login: "Sign in",
       logout: "Sign out",
+      profile: "Profile",
     },
     auth: {
       title: "Secure your shortlist",
@@ -89,6 +91,7 @@ export const APP_COPY: Record<
       voice: "Voice",
       login: "Sign in",
       logout: "Sign out",
+      profile: "Profile",
     },
     auth: {
       title: "Apni shortlist surakshit rakhiye",
@@ -124,6 +127,7 @@ export const APP_COPY: Record<
       voice: "Voice",
       login: "Sign in",
       logout: "Sign out",
+      profile: "Profile",
     },
     auth: {
       title: "Ungal shortlist-ai kaappom",
@@ -159,6 +163,7 @@ export const APP_COPY: Record<
       voice: "Voice",
       login: "Sign in",
       logout: "Sign out",
+      profile: "Profile",
     },
     auth: {
       title: "Apnar shortlist nirapod rakhun",

@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import AuthGate from "@/components/auth/AuthGate";
 import BottomNav from "@/components/layout/BottomNav";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
@@ -308,14 +307,14 @@ export default function ChatInterfacePage() {
       <Navbar />
       <Sidebar />
 
-      <main className="min-h-screen bg-app pt-16 lg:ml-72">
-        <div className="border-b border-outline bg-panel-glass px-4 py-5 backdrop-blur-xl md:px-6">
+      <main className="min-h-screen bg-app pt-16 lg:ml-64">
+        <div className="border-b border-outline bg-panel-glass px-4 py-4 backdrop-blur-xl md:px-6">
           <div className="mx-auto flex max-w-6xl flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-highlight">
                 Saathi chat
               </p>
-              <h1 className="mt-2 text-3xl font-semibold text-text-strong">
+              <h1 className="mt-2 text-2xl font-semibold text-text-strong md:text-3xl">
                 Ask what actually changes your FD decision
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-text-muted">
@@ -325,7 +324,7 @@ export default function ChatInterfacePage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <label className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-outline bg-panel px-4 py-3 text-sm font-semibold text-text-strong transition focus-within:border-highlight">
+              <label className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-outline bg-panel px-4 py-2 text-sm font-semibold text-text-strong transition focus-within:border-highlight">
                 <Languages className="h-4 w-4" />
                 <select
                   value={language}
@@ -347,7 +346,7 @@ export default function ChatInterfacePage() {
               <button
                 type="button"
                 onClick={clearMessages}
-                className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-outline bg-panel px-4 py-3 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-outline bg-panel px-4 py-2 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight"
                 aria-label="Clear chat history"
               >
                 <Trash2 className="h-4 w-4" />
@@ -357,14 +356,10 @@ export default function ChatInterfacePage() {
           </div>
         </div>
 
-        <section className="mx-auto max-w-6xl px-4 py-6 md:px-6">
-          <AuthGate
-            title="Sign in to unlock the full advisor flow"
-            body="Use Firebase email, phone, or Google sign-in to keep your shortlist, continue the same conversation later, and make the demo feel like a trusted personal finance assistant instead of a stateless chatbot."
-          >
+        <section className="mx-auto max-w-5xl px-4 py-5 md:px-6">
             <div className="grid gap-4">
               {shortlistBanks.length > 0 && (
-                <div className="rounded-[28px] border border-outline bg-panel p-5 shadow-soft">
+                <div className="rounded-lg border border-outline bg-panel p-4 shadow-soft">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <p className="text-xs uppercase tracking-[0.24em] text-highlight">
@@ -377,7 +372,7 @@ export default function ChatInterfacePage() {
                     <button
                       type="button"
                       onClick={analyzeShortlist}
-                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-highlight px-5 py-3 text-sm font-semibold text-black transition hover:brightness-110"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-highlight px-5 py-2 text-sm font-semibold text-black transition hover:brightness-110"
                     >
                       <Sparkles className="h-4 w-4" />
                       Analyze shortlist
@@ -386,7 +381,7 @@ export default function ChatInterfacePage() {
                 </div>
               )}
 
-              <div className="rounded-[32px] border border-outline bg-panel p-4 shadow-soft">
+              <div className="rounded-lg border border-outline bg-panel p-4 shadow-soft">
                 <div className="max-h-[60vh] space-y-4 overflow-y-auto px-1 py-2">
                   {messages.map((msg) => (
                       <motion.div
@@ -398,7 +393,7 @@ export default function ChatInterfacePage() {
                         }`}
                       >
                         <div
-                          className={`max-w-[90%] rounded-[24px] px-4 py-4 md:max-w-[75%] ${
+                          className={`max-w-[90%] rounded-lg px-4 py-3 md:max-w-[75%] ${
                             msg.role === "user"
                               ? "bg-highlight text-black"
                               : "border border-outline bg-panel-strong text-text-strong"
@@ -415,7 +410,7 @@ export default function ChatInterfacePage() {
                               {msg.rateCards.map((card, index) => (
                                 <div
                                   key={`${card.bankId}-${index}`}
-                                  className="rounded-2xl border border-outline bg-app px-4 py-3"
+                                  className="rounded-lg border border-outline bg-app px-4 py-3"
                                 >
                                   <div className="flex items-start justify-between gap-3">
                                     <div>
@@ -498,7 +493,7 @@ export default function ChatInterfacePage() {
                               {msg.glossary.map((item, index) => (
                                 <div
                                   key={`${item.term}-${index}`}
-                                  className="rounded-2xl border border-outline bg-app px-4 py-3"
+                                  className="rounded-lg border border-outline bg-app px-4 py-3"
                                 >
                                   <div className="flex items-center gap-2 text-highlight">
                                     <BookOpen className="h-4 w-4" />
@@ -531,11 +526,11 @@ export default function ChatInterfacePage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                <div className="mt-4 rounded-[28px] border border-outline bg-app p-3">
+                <div className="mt-4 rounded-lg border border-outline bg-app p-3">
                   <div className="flex flex-col gap-3 md:flex-row">
                     <div className="relative flex-1">
                       <input
-                        className="min-h-12 w-full rounded-2xl border border-outline bg-panel px-4 pr-12 text-base text-text-strong outline-none transition focus:border-highlight"
+                        className="min-h-12 w-full rounded-lg border border-outline bg-panel px-4 pr-12 text-base text-text-strong outline-none transition focus:border-highlight"
                         placeholder="Ask about rates, safety, maturity, or your shortlist..."
                         type="text"
                         value={input}
@@ -559,7 +554,7 @@ export default function ChatInterfacePage() {
                             : void voice.startListening()
                         }
                         disabled={!voice.isSupported || voice.isProcessing || isTyping}
-                        className={`inline-flex min-h-12 min-w-12 items-center justify-center rounded-2xl px-4 transition ${
+                        className={`inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg px-4 transition ${
                           voice.isListening
                             ? "bg-emerald-400 text-black shadow-soft"
                             : "border border-outline bg-panel text-text-strong hover:border-highlight hover:text-highlight"
@@ -572,7 +567,7 @@ export default function ChatInterfacePage() {
                         type="button"
                         onClick={() => void sendMessage()}
                         disabled={isTyping}
-                        className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-highlight px-5 text-sm font-semibold text-black transition hover:brightness-110 disabled:opacity-60"
+                        className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-highlight px-5 text-sm font-semibold text-black transition hover:brightness-110 disabled:opacity-60"
                       >
                         <Send className="h-4 w-4" />
                         {copy.voice.send}
@@ -581,7 +576,7 @@ export default function ChatInterfacePage() {
                   </div>
 
                   {(voice.error || voice.isListening || voice.isProcessing) && (
-                    <div className="mt-3 flex items-center gap-3 rounded-2xl border border-outline bg-panel px-4 py-3 text-sm text-text-muted">
+                    <div className="mt-3 flex items-center gap-3 rounded-lg border border-outline bg-panel px-4 py-3 text-sm text-text-muted">
                       <div className="wave-bars">
                         <span />
                         <span />
@@ -599,7 +594,6 @@ export default function ChatInterfacePage() {
                 </div>
               </div>
             </div>
-          </AuthGate>
         </section>
       </main>
 
