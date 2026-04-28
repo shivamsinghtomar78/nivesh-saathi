@@ -7,10 +7,50 @@ import { getFirebaseAdminAuth } from "@/lib/server/firebase-admin";
 import { persistUserProfile } from "@/lib/server/persistence";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const sessionRequestSchema = z.object({
   idToken: z.string().min(1),
 });
+
+export async function GET(request: Request) {
+  const adminAuth = getFirebaseAdminAuth();
+
+  if (!adminAuth) {
+    return jsonError("Firebase admin is not configured", 503);
+  }
+
+  const sessionCookie = request.headers
+    .get("cookie")
+    ?.split(";")
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${SESSION_COOKIE_NAME}=`))
+    ?.slice(SESSION_COOKIE_NAME.length + 1);
+
+  if (!sessionCookie) {
+    return jsonError("Sign in required", 401);
+  }
+
+  try {
+    const session = await adminAuth.verifySessionCookie(
+      decodeURIComponent(sessionCookie),
+      true
+    );
+
+    return jsonSuccess({
+      user: {
+        uid: session.uid,
+        email: session.email ?? null,
+        phoneNumber: session.phone_number ?? null,
+        name: session.name ?? null,
+        picture: session.picture ?? null,
+        provider: session.firebase.sign_in_provider ?? null,
+      },
+    });
+  } catch {
+    return jsonError("Session expired. Please sign in again.", 401);
+  }
+}
 
 export async function POST(request: Request) {
   try {

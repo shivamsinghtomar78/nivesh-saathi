@@ -9,7 +9,6 @@ import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-vis
 import BottomNav from "@/components/layout/BottomNav";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
-import StructuredAnswer from "@/components/shared/StructuredAnswer";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { withCsrfHeaders } from "@/lib/csrf";
 import { LANGUAGE_META, type SupportedLanguage } from "@/lib/languages";
@@ -31,8 +30,8 @@ export default function VoiceInputPage() {
   const setLanguage = useChatStore((state) => state.setLanguage);
   const shortlist = useCompareStore((state) => state.shortlist);
   const user = useAuthStore((state) => state.user);
+  const userId = user?.uid;
   const [threadId, setThreadId] = useState<string | null>(null);
-  const [lastQuestion, setLastQuestion] = useState("");
   const [advisorText, setAdvisorText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -52,7 +51,6 @@ export default function VoiceInputPage() {
       }
 
       setIsSubmitting(true);
-      setLastQuestion(message);
 
       try {
         const response = await fetch("/api/chat", {
@@ -64,7 +62,7 @@ export default function VoiceInputPage() {
             message,
             language,
             threadId: threadId ?? undefined,
-            userId: user?.uid,
+            userId,
             shortlistBankIds: shortlist,
           }),
         });
@@ -84,7 +82,7 @@ export default function VoiceInputPage() {
         setIsSubmitting(false);
       }
     },
-    [isSubmitting, language, shortlist, threadId, user?.uid]
+    [isSubmitting, language, shortlist, threadId, userId]
   );
 
   const voice = useVoiceInput({
@@ -225,7 +223,7 @@ export default function VoiceInputPage() {
               </label>
             </div>
 
-            <div className="grid gap-6 py-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+            <div className="grid gap-6 py-6 lg:grid-cols-[1fr_0.85fr] lg:items-center">
               <div className="grid justify-items-center gap-5">
                 <AgentAudioVisualizerAura
                   size="xl"
@@ -256,8 +254,8 @@ export default function VoiceInputPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4">
-                <div className="rounded-lg border border-outline bg-app p-4">
+              <div className="grid gap-4" aria-live="polite">
+                <div className="rounded-lg border border-outline bg-app p-5">
                   <div className="flex items-center gap-2 text-highlight">
                     <AudioLines className="h-4 w-4" />
                     <p className="text-xs uppercase tracking-[0.2em]">Status</p>
@@ -267,26 +265,14 @@ export default function VoiceInputPage() {
                   </p>
                 </div>
 
-                <div className="rounded-lg border border-outline bg-app p-4">
+                <div className="rounded-lg border border-outline bg-app p-5">
                   <p className="text-xs uppercase tracking-[0.2em] text-text-muted">
-                    Last question
+                    Conversation mode
                   </p>
-                  <p className="mt-3 min-h-12 text-sm leading-6 text-text-strong">
-                    {voice.transcript || lastQuestion || "Your spoken question will appear here."}
+                  <p className="mt-3 text-sm leading-6 text-text-strong">
+                    Voice only. Spoken questions and answers are processed for
+                    the conversation, but not shown as chat text on this screen.
                   </p>
-                </div>
-
-                <div className="rounded-lg border border-outline bg-app p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-text-muted">
-                    Spoken reply
-                  </p>
-                  <div className="mt-3 min-h-24 text-sm leading-6 text-text-strong">
-                    {advisorText ? (
-                      <StructuredAnswer text={advisorText} compact />
-                    ) : (
-                      "Saathi's voice answer will appear here after it is spoken."
-                    )}
-                  </div>
                 </div>
               </div>
             </div>

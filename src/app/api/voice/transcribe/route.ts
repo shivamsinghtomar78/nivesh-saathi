@@ -9,6 +9,7 @@ import {
 } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const preferredRegion = "bom1";
 
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024;

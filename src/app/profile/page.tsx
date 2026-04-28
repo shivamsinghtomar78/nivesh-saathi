@@ -48,19 +48,17 @@ function formatDate(value?: string) {
 
 export default function ProfilePage() {
   const user = useAuthStore((state) => state.user);
+  const userId = user?.uid;
   const messages = useChatStore((state) => state.messages);
   const shortlist = useCompareStore((state) => state.shortlist);
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      setProfile(null);
+    if (!userId) {
       return;
     }
 
     let active = true;
-    setLoading(true);
 
     fetch("/api/profile")
       .then((response) => response.json() as Promise<ProfilePayload>)
@@ -73,17 +71,12 @@ export default function ProfilePage() {
         if (active) {
           setProfile({ error: "Unable to load database profile right now." });
         }
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false);
-        }
       });
 
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [userId]);
 
   const shortlistedRates = useMemo(
     () => FD_RATES.filter((rate) => shortlist.includes(rate.id)),
@@ -188,9 +181,7 @@ export default function ProfilePage() {
                         {profile?.user?.phoneNumber || user?.phoneNumber || "Not added"}
                       </p>
                     </div>
-                    {loading ? (
-                      <p className="text-text-muted">Loading database profile...</p>
-                    ) : profile?.error ? (
+                    {profile?.error ? (
                       <p className="text-danger">{profile.error}</p>
                     ) : null}
                   </div>

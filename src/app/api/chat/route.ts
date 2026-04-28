@@ -18,7 +18,12 @@ import {
 } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const preferredRegion = "bom1";
+
+export async function OPTIONS() {
+  return new Response(null, { status: 204 });
+}
 
 export async function POST(request: Request) {
   try {

@@ -3,6 +3,7 @@ import { requireFirebaseSession } from "@/lib/server/auth";
 import { getUserChatSummaries } from "@/lib/server/persistence";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const auth = await requireFirebaseSession(request);

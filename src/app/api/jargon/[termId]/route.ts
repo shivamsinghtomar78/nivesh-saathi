@@ -3,6 +3,7 @@ import { jsonError, jsonSuccess } from "@/lib/server/api";
 import { localizeJargonEntry } from "@/lib/server/jargon-catalog";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type RouteContext = {
   params: Promise<{
