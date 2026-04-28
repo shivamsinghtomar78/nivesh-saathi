@@ -1,5 +1,5 @@
-import FDAdvisorChatInterface from "@/components/prototype/FDAdvisorChatInterface";
+import VoiceScreen from "@/components/app/VoiceScreen";
 
 export default function VoicePage() {
-  return <FDAdvisorChatInterface mode="voice" />;
+  return <VoiceScreen />;
 }

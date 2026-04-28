@@ -1,5 +1,5 @@
-import FDAdvisorChatInterface from "@/components/prototype/FDAdvisorChatInterface";
+import TextChatScreen from "@/components/app/TextChatScreen";
 
 export default function ChatPage() {
-  return <FDAdvisorChatInterface mode="chat" />;
+  return <TextChatScreen />;
 }

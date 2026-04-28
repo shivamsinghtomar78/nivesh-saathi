@@ -10,9 +10,9 @@ import { useAuthStore } from "@/stores/authStore";
 export default function PublicHeader() {
   const user = useAuthStore((state) => state.user);
   const reduceMotion = useReducedMotion();
-  const href = user ? ROUTES.COMPARE : ROUTES.LOGIN;
-  const label = user ? "Open app" : "Sign in";
-  const fullLabel = user ? "Open app" : "Sign in / Login";
+  const href = user ? ROUTES.HOME : ROUTES.LOGIN;
+  const label = user ? "Open home" : "Sign in";
+  const fullLabel = user ? "Open app home" : "Sign in / Login";
 
   return (
     <motion.header
@@ -22,7 +22,7 @@ export default function PublicHeader() {
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
-        <Link href={ROUTES.HOME} className="flex min-w-0 items-center gap-3">
+        <Link href={ROUTES.LANDING} className="flex min-w-0 items-center gap-3">
           <motion.div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-highlight text-black shadow-soft"
             whileHover={reduceMotion ? undefined : { rotate: 8, scale: 1.05 }}
@@ -35,7 +35,7 @@ export default function PublicHeader() {
               Nivesh Saathi
             </p>
             <p className="hidden text-[11px] uppercase tracking-[0.18em] text-text-muted sm:block">
-              Aapka bharosemand FD guide
+              Your trusted FD guide
             </p>
           </div>
         </Link>

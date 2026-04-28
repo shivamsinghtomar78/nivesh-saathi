@@ -15,7 +15,7 @@ function getSafeNextPath(value?: string | string[]) {
   const candidate = Array.isArray(value) ? value[0] : value;
 
   if (!candidate?.startsWith("/") || candidate.startsWith("//")) {
-    return ROUTES.COMPARE;
+    return ROUTES.HOME;
   }
 
   return candidate;
@@ -38,7 +38,7 @@ export default async function LoginPage({
           <MotionStagger className="w-full max-w-xl">
             <MotionStaggerItem>
               <Link
-                href={ROUTES.HOME}
+                href={ROUTES.LANDING}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-text-muted transition hover:text-highlight"
               >
                 <ArrowLeft className="h-4 w-4" />

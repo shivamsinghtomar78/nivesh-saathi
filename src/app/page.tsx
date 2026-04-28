@@ -1,5 +1,5 @@
-import FDAdvisorChatInterface from "@/components/prototype/FDAdvisorChatInterface";
+import LandingScreen from "@/components/landing/LandingScreen";
 
 export default function HomePage() {
-  return <FDAdvisorChatInterface mode="home" />;
+  return <LandingScreen />;
 }

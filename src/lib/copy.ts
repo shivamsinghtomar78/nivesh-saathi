@@ -51,7 +51,7 @@ export const APP_COPY: Record<
     nav: {
       home: "Home",
       compare: "Compare",
-      chat: "Saathi",
+      chat: "Chat",
       voice: "Voice",
       login: "Sign in",
       logout: "Sign out",
@@ -77,7 +77,7 @@ export const APP_COPY: Record<
       stickyCta: "Open chat",
     },
     voice: {
-      title: "Ask by voice",
+      title: "Voice bot",
       subtitle: "Speak naturally and get a plain-language answer back.",
       send: "Send",
     },
@@ -87,7 +87,7 @@ export const APP_COPY: Record<
     nav: {
       home: "Home",
       compare: "Compare",
-      chat: "Saathi",
+      chat: "Chat",
       voice: "Voice",
       login: "Sign in",
       logout: "Sign out",
@@ -113,7 +113,7 @@ export const APP_COPY: Record<
       stickyCta: "Chat kholo",
     },
     voice: {
-      title: "Aawaz se poochhiye",
+      title: "Voice bot",
       subtitle: "Seedhi bhasha mein sawal poochhiye aur jawab suniye.",
       send: "Send",
     },
@@ -123,7 +123,7 @@ export const APP_COPY: Record<
     nav: {
       home: "Home",
       compare: "Compare",
-      chat: "Saathi",
+      chat: "Chat",
       voice: "Voice",
       login: "Sign in",
       logout: "Sign out",
@@ -149,7 +149,7 @@ export const APP_COPY: Record<
       stickyCta: "Chat thirakkavum",
     },
     voice: {
-      title: "Kuralal kelunga",
+      title: "Voice bot",
       subtitle: "Saadharanama pesaungal, Saathi badhil tharum.",
       send: "Send",
     },
@@ -159,7 +159,7 @@ export const APP_COPY: Record<
     nav: {
       home: "Home",
       compare: "Compare",
-      chat: "Saathi",
+      chat: "Chat",
       voice: "Voice",
       login: "Sign in",
       logout: "Sign out",
@@ -185,7 +185,7 @@ export const APP_COPY: Record<
       stickyCta: "Chat khulun",
     },
     voice: {
-      title: "Kotha bole jiggesh korun",
+      title: "Voice bot",
       subtitle: "Sohoj bhashay bolun, Saathi uttor debe.",
       send: "Send",
     },

@@ -1,5 +1,5 @@
-import FDAdvisorChatInterface from "@/components/prototype/FDAdvisorChatInterface";
+import CompareScreen from "@/components/app/CompareScreen";
 
 export default function ComparePage() {
-  return <FDAdvisorChatInterface mode="chat" />;
+  return <CompareScreen />;
 }

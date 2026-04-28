@@ -100,7 +100,7 @@ async function createServerSession(user: User) {
 }
 
 export default function FirebaseAuthCard({
-  nextPath = ROUTES.COMPARE,
+  nextPath = ROUTES.HOME,
 }: {
   nextPath?: string;
 }) {
