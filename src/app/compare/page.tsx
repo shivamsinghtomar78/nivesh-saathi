@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   startTransition,
   useDeferredValue,
@@ -28,7 +28,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import EmptyRatesState from "@/components/shared/EmptyRatesState";
 import Skeleton from "@/components/shared/Skeleton";
 import { APP_COPY } from "@/lib/copy";
-import { type FDRate } from "@/lib/fd-data";
+import { FD_RATE_DATASET, type FDRate } from "@/lib/fd-data";
 import { getJargonTerm, JARGON_DICTIONARY } from "@/lib/jargon";
 import { calculateMaturity } from "@/lib/maturity";
 import { ROUTES } from "@/lib/routes";
@@ -53,6 +53,26 @@ const bankTypeOptions = [
 ] as const;
 
 type BankTypeFilter = (typeof bankTypeOptions)[number]["value"];
+
+const rateAsOfLabel = new Intl.DateTimeFormat("en-IN", {
+  dateStyle: "medium",
+}).format(new Date(FD_RATE_DATASET.asOf));
+
+function parseTenor(value: string | null) {
+  const tenor = Number(value);
+  return tenorOptions.some((option) => option.months === tenor) ? tenor : 12;
+}
+
+function parseAmount(value: string | null) {
+  const amount = Number(value?.replace(/\D/g, ""));
+  return amount > 0 ? String(amount) : "100000";
+}
+
+function parseBankType(value: string | null): BankTypeFilter {
+  return bankTypeOptions.some((option) => option.value === value)
+    ? (value as BankTypeFilter)
+    : "all";
+}
 
 function CompareSkeleton() {
   return (
@@ -85,15 +105,23 @@ function CompareSkeleton() {
 
 export default function FDComparisonPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const language = useChatStore((state) => state.language);
   const copy = APP_COPY[language].compare;
   const user = useAuthStore((state) => state.user);
   const shortlist = useCompareStore((state) => state.shortlist);
   const toggleShortlist = useCompareStore((state) => state.toggleShortlist);
   const clearShortlist = useCompareStore((state) => state.clearShortlist);
-  const [selectedTenor, setSelectedTenor] = useState(12);
-  const [amountInput, setAmountInput] = useState("100000");
-  const [bankType, setBankType] = useState<BankTypeFilter>("all");
+  const [selectedTenor, setSelectedTenor] = useState(() =>
+    parseTenor(searchParams.get("tenor"))
+  );
+  const [amountInput, setAmountInput] = useState(() =>
+    parseAmount(searchParams.get("amount"))
+  );
+  const [bankType, setBankType] = useState<BankTypeFilter>(() =>
+    parseBankType(searchParams.get("bankType"))
+  );
   const [rates, setRates] = useState<FDRate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -155,6 +183,14 @@ export default function FDComparisonPage() {
     };
   }, [amount, bankType, selectedTenor]);
 
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set("tenor", String(selectedTenor));
+    params.set("amount", String(amount));
+    params.set("bankType", bankType);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [amount, bankType, pathname, router, selectedTenor]);
+
   const openJargon = (termId: string) => {
     const term = getJargonTerm(termId);
     if (term) {
@@ -170,7 +206,7 @@ export default function FDComparisonPage() {
       <Navbar />
       <Sidebar />
 
-      <main className="min-h-screen pt-16 lg:ml-64">
+      <main className="min-h-screen pb-28 pt-16 lg:ml-64 lg:pb-8">
         <div className="sticky top-16 z-30 border-b border-outline bg-panel-glass backdrop-blur-xl">
           <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 md:px-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -183,6 +219,10 @@ export default function FDComparisonPage() {
                 </h1>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-text-muted">
                   {copy.subtitle}
+                </p>
+                <p className="mt-2 max-w-3xl text-xs leading-5 text-text-muted">
+                  {FD_RATE_DATASET.sourceLabel}, reviewed {rateAsOfLabel}. Verify
+                  the final rate on the official bank page before booking.
                 </p>
               </div>
               <div className="rounded-lg border border-outline bg-panel px-4 py-3 text-sm text-text-muted">
@@ -449,6 +489,10 @@ export default function FDComparisonPage() {
                           </Link>
                         ) : null}
                       </div>
+                      <p className="mt-3 text-[11px] leading-5 text-text-muted">
+                        {rate.sourceLabel}, reviewed {rateAsOfLabel}. Source: official
+                        bank page.
+                      </p>
                   </motion.article>
                 );
               })}

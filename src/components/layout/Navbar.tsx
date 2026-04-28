@@ -96,7 +96,7 @@ export default function Navbar() {
           ) : (
             <Link
               href={ROUTES.LOGIN}
-              className="inline-flex rounded-full bg-highlight px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110"
+              className="inline-flex shrink-0 whitespace-nowrap rounded-xl bg-highlight px-3 py-2 text-sm font-semibold text-black transition hover:brightness-110 sm:rounded-full sm:px-4"
             >
               {copy.nav.login}
             </Link>

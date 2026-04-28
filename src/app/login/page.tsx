@@ -11,7 +11,26 @@ import {
 } from "@/components/motion/MotionPrimitives";
 import { ROUTES } from "@/lib/routes";
 
-export default function LoginPage() {
+function getSafeNextPath(value?: string | string[]) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+
+  if (!candidate?.startsWith("/") || candidate.startsWith("//")) {
+    return ROUTES.COMPARE;
+  }
+
+  return candidate;
+}
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    next?: string | string[];
+  }>;
+}) {
+  const params = await searchParams;
+  const nextPath = getSafeNextPath(params?.next);
+
   return (
     <main className="min-h-screen bg-black text-text-strong">
       <section className="grid min-h-screen lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
@@ -45,7 +64,7 @@ export default function LoginPage() {
 
             <MotionStaggerItem>
               <div className="mt-10">
-                <FirebaseAuthCard />
+                <FirebaseAuthCard nextPath={nextPath} />
               </div>
             </MotionStaggerItem>
           </MotionStagger>

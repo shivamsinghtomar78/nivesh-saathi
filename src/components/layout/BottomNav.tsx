@@ -22,7 +22,7 @@ export default function BottomNav() {
   const copy = APP_COPY[language];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline bg-panel/95 backdrop-blur-xl lg:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-outline bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
       <div className="mx-auto grid h-16 max-w-xl grid-cols-4">
         {tabs.map((tab) => {
           const Icon = tab.icon;

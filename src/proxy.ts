@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { SESSION_COOKIE_NAME } from "@/lib/auth-constants";
-import { ROUTES } from "@/lib/routes";
+const SESSION_COOKIE_NAME = "__session";
 
-const PROTECTED_ROUTES = [ROUTES.CHAT, ROUTES.VOICE];
+const PROTECTED_ROUTES = ["/chat", "/voice", "/profile"];
 
 export function proxy(request: NextRequest) {
   const isProtectedRoute = PROTECTED_ROUTES.some(
@@ -20,7 +19,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const loginUrl = new URL(ROUTES.LOGIN, request.url);
+  const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set(
     "next",
     `${request.nextUrl.pathname}${request.nextUrl.search}`
@@ -30,5 +29,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/chat/:path*", "/voice/:path*"],
+  matcher: ["/chat/:path*", "/voice/:path*", "/profile/:path*"],
 };

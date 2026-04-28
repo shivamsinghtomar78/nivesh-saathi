@@ -18,7 +18,7 @@ import {
   MotionStagger,
   MotionStaggerItem,
 } from "@/components/motion/MotionPrimitives";
-import { FD_RATES } from "@/lib/fd-data";
+import { FD_RATE_DATASET, FD_RATES } from "@/lib/fd-data";
 import { ROUTES } from "@/lib/routes";
 import { formatCurrency } from "@/lib/utils";
 
@@ -28,9 +28,13 @@ const topRates = [...FD_RATES]
 
 const trustPoints = [
   { icon: ShieldCheck, label: "Plain-language safety context" },
-  { icon: Banknote, label: "Starts from Rs 500 style guidance" },
+  { icon: Banknote, label: "Amount-aware maturity previews" },
   { icon: AudioLines, label: "Voice-led, low-friction flow" },
 ];
+
+const rateAsOfLabel = new Intl.DateTimeFormat("en-IN", {
+  dateStyle: "medium",
+}).format(new Date(FD_RATE_DATASET.asOf));
 
 const workflow = [
   {
@@ -153,6 +157,10 @@ export default function LandingPage() {
                     </MotionHover>
                   ))}
                 </div>
+                <p className="mt-4 text-xs leading-5 text-text-muted">
+                  {FD_RATE_DATASET.sourceLabel}, reviewed {rateAsOfLabel}.{" "}
+                  {FD_RATE_DATASET.disclosure}
+                </p>
               </MotionFloat>
             </div>
           </div>

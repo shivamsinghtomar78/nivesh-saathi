@@ -99,7 +99,11 @@ async function createServerSession(user: User) {
   toast.success("Signed in successfully.");
 }
 
-export default function FirebaseAuthCard() {
+export default function FirebaseAuthCard({
+  nextPath = ROUTES.COMPARE,
+}: {
+  nextPath?: string;
+}) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const user = useAuthStore((state) => state.user);
@@ -156,7 +160,7 @@ export default function FirebaseAuthCard() {
         : await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
 
       await createServerSession(credential.user);
-      router.push(ROUTES.COMPARE);
+      router.push(nextPath);
     } catch (error) {
       toast.error(readableAuthError(error));
     } finally {
@@ -172,7 +176,7 @@ export default function FirebaseAuthCard() {
       const credential = await signInWithPopup(firebaseAuth, provider);
 
       await createServerSession(credential.user);
-      router.push(ROUTES.COMPARE);
+      router.push(nextPath);
     } catch (error) {
       toast.error(readableAuthError(error));
     } finally {
@@ -213,7 +217,7 @@ export default function FirebaseAuthCard() {
     try {
       const credential = await confirmation.confirm(otp);
       await createServerSession(credential.user);
-      router.push(ROUTES.COMPARE);
+      router.push(nextPath);
     } catch (error) {
       toast.error(readableAuthError(error));
     } finally {
@@ -261,7 +265,7 @@ export default function FirebaseAuthCard() {
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <motion.button
             type="button"
-            onClick={() => router.push(ROUTES.COMPARE)}
+            onClick={() => router.push(nextPath)}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-highlight px-4 text-sm font-semibold text-black transition hover:brightness-110"
             whileHover={reduceMotion ? undefined : { y: -2 }}
             whileTap={reduceMotion ? undefined : { scale: 0.97 }}
@@ -317,8 +321,12 @@ export default function FirebaseAuthCard() {
         </AnimatePresence>
       </div>
 
-      <motion.div
+      <motion.form
         className="mt-10 grid gap-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleEmailAuth();
+        }}
         initial={reduceMotion ? false : "hidden"}
         animate={reduceMotion ? undefined : "show"}
         variants={{
@@ -371,8 +379,7 @@ export default function FirebaseAuthCard() {
         </motion.label>
 
         <motion.button
-          type="button"
-          onClick={() => void handleEmailAuth()}
+          type="submit"
           disabled={busyAction !== null}
           className="inline-flex min-h-14 items-center justify-center gap-3 rounded-lg bg-highlight px-5 text-sm font-bold uppercase tracking-[0.08em] text-black transition hover:brightness-110 disabled:opacity-60"
           variants={{
@@ -390,7 +397,7 @@ export default function FirebaseAuthCard() {
           {isSignUp ? "Start for free" : "Sign in"}
           <ArrowRight className="h-4 w-4" />
         </motion.button>
-      </motion.div>
+      </motion.form>
 
       <div className="my-7 flex items-center gap-3">
         <div className="h-px flex-1 bg-outline" />

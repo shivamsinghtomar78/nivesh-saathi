@@ -7,22 +7,6 @@ type RevealDirection = "up" | "down" | "left" | "right";
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
 
-function getOffset(direction: RevealDirection, distance: number) {
-  if (direction === "down") {
-    return { y: -distance };
-  }
-
-  if (direction === "left") {
-    return { x: distance };
-  }
-
-  if (direction === "right") {
-    return { x: -distance };
-  }
-
-  return { y: distance };
-}
-
 export function MotionReveal({
   children,
   className,
@@ -41,7 +25,9 @@ export function MotionReveal({
   return (
     <motion.div
       className={className}
-      initial={reduceMotion ? false : { opacity: 0, ...getOffset(direction, distance) }}
+      data-motion-direction={direction}
+      data-motion-distance={distance}
+      initial={false}
       whileInView={reduceMotion ? undefined : { opacity: 1, x: 0, y: 0 }}
       viewport={{ once: true, amount: 0.28, margin: "0px 0px -80px" }}
       transition={{ duration: 0.58, ease: easeOut, delay }}
@@ -65,7 +51,7 @@ export function MotionStagger({
   return (
     <motion.div
       className={className}
-      initial={reduceMotion ? false : "hidden"}
+      initial={false}
       whileInView={reduceMotion ? undefined : "show"}
       viewport={{ once: true, amount: 0.28 }}
       variants={{
@@ -94,7 +80,7 @@ export function MotionStaggerItem({
     <motion.div
       className={className}
       variants={{
-        hidden: { opacity: 0, y: 20 },
+        hidden: { opacity: 1, y: 0 },
         show: {
           opacity: 1,
           y: 0,
@@ -140,7 +126,7 @@ export function MotionFloat({
   return (
     <motion.div
       className={className}
-      initial={reduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }}
+      initial={false}
       whileInView={reduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, amount: 0.35 }}
       animate={reduceMotion ? undefined : { y: [0, -8, 0] }}

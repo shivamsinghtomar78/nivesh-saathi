@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { withCsrfHeaders } from "@/lib/csrf";
 import type { SupportedLanguage } from "@/lib/languages";
 import { LANGUAGE_META } from "@/lib/languages";
 
@@ -97,6 +98,7 @@ export function useVoiceInput(options: VoiceHookOptions) {
 
     const response = await fetch("/api/voice/transcribe", {
       method: "POST",
+      headers: withCsrfHeaders(),
       body: formData,
     });
     const payload = await response.json();

@@ -11,7 +11,8 @@ export default function PublicHeader() {
   const user = useAuthStore((state) => state.user);
   const reduceMotion = useReducedMotion();
   const href = user ? ROUTES.COMPARE : ROUTES.LOGIN;
-  const label = user ? "Open app" : "Sign in / Login";
+  const label = user ? "Open app" : "Sign in";
+  const fullLabel = user ? "Open app" : "Sign in / Login";
 
   return (
     <motion.header
@@ -45,9 +46,10 @@ export default function PublicHeader() {
         >
           <Link
             href={href}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-highlight px-4 text-sm font-semibold text-black shadow-soft transition hover:brightness-110 sm:px-5"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-highlight px-3 text-sm font-semibold text-black shadow-soft transition hover:brightness-110 sm:rounded-full sm:px-5"
           >
-            <span>{label}</span>
+            <span className="sm:hidden">{label}</span>
+            <span className="hidden sm:inline">{fullLabel}</span>
             <ArrowRight className="h-4 w-4" />
           </Link>
         </motion.div>

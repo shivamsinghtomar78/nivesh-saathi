@@ -228,6 +228,9 @@ export function createAdvisorRateCard(params: {
     badge: rate.badge ? BADGE_LABELS[rate.badge] : undefined,
     safetyNote: LOCALIZED_COPY[language].safety,
     officialUrl: rate.officialUrl,
+    sourceLabel: rate.sourceLabel,
+    sourceUrl: rate.sourceUrl,
+    asOf: rate.asOf,
   };
 }
 

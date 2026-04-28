@@ -28,6 +28,9 @@ export const advisorRateCardSchema = z.object({
   badge: z.string().optional(),
   safetyNote: z.string(),
   officialUrl: z.string().url(),
+  sourceLabel: z.string(),
+  sourceUrl: z.string().url(),
+  asOf: z.string(),
 });
 export type AdvisorRateCard = z.infer<typeof advisorRateCardSchema>;
 

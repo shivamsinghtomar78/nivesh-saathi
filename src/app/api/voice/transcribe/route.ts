@@ -3,6 +3,10 @@ import { appLanguageSchema } from "@/lib/server/advisor-schemas";
 import { getRequestIp, jsonError, jsonSuccess, handleRouteError } from "@/lib/server/api";
 import { LANGUAGE_META } from "@/lib/languages";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
+import {
+  requireCsrfProtection,
+  requireFirebaseSession,
+} from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 export const preferredRegion = "bom1";
@@ -23,14 +27,24 @@ type DeepgramTranscriptionResponse = {
 };
 
 export async function POST(request: Request) {
-  if (!serverEnv.DEEPGRAM_API_KEY) {
-    return jsonError("Deepgram is not configured", 503);
-  }
-
   try {
+    const csrfError = requireCsrfProtection(request);
+    if (csrfError) {
+      return csrfError;
+    }
+
+    const sessionResult = await requireFirebaseSession(request);
+    if (!sessionResult.ok) {
+      return sessionResult.response;
+    }
+
+    if (!serverEnv.DEEPGRAM_API_KEY) {
+      return jsonError("Deepgram is not configured", 503);
+    }
+
     const ip = getRequestIp(request);
     const rateLimit = await enforceRateLimit({
-      key: `voice:${ip}`,
+      key: `voice:${sessionResult.session.uid}:${ip}`,
       limit: 8,
       window: "1 m",
     });

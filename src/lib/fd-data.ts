@@ -5,6 +5,9 @@ export interface FDRate {
   bankCode: string;
   bankType: "public" | "private" | "small-finance";
   officialUrl: string;
+  sourceLabel: string;
+  sourceUrl: string;
+  asOf: string;
   regularRate: number;
   seniorRate: number;
   minAmount: number;
@@ -18,7 +21,16 @@ export interface FDRate {
   color: string;
 }
 
-export const FD_RATES: FDRate[] = [
+export const FD_RATE_DATASET = {
+  asOf: "2026-04-28",
+  sourceLabel: "Demo seed data",
+  disclosure:
+    "Rates are sample data for the app experience. Verify current rates on the official bank page before acting.",
+} as const;
+
+type FDRateSeed = Omit<FDRate, "asOf" | "sourceLabel" | "sourceUrl">;
+
+const FD_RATE_SEEDS: FDRateSeed[] = [
   {
     id: "au-sfb",
     bankName: "AU Small Finance Bank",
@@ -172,3 +184,10 @@ export const FD_RATES: FDRate[] = [
     color: "#F59E0B",
   },
 ];
+
+export const FD_RATES: FDRate[] = FD_RATE_SEEDS.map((rate) => ({
+  ...rate,
+  asOf: FD_RATE_DATASET.asOf,
+  sourceLabel: FD_RATE_DATASET.sourceLabel,
+  sourceUrl: rate.officialUrl,
+}));

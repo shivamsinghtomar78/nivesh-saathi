@@ -7,6 +7,8 @@ import { withCsrfHeaders } from "@/lib/csrf";
 import { firebaseAuth, getFirebaseAnalytics } from "@/lib/firebase";
 import { useAuthStore } from "@/stores/authStore";
 
+const HAD_AUTH_USER_KEY = "nivesh-had-auth-user";
+
 async function syncServerSession(user: User) {
   const idToken = await user.getIdToken();
 
@@ -45,11 +47,15 @@ export default function AuthBootstrap() {
           photoURL: user.photoURL,
           providerId: user.providerData[0]?.providerId ?? null,
         });
+        window.localStorage.setItem(HAD_AUTH_USER_KEY, "1");
         void syncServerSession(user).catch(() => undefined);
         return;
       }
 
-      void clearServerSession().catch(() => undefined);
+      if (window.localStorage.getItem(HAD_AUTH_USER_KEY)) {
+        window.localStorage.removeItem(HAD_AUTH_USER_KEY);
+        void clearServerSession().catch(() => undefined);
+      }
       clearUser();
     });
   }, [clearUser, setStatus, setUser]);
