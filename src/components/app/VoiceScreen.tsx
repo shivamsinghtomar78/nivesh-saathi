@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircle, RotateCcw, Volume2, VolumeX, Mic, MicOff, Settings, Sparkles, MessageCircleMore } from "lucide-react";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 import AuthGate from "@/components/auth/AuthGate";
 import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
@@ -88,12 +88,12 @@ function createBotMessage(languageLabel: string, response: AdvisorResponse): Cha
   };
 }
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 15 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
 };
@@ -365,7 +365,7 @@ export default function VoiceScreen() {
                   </div>
                   <Button
                     size="icon"
-                    variant={voice.isListening ? "default" : "secondary"}
+                    variant={voice.isListening ? "primary" : "secondary"}
                     className={`w-16 h-16 rounded-full shadow-md z-10 transition-all duration-300 ${voice.isListening ? 'bg-danger hover:bg-danger/90 scale-110 shadow-danger/20' : ''}`}
                     onClick={() =>
                       voice.isListening ? voice.stopListening() : void voice.startListening()

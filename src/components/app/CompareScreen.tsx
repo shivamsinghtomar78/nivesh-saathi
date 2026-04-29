@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Star, Filter, Calculator, Landmark, MessageCircleMore, Mic } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 import AuthGate from "@/components/auth/AuthGate";
 import AppShell from "@/components/app/AppShell";
@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { type FDRate, FD_RATES } from "@/lib/fd-data";
 import { calculateMaturity } from "@/lib/maturity";
 import { ROUTES } from "@/lib/routes";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import type { BankTypeFilter } from "@/lib/server/advisor-schemas";
 import { useCompareStore } from "@/stores/compareStore";
 
@@ -23,12 +23,12 @@ function getDisplayRate(rate: FDRate, seniorCitizen: boolean) {
   return seniorCitizen ? rate.seniorRate : rate.regularRate;
 }
 
-const listVariants = {
+const listVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 15 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
   exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
@@ -277,7 +277,7 @@ export default function CompareScreen() {
                               
                               <div className="flex flex-col gap-2 mt-auto">
                                 <Button
-                                  variant={shortlisted ? "secondary" : "default"}
+                                  variant={shortlisted ? "secondary" : "primary"}
                                   onClick={() => toggleShortlist(rate.id)}
                                   className={cn("w-full shadow-sm", !shortlisted && "bg-surface-dark text-on-dark hover:bg-surface-dark-hover")}
                                 >
