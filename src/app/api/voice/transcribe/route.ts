@@ -12,7 +12,18 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const preferredRegion = "bom1";
 
-const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, x-csrf-token",
+    },
+  });
+}
+
+const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 
 type DeepgramTranscriptionResponse = {
   results?: {
@@ -65,7 +76,7 @@ export async function POST(request: Request) {
     }
 
     if (audioFile.size === 0 || audioFile.size > MAX_AUDIO_BYTES) {
-      return jsonError("Audio file is empty or exceeds the 10MB limit", 400);
+      return jsonError("Audio file is empty or exceeds the 5MB limit", 400);
     }
 
     const language = appLanguageSchema.parse(

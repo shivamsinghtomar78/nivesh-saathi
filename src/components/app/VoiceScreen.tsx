@@ -102,9 +102,12 @@ export default function VoiceScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const language = useChatStore((state) => state.language);
+  const messages = useChatStore((state) => state.messages);
+  const addMessage = useChatStore((state) => state.addMessage);
+  const clearMessages = useChatStore((state) => state.clearMessages);
+  const threadId = useChatStore((state) => state.threadId);
+  const setThreadId = useChatStore((state) => state.setThreadId);
   const shortlist = useCompareStore((state) => state.shortlist);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [threadId, setThreadId] = useState<string | null>(null);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
@@ -138,22 +141,15 @@ export default function VoiceScreen() {
       return;
     }
 
-    setMessages((current) => {
-      const seed =
-        current.length === 0
-          ? [createWelcomeMessage(LANGUAGE_LABELS[language])]
-          : current;
-
-      return [
-        ...seed,
-        {
-          id: createMessageId(),
-          role: "user",
-          content: message,
-          timestamp: getTimestamp(),
-          language: LANGUAGE_LABELS[language],
-        },
-      ];
+    if (messages.length === 0) {
+      addMessage(createWelcomeMessage(LANGUAGE_LABELS[language]));
+    }
+    addMessage({
+      id: createMessageId(),
+      role: "user",
+      content: message,
+      timestamp: getTimestamp(),
+      language: LANGUAGE_LABELS[language],
     });
     setIsThinking(true);
 
@@ -177,10 +173,7 @@ export default function VoiceScreen() {
       }
 
       setThreadId(payload.threadId ?? null);
-      setMessages((current) => [
-        ...current,
-        createBotMessage(LANGUAGE_LABELS[language], payload.response!),
-      ]);
+      addMessage(createBotMessage(LANGUAGE_LABELS[language], payload.response!));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Voice request failed.");
     } finally {
@@ -262,23 +255,20 @@ export default function VoiceScreen() {
         const plain = payload.plain;
         const example = payload.example ?? "";
 
-        setMessages((current) => [
-          ...current,
-          {
-            id: createMessageId(),
-            role: "bot",
-            content: `Term: ${term}\nMeaning: ${plain}\nExample: ${example}`.trim(),
-            timestamp: getTimestamp(),
-            language: LANGUAGE_LABELS[language],
-            glossary: [
-              {
-                term,
-                plain,
-                example,
-              },
-            ],
-          },
-        ]);
+        addMessage({
+          id: createMessageId(),
+          role: "bot",
+          content: `Term: ${term}\nMeaning: ${plain}\nExample: ${example}`.trim(),
+          timestamp: getTimestamp(),
+          language: LANGUAGE_LABELS[language],
+          glossary: [
+            {
+              term,
+              plain,
+              example,
+            },
+          ],
+        });
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Unable to explain the term.");
       }
@@ -316,7 +306,7 @@ export default function VoiceScreen() {
             variant="secondary"
             className="rounded-full shadow-sm"
             onClick={() => {
-              setMessages([]);
+              clearMessages();
               setThreadId(null);
               lastSpokenIdRef.current = null;
             }}
@@ -338,18 +328,18 @@ export default function VoiceScreen() {
           className="grid gap-6 xl:grid-cols-[380px_1fr]"
         >
           <motion.div variants={itemVariants} className="grid gap-6 auto-rows-max">
-            <Card className="p-6 border-outline bg-panel-glass shadow-sm flex flex-col items-center justify-center relative overflow-hidden min-h-[380px]">
+            <Card className="p-6 border-outline bg-panel-glass shadow-sm flex flex-col items-center justify-center relative overflow-hidden min-h-[240px] xl:min-h-[380px]">
               <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
               <CardHeader className="text-center w-full pb-8 z-10">
                 <Badge variant="accent" className="bg-accent/10 text-accent hover:bg-accent/20 mx-auto mb-3">
                   Voice Session
                 </Badge>
                 <CardTitle className="text-2xl font-medium tracking-tight">Active Call</CardTitle>
-                <CardDescription className="text-sm mt-1">
+                <CardDescription className="text-sm mt-1 min-h-[40px] italic">
                   {voice.error
-                    ? "Connection error"
+                    ? "Microphone access denied or disconnected."
                     : voice.isListening
-                      ? "I'm listening..."
+                      ? (voice.transcript || "I'm listening...")
                       : voice.isProcessing || isThinking
                         ? "Finding the best answer..."
                         : isSpeaking
@@ -363,39 +353,68 @@ export default function VoiceScreen() {
                   <div className="absolute inset-0 flex items-center justify-center">
                     <AgentAudioVisualizerAura state={visualState} color="#1f7a5b" />
                   </div>
-                  <Button
-                    size="icon"
-                    variant={voice.isListening ? "primary" : "secondary"}
-                    className={`w-16 h-16 rounded-full shadow-md z-10 transition-all duration-300 ${voice.isListening ? 'bg-danger hover:bg-danger/90 scale-110 shadow-danger/20' : ''}`}
-                    onClick={() =>
-                      voice.isListening ? voice.stopListening() : void voice.startListening()
-                    }
-                    disabled={voice.isProcessing || isThinking}
-                  >
-                    {voice.isListening ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
-                  </Button>
+                  {voice.isListening && (
+                    <div className="absolute w-16 h-16 rounded-full bg-danger/40 animate-pulse-ring z-0" />
+                  )}
+                  {isSpeaking ? (
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="w-16 h-16 rounded-full shadow-md z-10 hover:bg-surface-dark hover:text-on-dark transition-all duration-300"
+                      onClick={() => {
+                        window.speechSynthesis.cancel();
+                        setIsSpeaking(false);
+                      }}
+                    >
+                      <VolumeX className="h-6 w-6" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="icon"
+                      variant={voice.isListening ? "primary" : "secondary"}
+                      className={`w-16 h-16 rounded-full shadow-md z-10 transition-all duration-300 ${voice.isListening ? 'bg-danger hover:bg-danger/90 scale-110 shadow-danger/20' : ''}`}
+                      onClick={() =>
+                        voice.isListening ? voice.stopListening() : void voice.startListening()
+                      }
+                      disabled={voice.isProcessing || isThinking}
+                    >
+                      {voice.isListening ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+                    </Button>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-4 mt-2">
+                {voice.error ? (
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="rounded-full bg-white/50 px-4"
-                    onClick={() => setAutoSpeak((current) => !current)}
+                    variant="secondary"
+                    className="rounded-full shadow-sm"
+                    onClick={() => void voice.startListening()}
                   >
-                    {autoSpeak ? (
-                      <>
-                        <Volume2 className="h-3.5 w-3.5 mr-2 text-accent" />
-                        Speech: On
-                      </>
-                    ) : (
-                      <>
-                        <VolumeX className="h-3.5 w-3.5 mr-2 text-text-muted" />
-                        Speech: Off
-                      </>
-                    )}
+                    <RotateCcw className="h-3.5 w-3.5 mr-2" />
+                    Try Again
                   </Button>
-                </div>
+                ) : (
+                  <div className="flex items-center gap-4 mt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full bg-white/50 px-4"
+                      onClick={() => setAutoSpeak((current) => !current)}
+                    >
+                      {autoSpeak ? (
+                        <>
+                          <Volume2 className="h-3.5 w-3.5 mr-2 text-accent" />
+                          Auto-reply: On
+                        </>
+                      ) : (
+                        <>
+                          <VolumeX className="h-3.5 w-3.5 mr-2 text-text-muted" />
+                          Auto-reply: Off
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

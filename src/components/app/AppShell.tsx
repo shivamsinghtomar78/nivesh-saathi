@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Sparkles, UserRound, Settings, ChevronDown } from "lucide-react";
+import { LogOut, Sparkles, UserRound, Settings, ChevronDown, Home, BarChart3, MessageCircleMore, Mic } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ReactNode } from "react";
@@ -17,10 +17,10 @@ import { useAuthStore } from "@/stores/authStore";
 import { useChatStore } from "@/stores/chatStore";
 
 const NAV_ITEMS = [
-  { href: ROUTES.HOME, key: "home" as const },
-  { href: ROUTES.COMPARE, key: "compare" as const },
-  { href: ROUTES.CHAT, key: "chat" as const },
-  { href: ROUTES.VOICE, key: "voice" as const },
+  { href: ROUTES.HOME, key: "home" as const, icon: Home },
+  { href: ROUTES.COMPARE, key: "compare" as const, icon: BarChart3 },
+  { href: ROUTES.CHAT, key: "chat" as const, icon: MessageCircleMore },
+  { href: ROUTES.VOICE, key: "voice" as const, icon: Mic },
 ];
 
 type AppShellProps = {
@@ -232,18 +232,20 @@ export default function AppShell({
         </motion.div>
       </main>
 
+      {/* Bottom nav with Lucide icons */}
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
         <div className="mx-auto grid max-w-3xl grid-cols-4 gap-1 px-2 py-2">
           {NAV_ITEMS.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const Icon = item.icon;
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative rounded-2xl px-2 py-3 text-center text-xs font-medium transition flex flex-col items-center justify-center gap-1",
+                  "relative rounded-2xl px-2 py-2.5 text-center text-[11px] font-medium transition flex flex-col items-center justify-center gap-1",
                   active
                     ? "text-text-strong"
                     : "text-text-muted hover:bg-input-bg"
@@ -256,6 +258,7 @@ export default function AppShell({
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
+                <Icon className={cn("h-5 w-5 mb-0.5", active && "text-accent")} />
                 <span className={cn(active && "font-semibold")}>{copy.nav[item.key]}</span>
               </Link>
             );
@@ -265,4 +268,3 @@ export default function AppShell({
     </div>
   );
 }
-

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Star, Filter, Calculator, Landmark, MessageCircleMore, Mic } from "lucide-react";
+import { ArrowUpRight, Star, Filter, Calculator, Landmark, MessageCircleMore, Mic, X, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 import AuthGate from "@/components/auth/AuthGate";
@@ -10,7 +10,8 @@ import AppShell from "@/components/app/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { type FDRate, FD_RATES } from "@/lib/fd-data";
+import { EmptyState } from "@/components/ui/empty-state";
+import type { FDRate } from "@/lib/fd-data";
 import { calculateMaturity } from "@/lib/maturity";
 import { ROUTES } from "@/lib/routes";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ export default function CompareScreen() {
   const [seniorCitizen, setSeniorCitizen] = useState(false);
   const [rates, setRates] = useState<FDRate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -74,10 +76,23 @@ export default function CompareScreen() {
     return () => controller.abort();
   }, [amount, bankType, seniorCitizen, tenorMonths]);
 
-  const shortlistedBanks = useMemo(
-    () => FD_RATES.filter((rate) => shortlist.includes(rate.id)),
-    [shortlist]
-  );
+  const [shortlistedBanks, setShortlistedBanks] = useState<FDRate[]>([]);
+
+  useEffect(() => {
+    if (shortlist.length === 0) {
+      setShortlistedBanks([]);
+      return;
+    }
+    const controller = new AbortController();
+    fetch(`/api/fd-rates`, { signal: controller.signal })
+      .then((r) => r.json())
+      .then((d) => {
+        const all: FDRate[] = d.rates || [];
+        setShortlistedBanks(all.filter((r) => shortlist.includes(r.id)));
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [shortlist]);
 
   return (
     <AppShell
@@ -101,9 +116,11 @@ export default function CompareScreen() {
         </div>
       }
     >
+      {/* Guest browsing enabled for Compare */}
       <AuthGate
         title="Sign in to view comparisons"
         body="Your shortlist and preferences are securely synced to your profile."
+        allowGuest
       >
         <div className="grid gap-8 xl:grid-cols-[1fr_360px]">
           <div className="grid gap-8">
@@ -147,8 +164,7 @@ export default function CompareScreen() {
                       setLoading(true);
                       setTenorMonths(Number(event.target.value));
                     }}
-                    className="w-full min-h-[44px] rounded-[var(--radius-input)] border border-outline bg-input-bg px-4 text-sm font-medium text-text-strong outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/20 appearance-none"
-                    style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b6f77%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem top 50%', backgroundSize: '0.65rem auto' }}
+                    className="w-full min-h-[44px] rounded-[var(--radius-input)] border border-outline bg-input-bg px-4 text-sm font-medium text-text-strong outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/20 custom-select"
                   >
                     {TENOR_OPTIONS.map((value) => (
                       <option key={value} value={value}>
@@ -168,8 +184,7 @@ export default function CompareScreen() {
                       setLoading(true);
                       setBankType(event.target.value as BankTypeFilter);
                     }}
-                    className="w-full min-h-[44px] rounded-[var(--radius-input)] border border-outline bg-input-bg px-4 text-sm font-medium text-text-strong outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/20 appearance-none"
-                    style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b6f77%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem top 50%', backgroundSize: '0.65rem auto' }}
+                    className="w-full min-h-[44px] rounded-[var(--radius-input)] border border-outline bg-input-bg px-4 text-sm font-medium text-text-strong outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/20 custom-select"
                   >
                     <option value="all">All Types</option>
                     <option value="public">Public Sector</option>
@@ -293,23 +308,16 @@ export default function CompareScreen() {
                   })}
                 </AnimatePresence>
               ) : (
-                <motion.div variants={itemVariants}>
-                  <Card className="p-10 border-dashed border-outline bg-panel-glass text-center">
-                    <CardHeader>
-                      <div className="w-12 h-12 rounded-full bg-outline/20 mx-auto flex items-center justify-center mb-4">
-                        <Filter className="w-5 h-5 text-text-muted" />
-                      </div>
-                      <CardTitle className="text-xl">No Matching Deposits</CardTitle>
-                      <CardDescription className="max-w-md mx-auto mt-2">
-                        Try adjusting your investment amount or duration, or clear the bank type filter.
-                      </CardDescription>
-                    </CardHeader>
-                  </Card>
-                </motion.div>
+                <EmptyState
+                  title="No Matching Deposits"
+                  description="Try adjusting your investment amount or duration, or clear the bank type filter."
+                  icon={<Filter className="w-5 h-5 text-text-muted" />}
+                />
               )}
             </motion.div>
           </div>
 
+          {/* Desktop sidebar */}
           <div className="hidden xl:block relative">
             <div className="sticky top-24">
               <Card className="p-6 border-outline bg-panel shadow-sm">
@@ -392,8 +400,109 @@ export default function CompareScreen() {
             </div>
           </div>
         </div>
+
+        {/* Mobile shortlist floating pill + bottom sheet */}
+        <div className="xl:hidden">
+          {shortlist.length > 0 && !showBottomSheet && (
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              type="button"
+              onClick={() => setShowBottomSheet(true)}
+              className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 inline-flex items-center gap-2 rounded-full bg-surface-dark text-on-dark px-5 py-3 text-sm font-semibold shadow-lg transition hover:bg-surface-dark-hover"
+            >
+              <Star className="h-4 w-4 fill-accent text-accent" />
+              Shortlist ({shortlist.length})
+              <ChevronUp className="h-4 w-4" />
+            </motion.button>
+          )}
+
+          <AnimatePresence>
+            {showBottomSheet && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowBottomSheet(false)}
+                  className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+                />
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                  className="fixed inset-x-0 bottom-0 z-50 max-h-[70vh] overflow-y-auto rounded-t-[var(--radius-card)] border-t border-outline bg-panel shadow-lg"
+                >
+                  <div className="sticky top-0 bg-panel border-b border-outline p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Star className="w-4 h-4 text-accent fill-accent/20" />
+                      <h3 className="text-lg font-semibold text-text-strong">
+                        Shortlist ({shortlist.length})
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowBottomSheet(false)}
+                      className="h-8 w-8 flex items-center justify-center rounded-full bg-inner-panel text-text-muted hover:text-text-strong transition"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="p-4 grid gap-3">
+                    {shortlistedBanks.length > 0 ? (
+                      shortlistedBanks.map((rate) => {
+                        const maturity = calculateMaturity({
+                          principal: amount,
+                          ratePercent: getDisplayRate(rate, seniorCitizen),
+                          tenorMonths,
+                          compounding: rate.compounding,
+                        });
+
+                        return (
+                          <div
+                            key={rate.id}
+                            className="rounded-2xl border border-outline bg-inner-panel p-4"
+                          >
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <p className="font-semibold text-text-strong">{rate.bankName}</p>
+                              <button
+                                type="button"
+                                onClick={() => toggleShortlist(rate.id)}
+                                className="text-xs font-medium text-danger hover:text-danger/70 transition"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                            <div className="flex justify-between items-end">
+                              <p className="text-sm text-text-muted font-medium">
+                                {getDisplayRate(rate, seniorCitizen).toFixed(2)}%
+                              </p>
+                              <p className="text-sm font-semibold text-text-strong">
+                                {formatCurrency(maturity.maturityAmount)}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm text-text-muted text-center py-6">
+                        No banks shortlisted yet.
+                      </p>
+                    )}
+                    <Link href={ROUTES.CHAT} onClick={() => setShowBottomSheet(false)}>
+                      <Button variant="secondary" className="w-full justify-between mt-2" disabled={shortlistedBanks.length === 0}>
+                        Ask AI Assistant
+                        <ArrowUpRight className="h-4 w-4 opacity-70" />
+                      </Button>
+                    </Link>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
       </AuthGate>
     </AppShell>
   );
 }
-

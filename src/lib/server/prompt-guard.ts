@@ -17,6 +17,7 @@ export type PromptGuardResult = {
   blocked: boolean;
   normalizedMessage: string;
   reasons: string[];
+  confidence: number;
 };
 
 export function normalizeAdvisorMessage(message: string) {
@@ -39,10 +40,15 @@ export function assessPromptRisk(message: string): PromptGuardResult {
     }
   }
 
+  let confidence = 0.0;
+  if (reasons.includes("blocked_prompt_injection_pattern")) confidence = 0.95;
+  else if (reasons.includes("sensitive_topic_detected")) confidence = 0.60;
+
   return {
     blocked: reasons.includes("blocked_prompt_injection_pattern"),
     normalizedMessage,
     reasons: Array.from(new Set(reasons)),
+    confidence,
   };
 }
 

@@ -10,7 +10,6 @@ const headingWithTextPattern =
 
 function cleanLine(value: string) {
   return value
-    .replace(/\*\*/g, "")
     .replace(/^\s*[-*]\s*/, "- ")
     .trim();
 }
@@ -18,7 +17,6 @@ function cleanLine(value: string) {
 function prepareText(text: string) {
   return text
     .replace(/\r\n/g, "\n")
-    .replace(/\*\*/g, "")
     .replace(
       /\s+(Summary|Recommendation|Top options|Safety|What this means|Next step|Important|Rates|Why it matters):/gi,
       "\n$1:"
@@ -72,6 +70,34 @@ function parseAnswer(text: string): AnswerBlock[] {
   return blocks;
 }
 
+function parseInline(text: string) {
+  const parts = text.split(/(\*\*.*?\*\*|\[.*?\]\(.*?\))/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="font-semibold text-text-strong">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
+    if (linkMatch) {
+      return (
+        <a
+          key={i}
+          href={linkMatch[2]}
+          target="_blank"
+          rel="noreferrer"
+          className="text-accent hover:underline"
+        >
+          {linkMatch[1]}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
 type StructuredAnswerProps = {
   text: string;
   className?: string;
@@ -115,7 +141,7 @@ export default function StructuredAnswer({
                   className="flex gap-3 rounded-2xl border border-outline bg-app/70 px-3 py-2"
                 >
                   <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-highlight" />
-                  <span>{item}</span>
+                  <span>{parseInline(item)}</span>
                 </li>
               ))}
             </ul>
@@ -130,7 +156,7 @@ export default function StructuredAnswer({
               !compact && "md:text-base"
             )}
           >
-            {block.text}
+            {parseInline(block.text)}
           </p>
         );
       })}

@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { RotateCcw, Send, MessageSquareText, Sparkles, BookOpen } from "lucide-react";
+import { RotateCcw, Send, MessageSquareText, Sparkles, BookOpen, ChevronDown, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 import AuthGate from "@/components/auth/AuthGate";
 import AppShell from "@/components/app/AppShell";
 import ConversationTimeline from "@/components/app/ConversationTimeline";
+import EmptyState from "@/components/shared/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,9 +18,12 @@ import { withCsrfHeaders } from "@/lib/csrf";
 import { ROUTES } from "@/lib/routes";
 import type { AdvisorResponse } from "@/lib/server/advisor-schemas";
 import { LANGUAGE_LABELS } from "@/lib/copy";
+import { useAutoResize } from "@/hooks/useAutoResize";
 import { useAuthStore } from "@/stores/authStore";
 import { useChatStore, type ChatMessage } from "@/stores/chatStore";
 import { useCompareStore } from "@/stores/compareStore";
+
+const MAX_CHARS = 800;
 
 const SAMPLE_PROMPTS = {
   en: [
@@ -77,6 +81,7 @@ function createBotMessage(languageLabel: string, response: AdvisorResponse): Cha
     content: response.text,
     timestamp: getTimestamp(),
     language: languageLabel,
+    followUpPrompt: response.followUpPrompt,
     rateCards: response.rateCards.map((card) => ({
       bankId: card.bankId,
       bankName: card.bankName,
@@ -118,19 +123,54 @@ export default function TextChatScreen() {
   const clearMessages = useChatStore((state) => state.clearMessages);
   const setThreadId = useChatStore((state) => state.setThreadId);
   const setTyping = useChatStore((state) => state.setTyping);
+  const markLastFailed = useChatStore((state) => state.markLastFailed);
+  const retryLastMessage = useChatStore((state) => state.retryLastMessage);
   const shortlist = useCompareStore((state) => state.shortlist);
   const [draft, setDraft] = useState("");
+  const [showScrollFab, setShowScrollFab] = useState(false);
+  const [thinkingSeconds, setThinkingSeconds] = useState(0);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const thinkingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const handleAutoResize = useAutoResize(120);
 
-  useEffect(() => {
+  // Check if user has scrolled away from bottom
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+    setShowScrollFab(scrollHeight - scrollTop - clientHeight > 100);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
-      const { scrollHeight, clientHeight } = scrollRef.current;
       scrollRef.current.scrollTo({
-        top: scrollHeight - clientHeight,
+        top: scrollRef.current.scrollHeight,
         behavior: "smooth",
       });
     }
-  }, [isTyping, messages]);
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [isTyping, messages, scrollToBottom]);
+
+  // Elapsed seconds counter for typing indicator
+  useEffect(() => {
+    if (isTyping) {
+      setThinkingSeconds(0);
+      thinkingTimer.current = setInterval(() => {
+        setThinkingSeconds((s) => s + 1);
+      }, 1000);
+    } else {
+      if (thinkingTimer.current) {
+        clearInterval(thinkingTimer.current);
+        thinkingTimer.current = null;
+      }
+      setThinkingSeconds(0);
+    }
+    return () => {
+      if (thinkingTimer.current) clearInterval(thinkingTimer.current);
+    };
+  }, [isTyping]);
 
   const sendMessage = async (rawMessage: string) => {
     const message = rawMessage.trim();
@@ -170,15 +210,29 @@ export default function TextChatScreen() {
       setThreadId(payload.threadId ?? null);
       addMessage(createBotMessage(LANGUAGE_LABELS[language], payload.response));
     } catch (error) {
+      markLastFailed();
       toast.error(error instanceof Error ? error.message : "Chat failed.");
     } finally {
       setTyping(false);
     }
   };
 
+  const handleRetry = (msg: ChatMessage) => {
+    const failedMsg = retryLastMessage();
+    if (failedMsg) {
+      void sendMessage(failedMsg.content);
+    }
+  };
+
   const handleAction = async (
     action: NonNullable<ChatMessage["actions"]>[number]
   ) => {
+    // Handle follow-up prompt taps (no action set, just a label)
+    if (!action.action && action.label) {
+      void sendMessage(action.label);
+      return;
+    }
+
     if (action.action === "open_compare") {
       router.push(ROUTES.COMPARE);
       return;
@@ -233,6 +287,8 @@ export default function TextChatScreen() {
       }
     }
   };
+
+  const hasConversation = messages.length > 1;
 
   return (
     <AppShell
@@ -294,12 +350,85 @@ export default function TextChatScreen() {
                 </div>
               </CardHeader>
 
+              <div className="xl:hidden border-b border-outline/50 bg-panel/30 shrink-0">
+                <details className="group [&_summary::-webkit-details-marker]:hidden">
+                  <summary className="flex cursor-pointer items-center justify-between p-4 text-sm font-semibold text-text-strong outline-none hover:bg-inner-panel/50 transition">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4 text-accent" />
+                      What AI Knows
+                    </div>
+                    <ChevronDown className="h-4 w-4 transition group-open:rotate-180 text-text-muted" />
+                  </summary>
+                  <div className="px-4 pb-4 pt-1 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+                      <p className="text-sm text-text-muted leading-relaxed">
+                        It has access to your <strong className="text-text-strong font-medium">{shortlist.length} shortlisted banks</strong> to give tailored advice.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+                      <p className="text-sm text-text-muted leading-relaxed">
+                        It can explain complex financial terms automatically when requested.
+                      </p>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
               <CardContent className="flex-1 overflow-hidden p-0 flex flex-col relative bg-gradient-to-b from-transparent to-app/20">
                 <div
                   ref={scrollRef}
+                  onScroll={handleScroll}
                   className="flex-1 overflow-y-auto p-6 scroll-smooth custom-scrollbar"
                 >
-                  <ConversationTimeline messages={messages} onAction={handleAction} />
+                  {!hasConversation ? (
+                    <EmptyState
+                      icon={Lightbulb}
+                      title="Start a conversation"
+                      body="Ask about FD rates, compare banks, or get financial jargon explained in plain language."
+                    >
+                      <div className="grid gap-2 mt-2">
+                        {SAMPLE_PROMPTS[language].map((prompt, i) => (
+                          <motion.button
+                            key={prompt}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 + i * 0.1 }}
+                            type="button"
+                            onClick={() => void sendMessage(prompt)}
+                            className="text-left rounded-xl border border-outline bg-inner-panel p-3 text-sm text-text-strong transition-all hover:bg-panel hover:border-accent/40 hover:shadow-sm"
+                          >
+                            {prompt}
+                          </motion.button>
+                        ))}
+                      </div>
+                    </EmptyState>
+                  ) : (
+                    <>
+                      <ConversationTimeline
+                        messages={messages}
+                        onAction={handleAction}
+                        onRetry={handleRetry}
+                      />
+                      
+                      {/* Suggestion chips visible when < 3 messages */}
+                      {messages.length < 4 && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {SAMPLE_PROMPTS[language].map((prompt) => (
+                            <button
+                              key={prompt}
+                              type="button"
+                              onClick={() => void sendMessage(prompt)}
+                              className="rounded-full border border-outline bg-inner-panel/60 px-3 py-1.5 text-xs text-text-muted transition hover:bg-panel hover:border-accent/30 hover:text-text-strong"
+                            >
+                              {prompt}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
                   
                   <AnimatePresence>
                     {isTyping && (
@@ -315,18 +444,38 @@ export default function TextChatScreen() {
                             <span className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
                             <span className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
                           </div>
-                          Thinking...
+                          Thinking...{thinkingSeconds > 0 && ` ${thinkingSeconds}s`}
                         </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
 
+                {/* Scroll-to-bottom FAB */}
+                <AnimatePresence>
+                  {showScrollFab && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      type="button"
+                      onClick={scrollToBottom}
+                      className="absolute bottom-20 right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-surface-dark text-on-dark shadow-lg transition hover:bg-surface-dark-hover"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+
                 <div className="p-4 bg-panel/80 backdrop-blur-md border-t border-outline/50 shrink-0">
                   <div className="relative flex items-end gap-2 bg-input-bg border border-outline rounded-2xl p-2 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
                     <textarea
                       value={draft}
-                      onChange={(event) => setDraft(event.target.value)}
+                      onChange={(event) => {
+                        if (event.target.value.length <= MAX_CHARS) {
+                          setDraft(event.target.value);
+                        }
+                      }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
                           event.preventDefault();
@@ -335,23 +484,31 @@ export default function TextChatScreen() {
                       }}
                       placeholder={`Ask anything in ${LANGUAGE_LABELS[language]}...`}
                       rows={1}
+                      maxLength={MAX_CHARS}
                       className="w-full max-h-32 min-h-[44px] resize-none bg-transparent px-3 py-3 text-sm text-text-strong outline-none placeholder:text-text-muted custom-scrollbar"
                       style={{ height: 'auto' }}
-                      onInput={(e) => {
-                        const target = e.target as HTMLTextAreaElement;
-                        target.style.height = 'auto';
-                        target.style.height = `${Math.min(target.scrollHeight, 120)}px`;
-                      }}
+                      onInput={handleAutoResize}
                     />
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      onClick={() => void sendMessage(draft)}
-                      disabled={isTyping || !draft.trim()}
-                      className="h-11 w-11 shrink-0 rounded-xl"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        onClick={() => void sendMessage(draft)}
+                        disabled={isTyping || !draft.trim()}
+                        className="h-11 w-11 shrink-0 rounded-xl"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  {/* Character counter + keyboard hint */}
+                  <div className="flex items-center justify-between mt-1.5 px-1">
+                    <span className="text-[10px] text-text-muted hidden sm:inline">
+                      Enter to send · Shift+Enter for new line
+                    </span>
+                    <span className={`text-[10px] font-medium ${draft.length > MAX_CHARS * 0.9 ? 'text-danger' : 'text-text-muted'}`}>
+                      {draft.length}/{MAX_CHARS}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -384,7 +541,7 @@ export default function TextChatScreen() {
               </CardContent>
             </Card>
 
-            <Card className="p-5 border-outline bg-panel shadow-sm">
+            <Card className="p-5 border-outline bg-panel shadow-sm hidden xl:block">
               <CardHeader className="pb-4 px-0 pt-0">
                 <div className="flex items-center gap-2 mb-1">
                   <BookOpen className="w-4 h-4 text-accent" />
@@ -413,4 +570,3 @@ export default function TextChatScreen() {
     </AppShell>
   );
 }
-

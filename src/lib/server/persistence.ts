@@ -180,3 +180,27 @@ export async function persistChatSessionTurn(input: {
 
   return nextSession;
 }
+
+export async function persistFlaggedMessage(input: {
+  userId?: string;
+  message: string;
+  reasons: string[];
+  confidence: number;
+}) {
+  const db = getFirebaseAdminDb();
+  if (!db) return;
+
+  try {
+    await db.collection("flaggedMessages").add({
+      userId: input.userId ?? null,
+      message: input.message,
+      reasons: input.reasons,
+      confidence: input.confidence,
+      createdAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    logServerError("persist_flagged_message_failed", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+  }
+}

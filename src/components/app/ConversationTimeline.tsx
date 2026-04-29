@@ -4,8 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowUpRight,
   BookOpen,
+  ExternalLink,
   MessageCircleMore,
   Mic,
+  RefreshCw,
   Sparkles,
 } from "lucide-react";
 
@@ -18,6 +20,7 @@ import type { ChatMessage } from "@/stores/chatStore";
 type ConversationTimelineProps = {
   messages: ChatMessage[];
   onAction: (action: NonNullable<ChatMessage["actions"]>[number]) => void;
+  onRetry?: (message: ChatMessage) => void;
 };
 
 function getActionIcon(action: NonNullable<ChatMessage["actions"]>[number]) {
@@ -39,6 +42,7 @@ function getActionIcon(action: NonNullable<ChatMessage["actions"]>[number]) {
 export default function ConversationTimeline({
   messages,
   onAction,
+  onRetry,
 }: ConversationTimelineProps) {
   return (
     <div className="space-y-6">
@@ -59,7 +63,8 @@ export default function ConversationTimeline({
                   "max-w-[94%] rounded-3xl px-5 py-4 md:max-w-[85%] shadow-sm",
                   isUser
                     ? "bg-surface-dark text-on-dark rounded-tr-sm"
-                    : "border border-outline bg-panel text-text-strong rounded-tl-sm"
+                    : "border border-outline bg-panel text-text-strong rounded-tl-sm",
+                  message.failed && "border-danger/40 bg-danger/5"
                 )}
               >
                 <div className="flex items-center justify-between gap-3 mb-2">
@@ -95,6 +100,21 @@ export default function ConversationTimeline({
                   )}
                 </div>
 
+                {/* Failed message retry button */}
+                {message.failed && onRetry && (
+                  <div className="mt-3 pt-2 border-t border-danger/20">
+                    <button
+                      type="button"
+                      onClick={() => onRetry(message)}
+                      className="inline-flex items-center gap-2 text-xs font-semibold text-danger hover:text-danger/80 transition"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      Failed to send — Tap to retry
+                    </button>
+                  </div>
+                )}
+
+                {/* Rate cards with "Visit Bank" links */}
                 {message.rateCards && message.rateCards.length > 0 && (
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
                     {message.rateCards.map((card) => (
@@ -131,6 +151,18 @@ export default function ConversationTimeline({
                           <p className="mt-3 text-xs leading-relaxed text-text-muted pt-3 border-t border-outline/50">
                             {card.safetyNote}
                           </p>
+                        )}
+                        {/* Visit Bank link */}
+                        {card.officialUrl && (
+                          <a
+                            href={card.officialUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent/70 transition pt-2 border-t border-outline/50 w-full"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Visit Bank →
+                          </a>
                         )}
                       </div>
                     ))}
@@ -179,6 +211,25 @@ export default function ConversationTimeline({
                         </Button>
                       );
                     })}
+                  </div>
+                )}
+
+                {/* Follow-up prompt chip */}
+                {message.followUpPrompt && (
+                  <div className="mt-4 pt-3 border-t border-outline/50">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onAction({
+                          label: message.followUpPrompt!,
+                          type: "secondary",
+                          action: undefined,
+                        })
+                      }
+                      className="text-left rounded-xl border border-accent/20 bg-accent/5 px-3 py-2 text-xs font-medium text-accent transition hover:bg-accent/10 hover:border-accent/30"
+                    >
+                      💡 {message.followUpPrompt}
+                    </button>
                   </div>
                 )}
               </div>

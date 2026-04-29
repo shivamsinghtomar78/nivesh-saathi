@@ -146,21 +146,34 @@ async function invokeOpenRouter(
   return text;
 }
 
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function invokeLlm(
   messages: LlmMessage[],
   options: InvokeLlmOptions = {}
 ) {
-  if (hasGeminiConfig) {
-    try {
-      return await invokeGemini(messages, options);
-    } catch (error) {
-      logServerWarn("gemini_fallback_triggered", {
-        error: error instanceof Error ? error.message : "unknown",
-      });
+  let attempt = 0;
+  const maxRetries = 2;
+  const backoffs = [1000, 3000];
 
-      if (!hasOpenRouterConfig) {
-        throw error;
+  while (attempt <= maxRetries) {
+    try {
+      if (hasGeminiConfig) {
+        return await invokeGemini(messages, options);
       }
+      break;
+    } catch (error) {
+      if (attempt === maxRetries) {
+        logServerWarn("gemini_fallback_triggered", {
+          error: error instanceof Error ? error.message : "unknown",
+        });
+        if (!hasOpenRouterConfig) throw error;
+        break;
+      }
+      await sleep(backoffs[attempt] || 1000);
+      attempt++;
     }
   }
 

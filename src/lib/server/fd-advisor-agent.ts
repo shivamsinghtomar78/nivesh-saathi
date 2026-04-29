@@ -9,6 +9,7 @@ import {
 } from "@langchain/langgraph";
 import { z } from "zod";
 
+import { cacheGet, cacheSet } from "@/lib/server/cache";
 import {
   advisorResponseSchema,
   type AdvisorResponse,
@@ -55,7 +56,7 @@ const agentState = new StateSchema({
   response: advisorResponseSchema.optional(),
 });
 
-const checkpointer = new MemorySaver();
+// Custom persistence via Upstash/Redis cache
 
 function getMessageText(content: unknown): string {
   if (typeof content === "string") {
@@ -152,11 +153,23 @@ function detectTerms(message: string) {
 }
 
 function extractAmount(message: string) {
+  const normalizedMessage = message.replace(/[०-९০-৯௧-௯]/g, (match) => {
+    const charCode = match.charCodeAt(0);
+    if (charCode >= 0x0966 && charCode <= 0x096F) return String(charCode - 0x0966);
+    if (charCode >= 0x09E6 && charCode <= 0x09EF) return String(charCode - 0x09E6);
+    if (charCode >= 0x0BE6 && charCode <= 0x0BEF) return String(charCode - 0x0BE6);
+    return match;
+  });
+
   const explicitCurrencyMatch =
-    message.match(/(?:\u20b9|rs\.?|inr|rupees?|rupay|rupaye)\s*([0-9][0-9,]*)/i) ??
-    message.match(/([0-9][0-9,]*)\s*(?:rupees?|rupay|rupaye)/i);
+    normalizedMessage.match(/(?:\u20b9|rs\.?|inr|rupees?|rupay|rupaye|₹)\s*([0-9][0-9,]*)/i) ??
+    normalizedMessage.match(/([0-9][0-9,]*)\s*(?:rupees?|rupay|rupaye|lakh|laakh)/i);
 
   if (!explicitCurrencyMatch) {
+    const lakhMatch = normalizedMessage.match(/(\d+)\s*(lakh|laakh)/i);
+    if (lakhMatch) {
+      return Number(lakhMatch[1]) * 100000;
+    }
     return null;
   }
 
@@ -242,50 +255,7 @@ async function detectIntentNode(state: typeof agentState.State) {
     bankType: state.bankType,
   });
 
-  if (!hasLlmConfig) {
-    return { intent: heuristicIntent };
-  }
-
-  const prompt: LlmMessage[] = [
-    {
-      role: "system",
-      content:
-        "You extract structured user intent for a fixed deposit advisor. Return raw JSON only with keys objective, amount, tenorMonths, bankType, seniorCitizen, termsToExplain. Use null for unknown amount or tenorMonths. bankType must be one of all, public, private, small-finance.",
-    },
-    {
-      role: "user",
-      content: `Message: ${messageText}\nHeuristic guess: ${JSON.stringify(
-        heuristicIntent
-      )}`,
-    },
-  ];
-
-  try {
-    const llmResponse = await invokeLlm(prompt, {
-      temperature: 0,
-      maxTokens: 500,
-    });
-    const parsed = llmResponse
-      ? safeJsonParse(llmResponse, detectedIntentSchema)
-      : null;
-
-    if (!parsed) {
-      return { intent: heuristicIntent };
-    }
-
-    return {
-      intent: {
-        ...parsed,
-        amount: parsed.amount ?? heuristicIntent.amount,
-        tenorMonths: parsed.tenorMonths ?? heuristicIntent.tenorMonths,
-        termsToExplain: Array.from(
-          new Set([...heuristicIntent.termsToExplain, ...parsed.termsToExplain])
-        ),
-      },
-    };
-  } catch {
-    return { intent: heuristicIntent };
-  }
+  return { intent: heuristicIntent };
 }
 
 async function assembleResponseNode(state: typeof agentState.State) {
@@ -338,11 +308,16 @@ async function narrateNode(state: typeof agentState.State) {
     content: getMessageText(message.content),
   }));
 
+  let languagePrompt = "If language is en, answer in English only.";
+  if (language === "hi") languagePrompt = "You MUST answer entirely in conversational Hindi.";
+  if (language === "ta") languagePrompt = "You MUST answer entirely in conversational Tamil.";
+  if (language === "bn") languagePrompt = "You MUST answer entirely in conversational Bengali.";
+
   const prompt: LlmMessage[] = [
     {
       role: "system",
       content:
-        "You are Nivesh Saathi, a warm fixed deposit guide for India. Write in the user's requested language, keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings. Structure text with short labelled sections and hyphen bullets. Use plain text only: no markdown bold markers, no asterisks, and no tables. If language is en, answer in English only.",
+        `You are Nivesh Saathi, a warm fixed deposit guide for India. Keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings. Structure text with short labelled sections and hyphen bullets. Use plain text only: no markdown bold markers, no asterisks, and no tables. ${languagePrompt}`,
     },
     {
       role: "user",
@@ -371,6 +346,18 @@ async function narrateNode(state: typeof agentState.State) {
       };
     }
 
+    // Rate hallucination check
+    const mentionedRates = parsed.text.match(/\b\d+\.\d{1,2}%\b/g);
+    if (mentionedRates) {
+      const validRates = response.rateCards.map((c) => `${c.rateValue.toFixed(2)}%`);
+      const hasHallucination = mentionedRates.some((r) => !validRates.includes(r));
+      if (hasHallucination) {
+        return {
+          messages: [new AIMessage(response.text)],
+        };
+      }
+    }
+
     const finalResponse: AdvisorResponse = {
       ...response,
       text: parsed.text,
@@ -397,19 +384,50 @@ const advisorGraph = new StateGraph(agentState)
   .addEdge("detect_intent", "assemble_response")
   .addEdge("assemble_response", "narrate")
   .addEdge("narrate", END)
-  .compile({ checkpointer });
+  .compile();
+
+type ThreadPreferences = {
+  amount?: number;
+  tenorMonths?: number;
+  seniorCitizen?: boolean;
+  bankType?: BankTypeFilter;
+};
 
 export async function invokeFdAdvisor(input: ChatRequest) {
   const threadId = input.threadId || crypto.randomUUID();
+  const historyKey = `chat_history:${threadId}`;
+  const prefsKey = `chat_prefs:${threadId}`;
+  
+  const [rawHistory, cachedPrefs] = await Promise.all([
+    cacheGet<Array<{ role: string; content: string }>>(historyKey),
+    cacheGet<ThreadPreferences>(prefsKey)
+  ]);
+  
+  const prefs = cachedPrefs || {};
+  let historyMessages = rawHistory || [];
+  
+  // Context summarization: truncate if > 6
+  if (historyMessages.length > 6) {
+    const recent = historyMessages.slice(-6);
+    const summary = "Previous context summarized: User was discussing FDs.";
+    historyMessages = [
+      { role: "assistant", content: summary },
+      ...recent
+    ];
+  }
+  
+  const history = historyMessages.map((msg) =>
+    msg.role === "user" ? new HumanMessage(msg.content) : new AIMessage(msg.content)
+  );
 
   const result = await advisorGraph.invoke(
     {
-      messages: [new HumanMessage(input.message)],
+      messages: [...history, new HumanMessage(input.message)],
       language: input.language,
-      requestedAmount: input.amount,
-      requestedTenorMonths: input.tenorMonths,
-      seniorCitizen: input.seniorCitizen,
-      bankType: input.bankType,
+      requestedAmount: input.amount ?? prefs.amount,
+      requestedTenorMonths: input.tenorMonths ?? prefs.tenorMonths,
+      seniorCitizen: input.seniorCitizen ?? prefs.seniorCitizen,
+      bankType: input.bankType ?? prefs.bankType,
       shortlistBankIds: input.shortlistBankIds,
     },
     {
@@ -418,6 +436,22 @@ export async function invokeFdAdvisor(input: ChatRequest) {
       },
     }
   );
+
+  const newHistory = (result.messages || []).map((m: unknown) => ({
+    role: getMessageRole(m),
+    content: getMessageText((m as { content?: unknown }).content),
+  }));
+  await cacheSet(historyKey, newHistory, 86400 * 5); // 5 days persistence
+  
+  if (result.intent) {
+    const newPrefs = {
+      amount: result.intent.amount ?? prefs.amount,
+      tenorMonths: result.intent.tenorMonths ?? prefs.tenorMonths,
+      seniorCitizen: result.intent.seniorCitizen ?? prefs.seniorCitizen,
+      bankType: result.intent.bankType ?? prefs.bankType,
+    };
+    await cacheSet(prefsKey, newPrefs, 86400 * 5);
+  }
 
   return {
     threadId,

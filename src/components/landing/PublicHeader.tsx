@@ -3,14 +3,20 @@
 import React from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Globe, Sparkles } from "lucide-react";
 
 import { ROUTES } from "@/lib/routes";
+import { LANGUAGE_LABELS } from "@/lib/copy";
 import { useAuthStore } from "@/stores/authStore";
+import { useChatStore } from "@/stores/chatStore";
+import type { AppLanguage } from "@/lib/server/advisor-schemas";
 
 export default function PublicHeader() {
   const [mounted, setMounted] = React.useState(false);
+  const [langOpen, setLangOpen] = React.useState(false);
   const user = useAuthStore((state) => state.user);
+  const language = useChatStore((s) => s.language);
+  const setLanguage = useChatStore((s) => s.setLanguage);
   const reduceMotion = useReducedMotion();
 
   React.useEffect(() => {
@@ -47,19 +53,54 @@ export default function PublicHeader() {
           </div>
         </Link>
 
-        <motion.div
-          whileHover={reduceMotion ? undefined : { y: -2 }}
-          whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-        >
-          <Link
-            href={href}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-surface-dark px-3 text-sm font-semibold text-on-dark shadow-soft transition hover:bg-surface-dark-hover sm:px-5"
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Language toggle for non-English visitors */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setLangOpen((v) => !v)}
+              className="flex items-center gap-1.5 rounded-full border border-outline bg-panel-glass/50 px-3 py-2 text-xs font-medium text-text-muted transition hover:text-text-strong hover:border-accent/30"
+            >
+              <Globe className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{LANGUAGE_LABELS[language]}</span>
+            </button>
+            {langOpen && (
+              <div className="absolute right-0 mt-2 w-36 rounded-[var(--radius-panel)] border border-outline bg-panel shadow-lg py-1 z-50">
+                {(Object.entries(LANGUAGE_LABELS) as [AppLanguage, string][]).map(([code, lbl]) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => {
+                      setLanguage(code);
+                      setLangOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm transition ${
+                      language === code
+                        ? "bg-accent/10 text-accent font-semibold"
+                        : "text-text-muted hover:bg-black/5 hover:text-text-strong"
+                    }`}
+                  >
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <motion.div
+            whileHover={reduceMotion ? undefined : { y: -2 }}
+            whileTap={reduceMotion ? undefined : { scale: 0.97 }}
           >
-            <span className="sm:hidden">{label}</span>
-            <span className="hidden sm:inline">{fullLabel}</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </motion.div>
+            <Link
+              href={href}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-surface-dark px-3 text-sm font-semibold text-on-dark shadow-soft transition hover:bg-surface-dark-hover sm:px-5"
+            >
+              <span className="sm:hidden">{label}</span>
+              <span className="hidden sm:inline">{fullLabel}</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </motion.div>
+        </div>
       </div>
     </motion.header>
   );

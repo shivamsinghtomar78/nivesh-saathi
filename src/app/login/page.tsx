@@ -56,7 +56,7 @@ export default async function LoginPage({
                     Nivesh Saathi
                   </p>
                   <p className="text-xs uppercase tracking-[0.22em] text-text-muted">
-                    Secure Firebase auth
+                    Your investments, secured
                   </p>
                 </div>
               </div>
@@ -65,6 +65,18 @@ export default async function LoginPage({
             <MotionStaggerItem>
               <div className="mt-10">
                 <FirebaseAuthCard nextPath={nextPath} />
+              </div>
+            </MotionStaggerItem>
+
+            {/* Guest browse option */}
+            <MotionStaggerItem>
+              <div className="mt-6 text-center">
+                <Link
+                  href={ROUTES.COMPARE}
+                  className="text-sm font-medium text-text-muted hover:text-highlight transition underline-offset-4 hover:underline"
+                >
+                  Continue as Guest — Browse FD Rates →
+                </Link>
               </div>
             </MotionStaggerItem>
           </MotionStagger>
@@ -86,14 +98,14 @@ export default async function LoginPage({
           <MotionFloat className="absolute bottom-10 left-10 right-10">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/45 px-4 py-2 text-xs uppercase tracking-[0.2em] text-highlight backdrop-blur">
               <ShieldCheck className="h-4 w-4" />
-              Email, phone, and Google sign-in
+              Bank-grade encryption
             </div>
             <h2 className="mt-5 max-w-2xl text-4xl font-semibold leading-tight text-white">
               Keep the compare-to-advisor journey personal and secure.
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-7 text-white/78">
-              Firebase Auth gives Nivesh Saathi a real user identity, synced
-              shortlist context, and a more production-ready demo flow.
+              Sign in to save your shortlist, sync preferences across devices,
+              and get personalized AI recommendations based on your profile.
             </p>
           </MotionFloat>
         </MotionReveal>

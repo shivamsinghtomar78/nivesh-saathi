@@ -5,12 +5,16 @@ import { persist } from "zustand/middleware";
 
 import type { AppLanguage } from "@/lib/server/advisor-schemas";
 
+const MAX_MESSAGES = 50;
+
 export interface ChatMessage {
   id: string;
   role: "user" | "bot";
   content: string;
   timestamp: string;
   language: string;
+  /** Set to true when a send fails so the UI can show a retry button */
+  failed?: boolean;
   rateCards?: {
     bankId?: string;
     bankName?: string;
@@ -42,6 +46,7 @@ export interface ChatMessage {
     plain: string;
     example: string;
   }[];
+  followUpPrompt?: string;
 }
 
 interface ChatState {
@@ -54,6 +59,10 @@ interface ChatState {
   setThreadId: (threadId: string | null) => void;
   setTyping: (typing: boolean) => void;
   clearMessages: () => void;
+  /** Mark the last user message as failed so it can be retried */
+  markLastFailed: () => void;
+  /** Remove the failed flag and last user message for retry */
+  retryLastMessage: () => ChatMessage | null;
 }
 
 const initialMessages = (language: AppLanguage): ChatMessage[] => [
@@ -89,7 +98,14 @@ export const useChatStore = create<ChatState>()(
       threadId: null,
       isTyping: false,
       addMessage: (msg) =>
-        set((state) => ({ messages: [...state.messages, msg] })),
+        set((state) => {
+          const updated = [...state.messages, msg];
+          // FIFO eviction: keep only the last MAX_MESSAGES messages
+          if (updated.length > MAX_MESSAGES) {
+            return { messages: updated.slice(updated.length - MAX_MESSAGES) };
+          }
+          return { messages: updated };
+        }),
       setLanguage: (lang) =>
         set((state) => ({
           language: lang,
@@ -101,6 +117,30 @@ export const useChatStore = create<ChatState>()(
       clearMessages: () => {
         const language = get().language;
         set({ messages: initialMessages(language), threadId: null });
+      },
+      markLastFailed: () =>
+        set((state) => {
+          const msgs = [...state.messages];
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            if (msgs[i].role === "user") {
+              msgs[i] = { ...msgs[i], failed: true };
+              break;
+            }
+          }
+          return { messages: msgs };
+        }),
+      retryLastMessage: () => {
+        const state = get();
+        const msgs = [...state.messages];
+        for (let i = msgs.length - 1; i >= 0; i--) {
+          if (msgs[i].role === "user" && msgs[i].failed) {
+            const msg = msgs[i];
+            msgs.splice(i, 1);
+            set({ messages: msgs });
+            return msg;
+          }
+        }
+        return null;
       },
     }),
     {

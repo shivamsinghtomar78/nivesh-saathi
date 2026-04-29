@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       return jsonError("Firebase admin is not configured", 503);
     }
 
-    const expiresIn = 60 * 60 * 24 * 7 * 1000;
+    const expiresIn = 60 * 60 * 24 * 5 * 1000;
     const sessionCookie = await adminAuth.createSessionCookie(idToken, {
       expiresIn,
     });

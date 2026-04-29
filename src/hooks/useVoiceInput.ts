@@ -123,7 +123,9 @@ export function useVoiceInput(options: VoiceHookOptions) {
     const preferredMimeType =
       MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
-        : "";
+        : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "";
     const recorder = new MediaRecorder(
       stream,
       preferredMimeType ? { mimeType: preferredMimeType } : undefined
@@ -177,7 +179,7 @@ export function useVoiceInput(options: VoiceHookOptions) {
     setError(null);
     const Recognition = getSpeechRecognitionConstructor();
 
-    if (Recognition) {
+    if (Recognition && language === "en") {
       const recognition = new Recognition();
       recognition.lang = LANGUAGE_META[language].speechRecognition;
       recognition.continuous = false;

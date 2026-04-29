@@ -115,7 +115,8 @@ export async function getFDRates(query: FDRatesQuery = {}) {
     return cached;
   }
 
-  let filtered = [...FD_RATES];
+  const adminRates = await cacheGet<FDRate[]>("admin:fd-rates");
+  let filtered = adminRates ? [...adminRates] : [...FD_RATES];
 
   if (query.bankId) {
     filtered = filtered.filter((rate) => rate.id === query.bankId);
@@ -156,8 +157,10 @@ export async function getFDRates(query: FDRatesQuery = {}) {
   return normalized;
 }
 
-export function getBankById(bankId: string) {
-  return FD_RATES.find((rate) => rate.id === bankId) ?? null;
+export async function getBankById(bankId: string) {
+  const adminRates = await cacheGet<FDRate[]>("admin:fd-rates");
+  const dataset = adminRates ? adminRates : FD_RATES;
+  return dataset.find((rate) => rate.id === bankId) ?? null;
 }
 
 export function formatTenorLabel(months: number, language: AppLanguage) {

@@ -4,14 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
+import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
-  RecaptchaVerifier,
   signInWithEmailAndPassword,
-  signInWithPhoneNumber,
   signInWithPopup,
   signOut,
-  type ConfirmationResult,
   type User,
 } from "firebase/auth";
 import {
@@ -20,7 +18,6 @@ import {
   LoaderCircle,
   LockKeyhole,
   Mail,
-  Phone,
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,26 +26,6 @@ import { withCsrfHeaders } from "@/lib/csrf";
 import { firebaseAuth } from "@/lib/firebase";
 import { ROUTES } from "@/lib/routes";
 import { useAuthStore } from "@/stores/authStore";
-
-declare global {
-  interface Window {
-    firebaseAuthRecaptcha?: RecaptchaVerifier;
-  }
-}
-
-function normalizeIndianPhone(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-
-  if (digits.length === 10) {
-    return `+91${digits}`;
-  }
-
-  if (digits.length === 12 && digits.startsWith("91")) {
-    return `+${digits}`;
-  }
-
-  return phone;
-}
 
 function readableAuthError(error: unknown) {
   if (!(error instanceof Error)) {
@@ -69,10 +46,6 @@ function readableAuthError(error: unknown) {
 
   if (error.message.includes("auth/weak-password")) {
     return "Use at least 6 characters for the password.";
-  }
-
-  if (error.message.includes("auth/invalid-phone-number")) {
-    return "Enter a valid phone number with country code.";
   }
 
   return error.message;
@@ -111,41 +84,7 @@ export default function FirebaseAuthCard({
   const [isSignUp, setIsSignUp] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [otp, setOtp] = useState("");
-  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(
-    null
-  );
   const [busyAction, setBusyAction] = useState<string | null>(null);
-  const verifierRef = useRef<RecaptchaVerifier | null>(null);
-  const recaptchaId = "firebase-auth-recaptcha";
-
-  useEffect(() => {
-    return () => {
-      verifierRef.current?.clear();
-      verifierRef.current = null;
-      window.firebaseAuthRecaptcha = undefined;
-    };
-  }, []);
-
-  const getPhoneVerifier = () => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-
-    if (!verifierRef.current) {
-      verifierRef.current = new RecaptchaVerifier(
-        firebaseAuth,
-        recaptchaId,
-        {
-          size: "invisible",
-        }
-      );
-      window.firebaseAuthRecaptcha = verifierRef.current;
-    }
-
-    return verifierRef.current;
-  };
 
   const handleEmailAuth = async () => {
     if (!email.trim() || password.length < 6) {
@@ -184,47 +123,6 @@ export default function FirebaseAuthCard({
     }
   };
 
-  const sendOtp = async () => {
-    setBusyAction("phone");
-    try {
-      const verifier = getPhoneVerifier();
-
-      if (!verifier) {
-        throw new Error("Secure phone check is not available in this browser.");
-      }
-
-      const result = await signInWithPhoneNumber(
-        firebaseAuth,
-        normalizeIndianPhone(phoneNumber),
-        verifier
-      );
-      setConfirmation(result);
-      toast.success("OTP sent to your phone.");
-    } catch (error) {
-      toast.error(readableAuthError(error));
-    } finally {
-      setBusyAction(null);
-    }
-  };
-
-  const verifyOtp = async () => {
-    if (!confirmation) {
-      toast.error("Send OTP first.");
-      return;
-    }
-
-    setBusyAction("otp");
-    try {
-      const credential = await confirmation.confirm(otp);
-      await createServerSession(credential.user);
-      router.push(nextPath);
-    } catch (error) {
-      toast.error(readableAuthError(error));
-    } finally {
-      setBusyAction(null);
-    }
-  };
-
   const handleSignOut = async () => {
     setBusyAction("sign-out");
     await signOut(firebaseAuth).catch(() => undefined);
@@ -254,7 +152,7 @@ export default function FirebaseAuthCard({
               Signed in
             </p>
             <p className="mt-2 text-lg font-semibold text-text-strong">
-              {user.email || user.phoneNumber || "Verified Nivesh Saathi user"}
+              {user.email || "Verified Nivesh Saathi user"}
             </p>
             <p className="mt-2 text-sm leading-6 text-text-muted">
               Your shortlist and advisor context are ready.
@@ -424,82 +322,12 @@ export default function FirebaseAuthCard({
           {isSignUp ? "Sign up with Google" : "Sign in with Google"}
         </motion.button>
 
-        <motion.div
-          className="rounded-[var(--radius-input)] border border-outline bg-panel p-4"
-          whileHover={reduceMotion ? undefined : { borderColor: "rgba(243,191,212,0.5)" }}
-        >
-          <div className="flex items-center gap-3">
-            <Phone className="h-5 w-5 text-highlight" />
-            <div>
-              <p className="text-sm font-semibold text-text-strong">
-                Continue with phone
-              </p>
-              <p className="mt-1 text-xs text-text-muted">
-                Uses Firebase Phone Auth and invisible reCAPTCHA.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
-            <input
-              type="tel"
-              inputMode="tel"
-              value={phoneNumber}
-              onChange={(event) => setPhoneNumber(event.target.value)}
-              placeholder="+91 9876543210"
-              className="min-h-12 rounded-[var(--radius-input)] border border-outline bg-inner-panel px-4 text-base text-text-strong outline-none transition placeholder:text-text-muted/70 focus:border-highlight"
-            />
-            <motion.button
-              type="button"
-              onClick={() => void sendOtp()}
-              disabled={busyAction !== null}
-              className="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-input)] border border-outline px-4 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight disabled:opacity-60"
-              whileHover={reduceMotion ? undefined : { y: -2 }}
-              whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-            >
-              {busyAction === "phone" ? "Sending..." : "Send OTP"}
-            </motion.button>
-          </div>
-
-          <AnimatePresence>
-            {confirmation ? (
-              <motion.div
-                className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]"
-                initial={reduceMotion ? false : { opacity: 0, height: 0, y: -8 }}
-                animate={reduceMotion ? undefined : { opacity: 1, height: "auto", y: 0 }}
-                exit={reduceMotion ? undefined : { opacity: 0, height: 0, y: -8 }}
-                transition={{ duration: 0.24 }}
-              >
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={otp}
-                  onChange={(event) => setOtp(event.target.value)}
-                  placeholder="Enter OTP"
-                  className="min-h-12 rounded-[var(--radius-input)] border border-outline bg-inner-panel px-4 text-base text-text-strong outline-none transition placeholder:text-text-muted/70 focus:border-highlight"
-                />
-                <motion.button
-                  type="button"
-                  onClick={() => void verifyOtp()}
-                  disabled={busyAction !== null}
-                  className="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-input)] bg-highlight px-4 text-sm font-semibold text-black transition hover:brightness-110 disabled:opacity-60"
-                  whileHover={reduceMotion ? undefined : { y: -2 }}
-                  whileTap={reduceMotion ? undefined : { scale: 0.97 }}
-                >
-                  {busyAction === "otp" ? "Verifying..." : "Verify"}
-                </motion.button>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </motion.div>
       </div>
 
       <p className="mt-7 text-center text-xs leading-6 text-text-muted">
         By signing up, you agree to use Nivesh Saathi for educational FD
         guidance, not personalized investment advice.
       </p>
-
-      <div id={recaptchaId} />
     </motion.div>
   );
 }

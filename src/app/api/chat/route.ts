@@ -5,9 +5,9 @@ import {
   assessPromptRisk,
   buildBlockedPromptResponse,
 } from "@/lib/server/prompt-guard";
-import {
   getChatSessionOwner,
   persistChatSessionTurn,
+  persistFlaggedMessage,
 } from "@/lib/server/persistence";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { logServerWarn } from "@/lib/server/telemetry";
@@ -22,11 +22,23 @@ export const dynamic = "force-dynamic";
 export const preferredRegion = "bom1";
 
 export async function OPTIONS() {
-  return new Response(null, { status: 204 });
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, x-csrf-token",
+    },
+  });
 }
 
 export async function POST(request: Request) {
   try {
+    const contentLength = request.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > 4096) {
+      return jsonError("Request body too large", 413);
+    }
+
     const csrfError = requireCsrfProtection(request);
     if (csrfError) {
       return csrfError;
@@ -75,6 +87,13 @@ export async function POST(request: Request) {
         ip,
         userId: sessionResult.session.uid,
         reasons: promptRisk.reasons,
+        confidence: promptRisk.confidence,
+      });
+      await persistFlaggedMessage({
+        userId: sessionResult.session.uid,
+        message: input.message,
+        reasons: promptRisk.reasons,
+        confidence: promptRisk.confidence,
       });
 
       return jsonSuccess({
