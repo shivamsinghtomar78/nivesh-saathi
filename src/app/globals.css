@@ -212,5 +212,7 @@ body {
   --color-panel: rgba(255, 255, 255, 0.06);
   --color-panel-strong: rgba(255, 255, 255, 0.1);
   --color-inner-panel: rgba(255, 255, 255, 0.06);
+  --color-panel-glass: rgba(255, 255, 255, 0.04);
   --color-input-bg: rgba(255, 255, 255, 0.08);
+  --color-app: #000000;
 }

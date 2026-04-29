@@ -63,7 +63,7 @@ export default function LandingScreen() {
   const primaryLabel = user ? "Open Home" : "Get Started";
 
   return (
-    <main className="min-h-screen relative overflow-hidden bg-app">
+    <main className="dark-context min-h-screen relative overflow-hidden bg-black">
       <PublicHeader />
       
       {/* 3D Background */}
@@ -109,9 +109,9 @@ export default function LandingScreen() {
             </Link>
             {!user && (
               <Link href={ROUTES.LOGIN}>
-                <Button size="lg" variant="outline" className="rounded-full px-8 h-14 text-base bg-panel-glass backdrop-blur-sm transition-transform hover:scale-105 active:scale-95">
-                  <Lock className="mr-2 h-4 w-4 text-text-muted" />
-                  Secure Sign In
+                <Button size="lg" variant="primary" className="rounded-full px-8 h-14 text-base bg-highlight text-black hover:bg-highlight/90 transition-transform hover:scale-105 active:scale-95 shadow-lg">
+                  <Lock className="mr-2 h-4 w-4" />
+                  Sign In / Register
                 </Button>
               </Link>
             )}
@@ -235,7 +235,7 @@ export default function LandingScreen() {
       </section>
       
       {/* Footer */}
-      <footer className="relative z-10 border-t border-outline bg-panel py-12">
+      <footer className="relative z-10 border-t border-outline bg-panel-glass py-12">
         <div className="mx-auto max-w-7xl px-4 md:px-6 lg:px-8 text-center text-text-muted text-sm">
           <p>© {new Date().getFullYear()} Nivesh Saathi. Secure & intelligent FD advisor.</p>
         </div>
