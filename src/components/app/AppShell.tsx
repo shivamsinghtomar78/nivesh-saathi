@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Sparkles, UserRound } from "lucide-react";
+import { LogOut, Sparkles, UserRound, Settings, ChevronDown } from "lucide-react";
 import { signOut } from "firebase/auth";
+import { motion, AnimatePresence } from "framer-motion";
 import type { ReactNode } from "react";
 
 import { APP_COPY, LANGUAGE_LABELS } from "@/lib/copy";
@@ -19,7 +21,6 @@ const NAV_ITEMS = [
   { href: ROUTES.COMPARE, key: "compare" as const },
   { href: ROUTES.CHAT, key: "chat" as const },
   { href: ROUTES.VOICE, key: "voice" as const },
-  { href: ROUTES.PROFILE, key: "profile" as const },
 ];
 
 type AppShellProps = {
@@ -44,6 +45,18 @@ export default function AppShell({
   const user = useAuthStore((state) => state.user);
   const clearUser = useAuthStore((state) => state.clearUser);
   const copy = APP_COPY[language];
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     await signOut(firebaseAuth).catch(() => undefined);
@@ -56,19 +69,19 @@ export default function AppShell({
   };
 
   return (
-    <>
+    <div className="bg-app min-h-screen">
       <header className="fixed inset-x-0 top-0 z-50 border-b border-outline bg-panel-glass/95 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 md:px-6 lg:px-8">
-          <Link href={ROUTES.HOME} className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface-dark text-on-dark shadow-soft">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
+          <Link href={ROUTES.HOME} className="flex min-w-0 items-center gap-3 group">
+            <motion.div 
+              whileHover={{ rotate: 5, scale: 1.05 }}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface-dark text-on-dark shadow-soft"
+            >
+              <Sparkles className="h-5 w-5 group-hover:text-highlight transition-colors" />
+            </motion.div>
+            <div className="min-w-0 hidden sm:block">
               <p className="truncate text-lg font-semibold text-text-strong">
                 Nivesh Saathi
-              </p>
-              <p className="truncate text-[11px] uppercase tracking-[0.18em] text-text-muted">
-                {copy.tagline}
               </p>
             </div>
           </Link>
@@ -82,31 +95,39 @@ export default function AppShell({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={cn(
-                    "rounded-full px-4 py-2 text-sm font-semibold transition",
-                    active
-                      ? "bg-surface-dark text-on-dark"
-                      : "bg-input-bg text-text hover:bg-white"
-                  )}
+                  className="relative px-4 py-2 text-sm font-medium transition group"
                 >
-                  {copy.nav[item.key]}
+                  <span className={cn(
+                    "relative z-10 transition-colors duration-300",
+                    active ? "text-on-dark" : "text-text-muted group-hover:text-text-strong"
+                  )}>
+                    {copy.nav[item.key]}
+                  </span>
+                  {active && (
+                    <motion.div
+                      layoutId="activeNavBackground"
+                      className="absolute inset-0 bg-surface-dark rounded-full"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-2">
-            <div className="hidden rounded-full bg-input-bg p-1 shadow-[0_8px_18px_rgba(0,0,0,0.06)] md:flex">
+          <div className="ml-auto flex items-center gap-3">
+            <div className="hidden rounded-full bg-input-bg border border-outline p-1 shadow-sm md:flex">
               {Object.entries(LANGUAGE_LABELS).map(([code, label]) => (
                 <button
                   key={code}
                   type="button"
                   onClick={() => setLanguage(code as keyof typeof LANGUAGE_LABELS)}
                   className={cn(
-                    "rounded-full px-3 py-2 text-xs font-semibold transition",
+                    "rounded-full px-3 py-1.5 text-xs font-medium transition",
                     language === code
-                      ? "bg-surface-dark text-on-dark"
-                      : "text-text-muted hover:text-text-strong"
+                      ? "bg-surface-dark text-on-dark shadow-sm"
+                      : "text-text-muted hover:text-text-strong hover:bg-black/5"
                   )}
                 >
                   {label}
@@ -114,27 +135,58 @@ export default function AppShell({
               ))}
             </div>
 
-            <Link
-              href={ROUTES.PROFILE}
-              aria-label="Profile"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline bg-input-bg text-text-muted transition hover:border-highlight hover:text-text-strong"
-            >
-              <UserRound className="h-4 w-4" />
-            </Link>
-
             {user ? (
-              <button
-                type="button"
-                aria-label="Sign out"
-                onClick={() => void handleLogout()}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline bg-input-bg text-text-muted transition hover:border-highlight hover:text-text-strong"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center gap-2 h-10 pl-3 pr-2 rounded-full border border-outline bg-input-bg text-text-strong transition hover:border-highlight hover:shadow-sm"
+                >
+                  <UserRound className="h-4 w-4" />
+                  <span className="text-sm font-medium max-w-[80px] truncate hidden sm:inline-block">
+                    {user.displayName || 'Profile'}
+                  </span>
+                  <ChevronDown className={cn("h-4 w-4 text-text-muted transition-transform", isProfileOpen && "rotate-180")} />
+                </button>
+
+                <AnimatePresence>
+                  {isProfileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-48 rounded-[var(--radius-panel)] border border-outline bg-panel shadow-lg overflow-hidden py-1"
+                    >
+                      <div className="px-4 py-3 border-b border-outline mb-1">
+                        <p className="text-sm font-medium text-text-strong truncate">{user.displayName || 'User'}</p>
+                        <p className="text-xs text-text-muted truncate">{user.email}</p>
+                      </div>
+                      <Link
+                        href={ROUTES.PROFILE}
+                        onClick={() => setIsProfileOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-text-muted hover:bg-black/5 hover:text-text-strong transition"
+                      >
+                        <Settings className="h-4 w-4" />
+                        Settings
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setIsProfileOpen(false);
+                          void handleLogout();
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-danger/10 transition"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sign out
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             ) : (
               <Link
                 href={ROUTES.LOGIN}
-                className="hidden rounded-full bg-surface-dark px-4 py-2 text-sm font-semibold text-on-dark transition hover:bg-surface-dark-hover md:inline-flex"
+                className="rounded-full bg-surface-dark px-5 py-2 text-sm font-medium text-on-dark transition hover:bg-surface-dark-hover"
               >
                 {copy.nav.login}
               </Link>
@@ -143,29 +195,45 @@ export default function AppShell({
         </div>
       </header>
 
-      <main className="min-h-screen pb-24 pt-24 lg:pb-8">
-        <section className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-text-muted">
+      <main className="min-h-screen pt-24 pb-24 lg:pb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-6 md:px-6 lg:px-8"
+        >
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b border-outline pb-6">
+            <div className="max-w-2xl">
+              <motion.p 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+                className="text-xs font-semibold uppercase tracking-[0.2em] text-accent mb-2"
+              >
                 {eyebrow}
-              </p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-text-strong md:text-4xl">
+              </motion.p>
+              <motion.h1 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                className="text-3xl font-semibold tracking-tight text-text-strong md:text-4xl"
+              >
                 {title}
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-text-muted md:text-base">
+              </motion.h1>
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                className="mt-3 text-base leading-relaxed text-text-muted"
+              >
                 {description}
-              </p>
+              </motion.p>
             </div>
-            {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+            {actions ? <div className="flex flex-wrap gap-3 mt-4 md:mt-0">{actions}</div> : null}
           </div>
 
-          {children}
-        </section>
+          <div className="relative">
+            {children}
+          </div>
+        </motion.div>
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
-        <div className="mx-auto grid max-w-3xl grid-cols-5 gap-1 px-2 py-2">
+        <div className="mx-auto grid max-w-3xl grid-cols-4 gap-1 px-2 py-2">
           {NAV_ITEMS.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -175,18 +243,26 @@ export default function AppShell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "rounded-2xl px-2 py-2 text-center text-[11px] font-semibold transition",
+                  "relative rounded-2xl px-2 py-3 text-center text-xs font-medium transition flex flex-col items-center justify-center gap-1",
                   active
-                    ? "bg-surface-dark text-on-dark"
-                    : "text-text-muted hover:bg-input-bg hover:text-text-strong"
+                    ? "text-text-strong"
+                    : "text-text-muted hover:bg-input-bg"
                 )}
               >
-                {copy.nav[item.key]}
+                {active && (
+                  <motion.div
+                    layoutId="activeBottomNav"
+                    className="absolute inset-0 bg-surface-dark/5 rounded-2xl -z-10"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span className={cn(active && "font-semibold")}>{copy.nav[item.key]}</span>
               </Link>
             );
           })}
         </div>
       </nav>
-    </>
+    </div>
   );
 }
+

@@ -67,6 +67,7 @@ describe("Nivesh Saathi Store Integration", () => {
         tenantId: null,
         delete: async () => {},
         getIdToken: async () => "token",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         getIdTokenResult: async () => ({} as any),
         reload: async () => {},
         toJSON: () => ({}),

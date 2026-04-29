@@ -1,40 +1,33 @@
 # Nivesh Saathi
 
-Voice-first, multilingual Fixed Deposit advisor for Hindi, Tamil, Bengali, and English users. The app is now centered on a cleaner hackathon story:
+Voice-first, multilingual Fixed Deposit advisor for Hindi, Tamil, Bengali, and English users. The application has been redesigned with a premium, minimal aesthetic, focusing on smooth interactions and high-quality user experience.
 
-- compare FD options
-- save a shortlist
-- ask Saathi by chat or voice
-- sign in with Email/Password, Phone, or Google to keep context across devices
+- **Explore & Compare**: Clean interface to filter and compare fixed deposit options.
+- **Save a Shortlist**: Seamlessly carry your selections across devices and chat sessions.
+- **Intelligent Assistant**: Ask Saathi via text or voice for personalized financial advice and jargon explanations.
+- **Seamless Authentication**: Sign in with Email/Password, Phone, or Google to keep context across devices.
 
-The older booking flow has been removed from the product and backend contracts.
+## Stack & Design System
 
-## Stack
-
-- Next.js 16 App Router
-- TypeScript
-- Firebase client SDK and Firebase Admin hooks
-- LangGraph advisor flow
-- Gemini 2.5 Flash-Lite primary model
-- OpenRouter free-model fallback
-- Deepgram fallback speech transcription
-- Upstash Redis cache and optional shared rate limiting
-- Zustand persisted client state
-- Sonner toasts
-- Vitest unit tests
+- **Next.js 16 App Router**
+- **TypeScript & Tailwind CSS**
+- **Framer Motion**: Smooth entrance and layout animations across all screens.
+- **Three.js (@react-three/fiber, @react-three/drei)**: Lightweight 3D interactive hero background.
+- **Firebase**: Client SDK and Firebase Admin hooks for Auth & Data.
+- **LangGraph advisor flow**: Powered by Gemini 2.5 Flash-Lite primary model.
+- **OpenRouter & Deepgram**: Fallbacks for LLM and speech transcription.
+- **Zustand**: Persisted client state management.
 
 ## What Is Implemented
 
-- Dark-theme mobile-first landing, compare, chat, voice, and login flows
-- Firebase Email/Password, Phone, and Google auth UI with session-cookie exchange route
-- Persisted shortlist and chat state
-- LangGraph advisor with Gemini primary and OpenRouter fallback
-- Prompt-injection guard for chat requests
-- Rate limiting on `/api/chat` and `/api/voice/transcribe`
-- Route-level error boundaries and loading states
-- PWA manifest and service worker registration
-- Lucide-only icon system
-- Jargon explainer sidebar and glossary API
+- **Premium UI Redesign**: Dark-theme mobile-first landing, compare, chat, voice, and login flows with a cohesive, polished design system.
+- **Framer Motion Interactivity**: Staggered fades, layout animations, and fluid transitions across the AppShell and content modules.
+- **3D Hero Integration**: Interactive glass-like Torus Knot on the landing page for a state-of-the-art feel.
+- **Firebase Authentication**: Email/Password, Phone, and Google auth UI with session-cookie exchange route.
+- **Persisted Context**: Shared shortlist and chat state that seamlessly transitions between text and voice bots.
+- **LangGraph Advisor**: Prompt-injection guard, terminology explanation, and intelligent rate comparisons.
+- **PWA Ready**: Manifest, service worker registration, and mobile-optimized layouts.
+- **Lucide Icons**: Unified icon system for consistent visual language.
 
 ## Local Setup
 
@@ -112,7 +105,7 @@ npm.cmd run build
 Verified in this workspace:
 
 - `eslint` passed with no errors.
-- `vitest` passed with 5 tests.
+- `vitest` passed successfully.
 - `next build` passed successfully.
 
 Known runtime note:
