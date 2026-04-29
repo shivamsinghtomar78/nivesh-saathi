@@ -89,11 +89,11 @@ const itemVariants: Variants = {
   },
 };
 
-import type { AdvisorRateCard } from "@/lib/server/advisor-schemas";
+import type { FDRate } from "@/lib/fd-data";
 import { useAuthStore } from "@/stores/authStore";
 
 function RateTicker() {
-  const [topRate, setTopRate] = React.useState<AdvisorRateCard | null>(null);
+  const [topRate, setTopRate] = React.useState<FDRate | null>(null);
 
   React.useEffect(() => {
     fetch("/api/fd-rates?limit=1")
@@ -108,12 +108,14 @@ function RateTicker() {
   
   if (!topRate) return null;
 
+  const displayRate = topRate.regularRate ?? topRate.seniorRate ?? 0;
+
   return (
     <div className="overflow-hidden whitespace-nowrap bg-accent/10 border border-accent/20 rounded-full px-1 py-1 max-w-fit mx-auto backdrop-blur-sm">
       <div className="flex items-center gap-2 px-4 py-1">
         <TrendingUp className="w-3.5 h-3.5 text-accent shrink-0" />
         <span className="text-xs font-semibold text-accent tracking-wide">
-          Top rate today: {topRate.rateValue.toFixed(2)}% — {topRate.bankName}
+          Top rate today: {displayRate.toFixed(2)}% — {topRate.bankName}
         </span>
       </div>
     </div>
