@@ -94,6 +94,17 @@ The app runs at [http://localhost:3000](http://localhost:3000).
 | `POST /api/auth/session` | Exchanges Firebase id token for an HTTP-only session cookie. |
 | `DELETE /api/auth/session` | Clears the session cookie. |
 
+## Vercel Deployment Notes
+
+To ensure the production environment works correctly, follow these configuration steps in the Vercel Dashboard:
+
+1.  **Environment Variables**:
+    *   Set `NEXT_PUBLIC_APP_URL` to your production domain (e.g., `https://nivesh-saathi.vercel.app`).
+    *   When adding `FIREBASE_ADMIN_PRIVATE_KEY`, paste the raw value **without** wrapping double quotes. The application handles the newline characters automatically.
+2.  **Firebase Authorized Domains**:
+    *   Go to **Firebase Console** > **Authentication** > **Settings** > **Authorized Domains**.
+    *   Add your Vercel deployment domain (e.g., `nivesh-saathi.vercel.app`) to the list. This is required for Google Sign-In and Phone Authentication to function in production.
+
 ## Verification
 
 ```powershell
