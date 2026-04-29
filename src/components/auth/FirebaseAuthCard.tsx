@@ -240,13 +240,13 @@ export default function FirebaseAuthCard({
   if (user) {
     return (
       <motion.div
-        className="rounded-[28px] border border-outline bg-panel p-5 shadow-soft"
+        className="rounded-[var(--radius-card)] border border-outline bg-panel p-5 shadow-soft"
         initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.98 }}
         animate={reduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-highlight/15 text-highlight">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-highlight-soft text-highlight">
             <ShieldCheck className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
@@ -344,7 +344,7 @@ export default function FirebaseAuthCard({
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
             Enter work email
           </span>
-          <div className="flex min-h-14 items-center rounded-lg border border-outline bg-panel px-4 transition focus-within:border-highlight">
+          <div className="flex min-h-14 items-center rounded-[var(--radius-input)] border border-outline bg-panel px-4 transition focus-within:border-highlight">
             <Mail className="h-4 w-4 text-text-muted" />
             <input
               type="email"
@@ -373,7 +373,7 @@ export default function FirebaseAuthCard({
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="********"
-            className="min-h-14 rounded-lg border border-outline bg-panel px-4 text-base text-text-strong outline-none transition placeholder:text-text-muted/70 focus:border-highlight"
+            className="min-h-14 rounded-[var(--radius-input)] border border-outline bg-panel px-4 text-base text-text-strong outline-none transition placeholder:text-text-muted/70 focus:border-highlight"
             autoComplete={isSignUp ? "new-password" : "current-password"}
           />
         </motion.label>
@@ -381,7 +381,7 @@ export default function FirebaseAuthCard({
         <motion.button
           type="submit"
           disabled={busyAction !== null}
-          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-lg bg-highlight px-5 text-sm font-bold uppercase tracking-[0.08em] text-black transition hover:brightness-110 disabled:opacity-60"
+          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] bg-highlight px-5 text-sm font-bold uppercase tracking-[0.08em] text-black transition hover:brightness-110 disabled:opacity-60"
           variants={{
             hidden: { opacity: 0, y: 12 },
             show: { opacity: 1, y: 0 },
@@ -412,7 +412,7 @@ export default function FirebaseAuthCard({
           type="button"
           onClick={() => void handleGoogleAuth()}
           disabled={busyAction !== null}
-          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-lg border border-outline bg-panel px-5 text-sm font-bold uppercase tracking-[0.06em] text-text-strong transition hover:border-highlight hover:text-highlight disabled:opacity-60"
+          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] border border-outline bg-panel px-5 text-sm font-bold uppercase tracking-[0.06em] text-text-strong transition hover:border-highlight hover:text-highlight disabled:opacity-60"
           whileHover={reduceMotion ? undefined : { y: -2 }}
           whileTap={reduceMotion ? undefined : { scale: 0.97 }}
         >
@@ -425,8 +425,8 @@ export default function FirebaseAuthCard({
         </motion.button>
 
         <motion.div
-          className="rounded-lg border border-outline bg-panel p-4"
-          whileHover={reduceMotion ? undefined : { borderColor: "#f7b843" }}
+          className="rounded-[var(--radius-input)] border border-outline bg-panel p-4"
+          whileHover={reduceMotion ? undefined : { borderColor: "rgba(243,191,212,0.5)" }}
         >
           <div className="flex items-center gap-3">
             <Phone className="h-5 w-5 text-highlight" />
@@ -447,13 +447,13 @@ export default function FirebaseAuthCard({
               value={phoneNumber}
               onChange={(event) => setPhoneNumber(event.target.value)}
               placeholder="+91 9876543210"
-              className="min-h-12 rounded-lg border border-outline bg-app px-4 text-base text-text-strong outline-none transition placeholder:text-text-muted/70 focus:border-highlight"
+              className="min-h-12 rounded-[var(--radius-input)] border border-outline bg-inner-panel px-4 text-base text-text-strong outline-none transition placeholder:text-text-muted/70 focus:border-highlight"
             />
             <motion.button
               type="button"
               onClick={() => void sendOtp()}
               disabled={busyAction !== null}
-              className="inline-flex min-h-12 items-center justify-center rounded-lg border border-outline px-4 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight disabled:opacity-60"
+              className="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-input)] border border-outline px-4 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight disabled:opacity-60"
               whileHover={reduceMotion ? undefined : { y: -2 }}
               whileTap={reduceMotion ? undefined : { scale: 0.97 }}
             >
@@ -476,13 +476,13 @@ export default function FirebaseAuthCard({
                   value={otp}
                   onChange={(event) => setOtp(event.target.value)}
                   placeholder="Enter OTP"
-                  className="min-h-12 rounded-lg border border-outline bg-app px-4 text-base text-text-strong outline-none transition placeholder:text-text-muted/70 focus:border-highlight"
+                  className="min-h-12 rounded-[var(--radius-input)] border border-outline bg-inner-panel px-4 text-base text-text-strong outline-none transition placeholder:text-text-muted/70 focus:border-highlight"
                 />
                 <motion.button
                   type="button"
                   onClick={() => void verifyOtp()}
                   disabled={busyAction !== null}
-                  className="inline-flex min-h-12 items-center justify-center rounded-lg bg-highlight px-4 text-sm font-semibold text-black transition hover:brightness-110 disabled:opacity-60"
+                  className="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-input)] bg-highlight px-4 text-sm font-semibold text-black transition hover:brightness-110 disabled:opacity-60"
                   whileHover={reduceMotion ? undefined : { y: -2 }}
                   whileTap={reduceMotion ? undefined : { scale: 0.97 }}
                 >

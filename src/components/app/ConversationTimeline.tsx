@@ -51,10 +51,10 @@ export default function ConversationTimeline({
           >
             <div
               className={cn(
-                "max-w-[94%] rounded-[24px] px-4 py-4 shadow-[0_18px_40px_rgba(17,17,19,0.08)] md:max-w-[86%]",
+                "max-w-[94%] rounded-[var(--radius-card)] px-4 py-4 shadow-[0_18px_40px_rgba(17,17,19,0.08)] md:max-w-[86%]",
                 isUser
-                  ? "bg-[#111113] text-[#f5f4ef]"
-                  : "border border-outline bg-white/78 text-text-strong"
+                  ? "bg-surface-dark text-on-dark"
+                  : "border border-outline bg-input-bg text-text-strong"
               )}
             >
               <div className="flex items-center justify-between gap-3">
@@ -67,7 +67,7 @@ export default function ConversationTimeline({
                   <span
                     className={cn(
                       "text-[11px] font-semibold uppercase tracking-[0.18em]",
-                      isUser ? "text-white/54" : "text-text-muted"
+                      isUser ? "text-on-dark/54" : "text-text-muted"
                     )}
                   >
                     {message.timestamp}
@@ -93,7 +93,7 @@ export default function ConversationTimeline({
                   {message.rateCards.map((card) => (
                     <div
                       key={`${message.id}-${card.bankId ?? card.bankName}`}
-                      className="rounded-[20px] border border-outline bg-app/72 p-4"
+                      className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -131,7 +131,7 @@ export default function ConversationTimeline({
                   {message.glossary.map((item) => (
                     <div
                       key={`${message.id}-${item.term}`}
-                      className="rounded-[18px] border border-outline bg-app/72 p-4"
+                      className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4"
                     >
                       <p className="text-sm font-semibold text-text-strong">
                         {item.term}

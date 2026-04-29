@@ -32,7 +32,7 @@ export default async function LoginPage({
   const nextPath = getSafeNextPath(params?.next);
 
   return (
-    <main className="min-h-screen bg-black text-text-strong">
+    <main className="dark-context min-h-screen bg-black">
       <section className="grid min-h-screen lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-8 lg:px-12">
           <MotionStagger className="w-full max-w-xl">

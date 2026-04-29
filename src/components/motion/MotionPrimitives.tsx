@@ -7,6 +7,13 @@ type RevealDirection = "up" | "down" | "left" | "right";
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
 
+const directionOffset: Record<RevealDirection, { x: number; y: number }> = {
+  up: { x: 0, y: 22 },
+  down: { x: 0, y: -22 },
+  left: { x: 22, y: 0 },
+  right: { x: -22, y: 0 },
+};
+
 export function MotionReveal({
   children,
   className,
@@ -21,14 +28,20 @@ export function MotionReveal({
   distance?: number;
 }) {
   const reduceMotion = useReducedMotion();
+  const offset = directionOffset[direction];
+  const scale = distance / 22;
 
   return (
     <motion.div
       className={className}
-      data-motion-direction={direction}
-      data-motion-distance={distance}
-      initial={false}
-      whileInView={reduceMotion ? undefined : { opacity: 1, x: 0, y: 0 }}
+      initial={
+        reduceMotion
+          ? false
+          : { opacity: 0, x: offset.x * scale, y: offset.y * scale }
+      }
+      whileInView={
+        reduceMotion ? undefined : { opacity: 1, x: 0, y: 0 }
+      }
       viewport={{ once: true, amount: 0.28, margin: "0px 0px -80px" }}
       transition={{ duration: 0.58, ease: easeOut, delay }}
     >
@@ -51,7 +64,7 @@ export function MotionStagger({
   return (
     <motion.div
       className={className}
-      initial={false}
+      initial={reduceMotion ? false : "hidden"}
       whileInView={reduceMotion ? undefined : "show"}
       viewport={{ once: true, amount: 0.28 }}
       variants={{
@@ -80,7 +93,7 @@ export function MotionStaggerItem({
     <motion.div
       className={className}
       variants={{
-        hidden: { opacity: 1, y: 0 },
+        hidden: { opacity: 0, y: 16 },
         show: {
           opacity: 1,
           y: 0,
@@ -126,7 +139,7 @@ export function MotionFloat({
   return (
     <motion.div
       className={className}
-      initial={false}
+      initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.97 }}
       whileInView={reduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, amount: 0.35 }}
       animate={reduceMotion ? undefined : { y: [0, -8, 0] }}

@@ -106,7 +106,7 @@ export default function ProfilePage() {
             <CardHeader>
               <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#111113] text-[#f5f4ef]">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-dark text-on-dark">
                     <UserRound className="h-7 w-7" />
                   </div>
                   <div>
@@ -134,7 +134,7 @@ export default function ProfilePage() {
 
           <div className="grid gap-4 md:grid-cols-3">
             <Card className="p-5 shadow-soft">
-              <CardContent>
+              <CardContent className="!mt-0">
                 <ShieldCheck className="h-5 w-5 text-text-strong" />
                 <p className="mt-3 text-xs uppercase tracking-[0.2em] text-text-muted">
                   Sign-in provider
@@ -146,7 +146,7 @@ export default function ProfilePage() {
             </Card>
 
             <Card className="p-5 shadow-soft">
-              <CardContent>
+              <CardContent className="!mt-0">
                 <MessageCircleMore className="h-5 w-5 text-text-strong" />
                 <p className="mt-3 text-xs uppercase tracking-[0.2em] text-text-muted">
                   Local text messages
@@ -158,7 +158,7 @@ export default function ProfilePage() {
             </Card>
 
             <Card className="p-5 shadow-soft">
-              <CardContent>
+              <CardContent className="!mt-0">
                 <Star className="h-5 w-5 text-text-strong" />
                 <p className="mt-3 text-xs uppercase tracking-[0.2em] text-text-muted">
                   Shortlisted banks
@@ -179,19 +179,19 @@ export default function ProfilePage() {
                 <CardTitle>Account snapshot</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-3 text-sm">
-                <div className="rounded-[18px] border border-outline bg-app/72 p-4">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                   <p className="text-text-muted">User ID</p>
                   <p className="mt-2 break-all font-mono text-text-strong">
                     {profile?.user?.uid || user?.uid}
                   </p>
                 </div>
-                <div className="rounded-[18px] border border-outline bg-app/72 p-4">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                   <p className="text-text-muted">Email</p>
                   <p className="mt-2 text-text-strong">
                     {profile?.user?.email || user?.email || "Not added"}
                   </p>
                 </div>
-                <div className="rounded-[18px] border border-outline bg-app/72 p-4">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                   <p className="text-text-muted">Phone</p>
                   <p className="mt-2 text-text-strong">
                     {profile?.user?.phoneNumber || user?.phoneNumber || "Not added"}
@@ -223,13 +223,13 @@ export default function ProfilePage() {
                   profile?.chats?.map((chat) => (
                     <div
                       key={chat.threadId}
-                      className="rounded-[20px] border border-outline bg-app/72 p-4"
+                      className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <p className="font-mono text-xs text-text-muted">
                           {chat.threadId}
                         </p>
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-text-strong">
+                        <span className="rounded-full bg-input-bg px-3 py-1 text-xs font-semibold text-text-strong">
                           {chat.messageCount} messages
                         </span>
                       </div>
@@ -242,7 +242,7 @@ export default function ProfilePage() {
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-[20px] border border-dashed border-outline bg-app/72 p-5 text-sm leading-6 text-text-muted">
+                  <div className="rounded-[var(--radius-panel)] border border-dashed border-outline bg-inner-panel p-5 text-sm leading-6 text-text-muted">
                     No saved database chats yet. Open the text bot or voice bot while signed in and the next thread will appear here.
                   </div>
                 )}
@@ -262,7 +262,7 @@ export default function ProfilePage() {
                 shortlistedRates.map((rate) => (
                   <div
                     key={rate.id}
-                    className="rounded-[20px] border border-outline bg-app/72 p-4"
+                    className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4"
                   >
                     <p className="font-semibold text-text-strong">{rate.bankName}</p>
                     <p className="mt-2 text-sm text-text-muted">
@@ -276,7 +276,7 @@ export default function ProfilePage() {
               ) : (
                 <Link
                   href={ROUTES.COMPARE}
-                  className="inline-flex items-center rounded-[20px] border border-dashed border-outline bg-app/72 p-5 text-sm font-semibold text-text-muted transition hover:border-highlight hover:text-text-strong"
+                  className="inline-flex items-center rounded-[var(--radius-panel)] border border-dashed border-outline bg-inner-panel p-5 text-sm font-semibold text-text-muted transition hover:border-highlight hover:text-text-strong"
                 >
                   Build a shortlist from compare
                 </Link>

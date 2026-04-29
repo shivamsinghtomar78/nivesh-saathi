@@ -118,7 +118,7 @@ export default function CompareScreen() {
                       setLoading(true);
                       setAmount(Number(event.target.value) || 1000);
                     }}
-                    className="min-h-12 rounded-[18px] border border-outline bg-app/72 px-4 text-sm text-text-strong outline-none"
+                    className="min-h-12 rounded-[var(--radius-input)] border border-outline bg-inner-panel px-4 text-sm text-text-strong outline-none transition focus:border-highlight"
                   />
                 </label>
 
@@ -132,7 +132,7 @@ export default function CompareScreen() {
                       setLoading(true);
                       setTenorMonths(Number(event.target.value));
                     }}
-                    className="min-h-12 rounded-[18px] border border-outline bg-app/72 px-4 text-sm text-text-strong outline-none"
+                    className="min-h-12 rounded-[var(--radius-input)] border border-outline bg-inner-panel px-4 text-sm text-text-strong outline-none transition focus:border-highlight"
                   >
                     {TENOR_OPTIONS.map((value) => (
                       <option key={value} value={value}>
@@ -152,7 +152,7 @@ export default function CompareScreen() {
                       setLoading(true);
                       setBankType(event.target.value as BankTypeFilter);
                     }}
-                    className="min-h-12 rounded-[18px] border border-outline bg-app/72 px-4 text-sm text-text-strong outline-none"
+                    className="min-h-12 rounded-[var(--radius-input)] border border-outline bg-inner-panel px-4 text-sm text-text-strong outline-none transition focus:border-highlight"
                   >
                     <option value="all">All</option>
                     <option value="public">Public bank</option>
@@ -171,12 +171,12 @@ export default function CompareScreen() {
                       setLoading(true);
                       setSeniorCitizen((current) => !current);
                     }}
-                    className="flex min-h-12 items-center justify-between rounded-[18px] border border-outline bg-app/72 px-4 text-sm font-semibold text-text-strong"
+                    className="flex min-h-12 items-center justify-between rounded-[var(--radius-input)] border border-outline bg-inner-panel px-4 text-sm font-semibold text-text-strong transition focus:border-highlight"
                   >
                     <span>{seniorCitizen ? "Included" : "Regular rate"}</span>
                     <span
                       className={`h-6 w-11 rounded-full p-1 transition ${
-                        seniorCitizen ? "bg-[#111113]" : "bg-[#d9d5cc]"
+                        seniorCitizen ? "bg-surface-dark" : "bg-outline"
                       }`}
                     >
                       <span
@@ -194,7 +194,7 @@ export default function CompareScreen() {
               {loading ? (
                 Array.from({ length: 4 }).map((_, index) => (
                   <Card key={index} className="p-6 shadow-soft">
-                    <div className="h-52 animate-pulse rounded-[22px] bg-app/90" />
+                    <div className="h-52 animate-pulse rounded-[var(--radius-panel)] bg-inner-panel" />
                   </Card>
                 ))
               ) : rates.length > 0 ? (
@@ -226,7 +226,7 @@ export default function CompareScreen() {
                       </CardHeader>
                       <CardContent className="grid gap-4">
                         <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-[20px] border border-outline bg-app/72 p-4">
+                          <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                             <p className="text-xs uppercase tracking-[0.18em] text-text-muted">
                               Rate
                             </p>
@@ -234,7 +234,7 @@ export default function CompareScreen() {
                               {appliedRate.toFixed(2)}%
                             </p>
                           </div>
-                          <div className="rounded-[20px] border border-outline bg-app/72 p-4">
+                          <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                             <p className="text-xs uppercase tracking-[0.18em] text-text-muted">
                               Estimated maturity
                             </p>
@@ -244,7 +244,7 @@ export default function CompareScreen() {
                           </div>
                         </div>
 
-                        <div className="rounded-[20px] border border-outline bg-app/72 p-4 text-sm leading-7 text-text-muted">
+                        <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4 text-sm leading-7 text-text-muted">
                           <p>
                             Tenure band: {rate.tenorLabel}
                           </p>
@@ -319,7 +319,7 @@ export default function CompareScreen() {
                     return (
                       <div
                         key={rate.id}
-                        className="rounded-[20px] border border-outline bg-app/72 p-4"
+                        className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -333,7 +333,7 @@ export default function CompareScreen() {
                           <button
                             type="button"
                             onClick={() => toggleShortlist(rate.id)}
-                            className="text-sm font-semibold text-text-muted"
+                            className="text-sm font-semibold text-text-muted transition hover:text-danger"
                           >
                             Remove
                           </button>
@@ -345,7 +345,7 @@ export default function CompareScreen() {
                     );
                   })
                 ) : (
-                  <div className="rounded-[20px] border border-dashed border-outline bg-app/72 p-5 text-sm leading-6 text-text-muted">
+                  <div className="rounded-[var(--radius-panel)] border border-dashed border-outline bg-inner-panel p-5 text-sm leading-6 text-text-muted">
                     Add one or more banks to the shortlist, then open chat or
                     voice for a guided recommendation.
                   </div>

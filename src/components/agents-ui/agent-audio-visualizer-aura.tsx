@@ -38,13 +38,19 @@ export function AgentAudioVisualizerAura({
       style={{ "--aura-color": color } as React.CSSProperties}
       aria-label={`Voice agent ${stateCopy[state].label}`}
     >
-      <div className="absolute h-[86%] w-[86%] rounded-full bg-[radial-gradient(circle,rgba(0,195,255,0.18),transparent_62%)] blur-sm" />
+      <div 
+        className="absolute h-[86%] w-[86%] rounded-full blur-sm transition-opacity duration-500" 
+        style={{ 
+          background: `radial-gradient(circle, ${color}35, transparent 62%)`,
+          opacity: active ? 1 : 0.4
+        }}
+      />
       {[0, 1, 2].map((index) => (
         <span
           key={index}
           className={cn(
-            "absolute rounded-full border border-[color:var(--aura-color)]/40",
-            active ? "animate-pulse-ring" : "opacity-20"
+            "absolute rounded-full border border-[color:var(--aura-color)]/40 transition-all duration-700",
+            active ? "animate-pulse-ring" : "opacity-10"
           )}
           style={{
             height: `${58 + index * 16}%`,
@@ -53,13 +59,13 @@ export function AgentAudioVisualizerAura({
           }}
         />
       ))}
-      <div className="relative flex h-[46%] w-[46%] items-center justify-center rounded-full border border-white/10 bg-panel shadow-soft">
-        <div className="absolute inset-3 rounded-full bg-[color:var(--aura-color)]/12" />
+      <div className="relative flex h-[46%] w-[46%] items-center justify-center rounded-full border border-outline bg-inner-panel shadow-soft transition-all duration-500">
+        <div className="absolute inset-3 rounded-full bg-[color:var(--aura-color)]/15 transition-all duration-500" />
         <Icon
           className={cn(
-            "relative h-14 w-14 text-[color:var(--aura-color)]",
+            "relative h-14 w-14 text-[color:var(--aura-color)] transition-all duration-300",
             state === "connecting" && "animate-spin",
-            state === "listening" && "animate-pulse"
+            state === "listening" && "animate-mic-pulse"
           )}
         />
       </div>

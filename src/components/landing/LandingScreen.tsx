@@ -46,7 +46,7 @@ export default function LandingScreen() {
 
       <section className="mx-auto max-w-7xl px-4 pb-10 pt-24 md:px-6 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
-          <div className="rounded-[34px] border border-outline bg-panel p-6 shadow-soft md:p-8 lg:p-10">
+          <div className="rounded-[var(--radius-card)] border border-outline bg-panel p-6 shadow-soft md:p-8 lg:p-10">
             <Badge variant="accent">Voice-first FD advisor</Badge>
             <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-tight text-text-strong md:text-5xl lg:text-6xl">
               One clean journey from login to compare, chat, and voice guidance.
@@ -78,9 +78,9 @@ export default function LandingScreen() {
                 return (
                   <div
                     key={card.title}
-                    className="rounded-[26px] border border-outline bg-app/72 p-4"
+                    className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4"
                   >
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#111113] text-[#f5f4ef]">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-surface-dark text-on-dark">
                       <Icon className="h-5 w-5" />
                     </div>
                     <p className="mt-4 text-lg font-semibold text-text-strong">
@@ -108,7 +108,7 @@ export default function LandingScreen() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3">
-                <div className="rounded-[20px] border border-outline bg-app/72 p-4">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                   <p className="text-sm font-semibold text-text-strong">
                     Landing
                   </p>
@@ -116,7 +116,7 @@ export default function LandingScreen() {
                     Public explanation and entry point
                   </p>
                 </div>
-                <div className="rounded-[20px] border border-outline bg-app/72 p-4">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                   <p className="text-sm font-semibold text-text-strong">
                     Login
                   </p>
@@ -124,7 +124,7 @@ export default function LandingScreen() {
                     Firebase-backed authentication
                   </p>
                 </div>
-                <div className="rounded-[20px] border border-outline bg-app/72 p-4">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                   <p className="text-sm font-semibold text-text-strong">
                     Home
                   </p>
@@ -151,13 +151,13 @@ export default function LandingScreen() {
                   {["English", "Hindi", "Tamil", "Bengali"].map((language) => (
                     <span
                       key={language}
-                      className="rounded-full border border-outline bg-app/80 px-3 py-2 text-sm font-semibold text-text-strong"
+                      className="rounded-full border border-outline bg-inner-panel px-3 py-2 text-sm font-semibold text-text-strong"
                     >
                       {language}
                     </span>
                   ))}
                 </div>
-                <div className="rounded-[20px] border border-outline bg-app/72 p-4">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                   <div className="flex items-center gap-3">
                     <Languages className="h-5 w-5 text-text-strong" />
                     <p className="text-sm leading-6 text-text-muted">
@@ -166,7 +166,7 @@ export default function LandingScreen() {
                     </p>
                   </div>
                 </div>
-                <div className="rounded-[20px] border border-outline bg-app/72 p-4">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                   <div className="flex items-center gap-3">
                     <ShieldCheck className="h-5 w-5 text-text-strong" />
                     <p className="text-sm leading-6 text-text-muted">

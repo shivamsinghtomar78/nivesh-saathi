@@ -277,7 +277,7 @@ export default function TextChatScreen() {
                 <ConversationTimeline messages={messages} onAction={handleAction} />
                 {isTyping ? (
                   <div className="flex justify-start">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-outline bg-white/78 px-4 py-3 text-sm text-text-muted">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-outline bg-input-bg px-4 py-3 text-sm text-text-muted">
                       <LoaderCircle className="h-4 w-4 animate-spin" />
                       Saathi is thinking
                     </div>
@@ -285,9 +285,9 @@ export default function TextChatScreen() {
                 ) : null}
               </div>
 
-              <div className="mt-5 rounded-[24px] border border-outline bg-app/72 p-3">
+              <div className="mt-5 rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-3">
                 <div className="flex items-end gap-3">
-                  <div className="min-w-0 flex-1 rounded-[20px] border border-outline bg-white/78 px-4 py-3">
+                  <div className="min-w-0 flex-1 rounded-[var(--radius-input)] border border-outline bg-input-bg px-4 py-3">
                     <textarea
                       value={draft}
                       onChange={(event) => setDraft(event.target.value)}
@@ -333,7 +333,7 @@ export default function TextChatScreen() {
                     key={prompt}
                     type="button"
                     onClick={() => void sendMessage(prompt)}
-                    className="rounded-[18px] border border-outline bg-app/72 px-4 py-3 text-left text-sm leading-6 text-text-strong transition hover:bg-white"
+                    className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel px-4 py-3 text-left text-sm leading-6 text-text-strong transition hover:bg-white"
                   >
                     {prompt}
                   </button>
@@ -349,13 +349,13 @@ export default function TextChatScreen() {
                 <CardTitle>What the text bot sees</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-3 text-sm leading-6 text-text-muted">
-                <div className="rounded-[18px] border border-outline bg-app/72 px-4 py-3">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel px-4 py-3">
                   Signed-in session keeps the advisor route protected.
                 </div>
-                <div className="rounded-[18px] border border-outline bg-app/72 px-4 py-3">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel px-4 py-3">
                   Shortlist from compare: {shortlist.length} bank{shortlist.length === 1 ? "" : "s"}.
                 </div>
-                <div className="rounded-[18px] border border-outline bg-app/72 px-4 py-3">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel px-4 py-3">
                   Voice controls stay out of this page so the text flow remains focused.
                 </div>
               </CardContent>

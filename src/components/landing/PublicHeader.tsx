@@ -16,15 +16,15 @@ export default function PublicHeader() {
 
   return (
     <motion.header
-      className="fixed inset-x-0 top-0 z-50 border-b border-outline/80 bg-app/82 backdrop-blur-xl"
+      className="fixed inset-x-0 top-0 z-50 border-b border-outline bg-panel-glass/95 backdrop-blur-xl"
       initial={reduceMotion ? false : { opacity: 0, y: -18 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6 lg:px-8">
         <Link href={ROUTES.LANDING} className="flex min-w-0 items-center gap-3">
           <motion.div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-highlight text-black shadow-soft"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface-dark text-on-dark shadow-soft"
             whileHover={reduceMotion ? undefined : { rotate: 8, scale: 1.05 }}
             transition={{ type: "spring", stiffness: 260, damping: 18 }}
           >
@@ -46,7 +46,7 @@ export default function PublicHeader() {
         >
           <Link
             href={href}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-highlight px-3 text-sm font-semibold text-black shadow-soft transition hover:brightness-110 sm:rounded-full sm:px-5"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-surface-dark px-3 text-sm font-semibold text-on-dark shadow-soft transition hover:bg-surface-dark-hover sm:px-5"
           >
             <span className="sm:hidden">{label}</span>
             <span className="hidden sm:inline">{fullLabel}</span>

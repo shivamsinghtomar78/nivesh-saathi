@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { LockKeyhole } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -20,7 +21,7 @@ export default function AuthGate({
 
   if (status === "loading") {
     return (
-      <div className="rounded-2xl border border-outline bg-panel px-6 py-14 text-center text-text-muted">
+      <div className="rounded-[var(--radius-card)] border border-outline bg-panel px-6 py-14 text-center text-text-muted">
         Checking your secure session...
       </div>
     );
@@ -28,7 +29,7 @@ export default function AuthGate({
 
   if (!user) {
     return (
-      <div className="rounded-2xl border border-outline bg-panel px-6 py-14 text-center">
+      <div className="rounded-[var(--radius-card)] border border-outline bg-panel px-6 py-14 text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-outline bg-panel-strong text-highlight">
           <LockKeyhole className="h-7 w-7" />
         </div>
@@ -36,11 +37,10 @@ export default function AuthGate({
         <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-text-muted">
           {body}
         </p>
-        <Link
-          href={ROUTES.LOGIN}
-          className="mt-6 inline-flex rounded-xl bg-highlight px-5 py-3 text-sm font-semibold text-black transition hover:brightness-110"
-        >
-          Sign in securely
+        <Link href={ROUTES.LOGIN} className="mt-6 inline-block">
+          <Button variant="primary" size="lg">
+            Sign in securely
+          </Button>
         </Link>
       </div>
     );

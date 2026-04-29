@@ -58,9 +58,9 @@ export default function AppShell({
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-50 border-b border-outline bg-panel-glass/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4 md:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 md:px-6 lg:px-8">
           <Link href={ROUTES.HOME} className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#111113] text-[#f5f4ef] shadow-soft">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface-dark text-on-dark shadow-soft">
               <Sparkles className="h-5 w-5" />
             </div>
             <div className="min-w-0">
@@ -85,8 +85,8 @@ export default function AppShell({
                   className={cn(
                     "rounded-full px-4 py-2 text-sm font-semibold transition",
                     active
-                      ? "bg-[#111113] text-[#f5f4ef]"
-                      : "bg-white/70 text-[#383a40] hover:bg-white"
+                      ? "bg-surface-dark text-on-dark"
+                      : "bg-input-bg text-text hover:bg-white"
                   )}
                 >
                   {copy.nav[item.key]}
@@ -96,7 +96,7 @@ export default function AppShell({
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            <div className="hidden rounded-full bg-white/75 p-1 shadow-[0_8px_18px_rgba(0,0,0,0.06)] md:flex">
+            <div className="hidden rounded-full bg-input-bg p-1 shadow-[0_8px_18px_rgba(0,0,0,0.06)] md:flex">
               {Object.entries(LANGUAGE_LABELS).map(([code, label]) => (
                 <button
                   key={code}
@@ -105,8 +105,8 @@ export default function AppShell({
                   className={cn(
                     "rounded-full px-3 py-2 text-xs font-semibold transition",
                     language === code
-                      ? "bg-[#111113] text-[#f5f4ef]"
-                      : "text-[#50535a] hover:text-[#111113]"
+                      ? "bg-surface-dark text-on-dark"
+                      : "text-text-muted hover:text-text-strong"
                   )}
                 >
                   {label}
@@ -117,7 +117,7 @@ export default function AppShell({
             <Link
               href={ROUTES.PROFILE}
               aria-label="Profile"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline bg-white/65 text-text-muted transition hover:border-highlight hover:text-text-strong"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline bg-input-bg text-text-muted transition hover:border-highlight hover:text-text-strong"
             >
               <UserRound className="h-4 w-4" />
             </Link>
@@ -127,14 +127,14 @@ export default function AppShell({
                 type="button"
                 aria-label="Sign out"
                 onClick={() => void handleLogout()}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline bg-white/65 text-text-muted transition hover:border-highlight hover:text-text-strong"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline bg-input-bg text-text-muted transition hover:border-highlight hover:text-text-strong"
               >
                 <LogOut className="h-4 w-4" />
               </button>
             ) : (
               <Link
                 href={ROUTES.LOGIN}
-                className="hidden rounded-full bg-[#111113] px-4 py-2 text-sm font-semibold text-[#f5f4ef] transition hover:bg-[#1e1e22] md:inline-flex"
+                className="hidden rounded-full bg-surface-dark px-4 py-2 text-sm font-semibold text-on-dark transition hover:bg-surface-dark-hover md:inline-flex"
               >
                 {copy.nav.login}
               </Link>
@@ -177,8 +177,8 @@ export default function AppShell({
                 className={cn(
                   "rounded-2xl px-2 py-2 text-center text-[11px] font-semibold transition",
                   active
-                    ? "bg-[#111113] text-[#f5f4ef]"
-                    : "text-text-muted hover:bg-white/75 hover:text-text-strong"
+                    ? "bg-surface-dark text-on-dark"
+                    : "text-text-muted hover:bg-input-bg hover:text-text-strong"
                 )}
               >
                 {copy.nav[item.key]}

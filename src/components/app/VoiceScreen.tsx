@@ -296,14 +296,14 @@ export default function VoiceScreen() {
               Back to compare
             </Button>
           </Link>
-            <Button
-              size="lg"
-              variant="secondary"
-              onClick={() => {
-                setMessages([]);
-                setThreadId(null);
-                lastSpokenIdRef.current = null;
-              }}
+          <Button
+            size="lg"
+            variant="secondary"
+            onClick={() => {
+              setMessages([]);
+              setThreadId(null);
+              lastSpokenIdRef.current = null;
+            }}
           >
             <RotateCcw className="h-4 w-4" />
             Reset voice bot
@@ -360,7 +360,7 @@ export default function VoiceScreen() {
                 </Button>
               </div>
 
-              <div className="rounded-[20px] border border-outline bg-app/72 p-4">
+              <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-text-muted">
                   Status
                 </p>
@@ -377,7 +377,7 @@ export default function VoiceScreen() {
                 </p>
               </div>
 
-              <div className="rounded-[20px] border border-outline bg-app/72 p-4">
+              <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-text-muted">
                   Shared shortlist
                 </p>
@@ -403,7 +403,7 @@ export default function VoiceScreen() {
                   </CardDescription>
                 </div>
                 {isThinking ? (
-                  <div className="inline-flex items-center gap-2 rounded-full border border-outline bg-app/72 px-3 py-2 text-sm text-text-muted">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-outline bg-inner-panel px-3 py-2 text-sm text-text-muted">
                     <LoaderCircle className="h-4 w-4 animate-spin" />
                     Thinking
                   </div>

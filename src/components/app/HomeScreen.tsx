@@ -83,7 +83,7 @@ export default function HomeScreen() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-[22px] border border-outline bg-app/72 p-4">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-text-muted">
                     Shortlist
                   </p>
@@ -91,7 +91,7 @@ export default function HomeScreen() {
                     {shortlist.length}
                   </p>
                 </div>
-                <div className="rounded-[22px] border border-outline bg-app/72 p-4">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-text-muted">
                     Text messages
                   </p>
@@ -99,7 +99,7 @@ export default function HomeScreen() {
                     {Math.max(messages.length - 1, 0)}
                   </p>
                 </div>
-                <div className="rounded-[22px] border border-outline bg-app/72 p-4">
+                <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-text-muted">
                     Default language
                   </p>
@@ -118,7 +118,7 @@ export default function HomeScreen() {
                   <Link key={action.href} href={action.href}>
                     <Card className="h-full p-5 shadow-soft transition hover:-translate-y-0.5">
                       <CardHeader>
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#111113] text-[#f5f4ef]">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-surface-dark text-on-dark">
                           <Icon className="h-5 w-5" />
                         </div>
                         <CardTitle className="mt-3">{action.title}</CardTitle>
@@ -146,7 +146,7 @@ export default function HomeScreen() {
                 {topRates.map((rate) => (
                   <div
                     key={rate.id}
-                    className="rounded-[20px] border border-outline bg-app/72 p-4"
+                    className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -190,7 +190,7 @@ export default function HomeScreen() {
                   return (
                     <div
                       key={item.label}
-                      className="flex items-start gap-3 rounded-[18px] border border-outline bg-app/72 px-4 py-3"
+                      className="flex items-start gap-3 rounded-[var(--radius-panel)] border border-outline bg-inner-panel px-4 py-3"
                     >
                       <Icon className="mt-0.5 h-4 w-4 text-text-strong" />
                       <p className="text-sm leading-6 text-text-muted">{item.label}</p>
