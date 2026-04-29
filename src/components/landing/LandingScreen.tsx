@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import useSWR from "swr";
 import { motion, type Variants } from "framer-motion";
 import {
   ArrowRight,
@@ -93,11 +92,19 @@ const itemVariants: Variants = {
 import type { AdvisorRateCard } from "@/lib/server/advisor-schemas";
 import { useAuthStore } from "@/stores/authStore";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
 function RateTicker() {
-  const { data } = useSWR<{ rates: AdvisorRateCard[] }>("/api/fd-rates?limit=1", fetcher);
-  const topRate = data?.rates?.[0];
+  const [topRate, setTopRate] = React.useState<AdvisorRateCard | null>(null);
+
+  React.useEffect(() => {
+    fetch("/api/fd-rates?limit=1")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.rates?.[0]) {
+          setTopRate(data.rates[0]);
+        }
+      })
+      .catch(() => {});
+  }, []);
   
   if (!topRate) return null;
 
