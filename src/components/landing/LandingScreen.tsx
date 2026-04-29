@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
 import {
@@ -58,9 +59,15 @@ const itemVariants: Variants = {
 };
 
 export default function LandingScreen() {
+  const [mounted, setMounted] = React.useState(false);
   const user = useAuthStore((state) => state.user);
-  const primaryHref = user ? ROUTES.HOME : ROUTES.LOGIN;
-  const primaryLabel = user ? "Open Home" : "Get Started";
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const primaryHref = mounted && user ? ROUTES.HOME : ROUTES.LOGIN;
+  const primaryLabel = mounted && user ? "Open Home" : "Get Started";
 
   return (
     <main className="dark-context min-h-screen relative overflow-hidden bg-black">
@@ -75,7 +82,8 @@ export default function LandingScreen() {
         <motion.div
           variants={containerVariants}
           initial="hidden"
-          animate="visible"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
           className="text-center max-w-4xl mx-auto"
         >
           <motion.div variants={itemVariants} className="flex justify-center mb-6">
@@ -107,7 +115,7 @@ export default function LandingScreen() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            {!user && (
+            {(!mounted || !user) && (
               <Link href={ROUTES.LOGIN}>
                 <Button size="lg" variant="primary" className="rounded-full px-8 h-14 text-base bg-highlight text-black hover:bg-highlight/90 transition-transform hover:scale-105 active:scale-95 shadow-lg">
                   <Lock className="mr-2 h-4 w-4" />

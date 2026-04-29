@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
@@ -8,11 +9,17 @@ import { ROUTES } from "@/lib/routes";
 import { useAuthStore } from "@/stores/authStore";
 
 export default function PublicHeader() {
+  const [mounted, setMounted] = React.useState(false);
   const user = useAuthStore((state) => state.user);
   const reduceMotion = useReducedMotion();
-  const href = user ? ROUTES.HOME : ROUTES.LOGIN;
-  const label = user ? "Open home" : "Sign in";
-  const fullLabel = user ? "Open app home" : "Sign in / Login";
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const href = mounted && user ? ROUTES.HOME : ROUTES.LOGIN;
+  const label = mounted && user ? "Open home" : "Sign in";
+  const fullLabel = mounted && user ? "Open app home" : "Sign in / Login";
 
   return (
     <motion.header
