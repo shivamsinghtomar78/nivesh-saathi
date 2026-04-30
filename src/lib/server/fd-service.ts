@@ -438,6 +438,7 @@ export async function buildDeterministicAdvisorResponse(params: {
     glossary,
     followUpPrompt: LOCALIZED_COPY[language].followUp,
     warnings: rateCards.length === 0 ? [LOCALIZED_COPY[language].noMatch] : [],
+    suggestedChips: [],
   };
 
   return response;

@@ -11,6 +11,8 @@ import AuthGate from "@/components/auth/AuthGate";
 import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
 import AppShell from "@/components/app/AppShell";
 import ConversationTimeline from "@/components/app/ConversationTimeline";
+import ModeSwitchBanner from "@/components/shared/ModeSwitchBanner";
+import VoiceCompanionCard from "@/components/shared/VoiceCompanionCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +23,21 @@ import { ROUTES } from "@/lib/routes";
 import type { AdvisorResponse } from "@/lib/server/advisor-schemas";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { useAuthStore } from "@/stores/authStore";
-import { type ChatMessage, useChatStore } from "@/stores/chatStore";
+import { type ConversationMessage, useConversationStore } from "@/stores/conversationStore";
 import { useCompareStore } from "@/stores/compareStore";
+
+/** Immediate acknowledgment phrases for voice mode */
+const ACKNOWLEDGMENTS = {
+  en: ["Let me check that for you...", "Looking into it...", "One moment..."],
+  hi: ["Dekhta hoon...", "Ek minute...", "Dhundh raha hoon..."],
+  ta: ["Paarkkiren...", "Oru nimidam...", "Check pannuren..."],
+  bn: ["Dekhchi...", "Ek moment...", "Khujchi..."],
+} as const;
+
+function getRandomAck(lang: keyof typeof ACKNOWLEDGMENTS) {
+  const acks = ACKNOWLEDGMENTS[lang] ?? ACKNOWLEDGMENTS.en;
+  return acks[Math.floor(Math.random() * acks.length)];
+}
 
 type ChatApiPayload = {
   ok: boolean;
@@ -50,7 +65,7 @@ function getTimestamp() {
   }).format(new Date());
 }
 
-function createWelcomeMessage(languageLabel: string): ChatMessage {
+function createWelcomeMessage(languageLabel: string): ConversationMessage {
   return {
     id: `welcome-${languageLabel}`,
     role: "bot",
@@ -58,16 +73,20 @@ function createWelcomeMessage(languageLabel: string): ChatMessage {
       "Voice assistant is ready.\nTap the microphone below and ask me your fixed deposit questions naturally.",
     timestamp: getTimestamp(),
     language: languageLabel,
+    source: "voice",
   };
 }
 
-function createBotMessage(languageLabel: string, response: AdvisorResponse): ChatMessage {
+function createBotMessage(languageLabel: string, response: AdvisorResponse): ConversationMessage {
   return {
     id: createMessageId(),
     role: "bot",
     content: response.text,
     timestamp: getTimestamp(),
     language: languageLabel,
+    source: "voice",
+    suggestedChips: response.suggestedChips ?? [],
+    modeSwitchSuggested: !!response.modeSwitchSuggestion,
     rateCards: response.rateCards.map((card) => ({
       bankId: card.bankId,
       bankName: card.bankName,
@@ -101,18 +120,30 @@ const itemVariants: Variants = {
 export default function VoiceScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  const language = useChatStore((state) => state.language);
-  const messages = useChatStore((state) => state.messages);
-  const addMessage = useChatStore((state) => state.addMessage);
-  const clearMessages = useChatStore((state) => state.clearMessages);
-  const threadId = useChatStore((state) => state.threadId);
-  const setThreadId = useChatStore((state) => state.setThreadId);
+  const language = useConversationStore((state) => state.language);
+  const messages = useConversationStore((state) => state.messages);
+  const addMessage = useConversationStore((state) => state.addMessage);
+  const clearMessages = useConversationStore((state) => state.clearMessages);
+  const threadId = useConversationStore((state) => state.threadId);
+  const setThreadId = useConversationStore((state) => state.setThreadId);
+  const setActiveMode = useConversationStore((state) => state.setActiveMode);
+  const voiceAcknowledgment = useConversationStore((state) => state.voiceAcknowledgment);
+  const setVoiceAcknowledgment = useConversationStore((state) => state.setVoiceAcknowledgment);
   const shortlist = useCompareStore((state) => state.shortlist);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+  const [modeSwitchInfo, setModeSwitchInfo] = useState<{ targetMode: "chat" | "voice"; reason: string } | null>(null);
+  const [lastBotWithCards, setLastBotWithCards] = useState<ConversationMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const lastSpokenIdRef = useRef<string | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Set active mode on mount
+  useEffect(() => {
+    setActiveMode("voice");
+  }, [setActiveMode]);
+
   const visibleMessages = useMemo(
     () =>
       messages.length === 0
@@ -120,6 +151,14 @@ export default function VoiceScreen() {
         : messages,
     [language, messages]
   );
+
+  /** Barge-in: cancel current speech when user starts speaking */
+  const cancelSpeech = useCallback(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+  }, []);
 
   const speakReply = useCallback((text: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis || !autoSpeak) {
@@ -132,6 +171,7 @@ export default function VoiceScreen() {
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
+    utteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
   }, [autoSpeak, language]);
 
@@ -140,6 +180,13 @@ export default function VoiceScreen() {
     if (!message || !user) {
       return;
     }
+
+    // Barge-in: cancel any ongoing speech
+    cancelSpeech();
+
+    // Immediate acknowledgment
+    const ack = getRandomAck(language as keyof typeof ACKNOWLEDGMENTS);
+    setVoiceAcknowledgment(ack);
 
     if (messages.length === 0) {
       addMessage(createWelcomeMessage(LANGUAGE_LABELS[language]));
@@ -150,6 +197,7 @@ export default function VoiceScreen() {
       content: message,
       timestamp: getTimestamp(),
       language: LANGUAGE_LABELS[language],
+      source: "voice",
     });
     setIsThinking(true);
 
@@ -164,6 +212,7 @@ export default function VoiceScreen() {
           language,
           threadId: threadId ?? undefined,
           shortlistBankIds: shortlist,
+          mode: "voice",
         }),
       });
       const payload = (await response.json()) as ChatApiPayload;
@@ -173,11 +222,23 @@ export default function VoiceScreen() {
       }
 
       setThreadId(payload.threadId ?? null);
-      addMessage(createBotMessage(LANGUAGE_LABELS[language], payload.response!));
+      const botMsg = createBotMessage(LANGUAGE_LABELS[language], payload.response);
+      addMessage(botMsg);
+
+      // Track companion card data
+      if (botMsg.rateCards && botMsg.rateCards.length > 0) {
+        setLastBotWithCards(botMsg);
+      }
+
+      // Check for mode-switch suggestion
+      if (payload.response.modeSwitchSuggestion) {
+        setModeSwitchInfo(payload.response.modeSwitchSuggestion);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Voice request failed.");
     } finally {
       setIsThinking(false);
+      setVoiceAcknowledgment(null);
     }
   };
 
@@ -187,6 +248,13 @@ export default function VoiceScreen() {
       void sendVoicePrompt(transcript);
     },
   });
+
+  // Barge-in: cancel speech when user starts listening
+  useEffect(() => {
+    if (voice.isListening) {
+      cancelSpeech();
+    }
+  }, [voice.isListening, cancelSpeech]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -219,7 +287,7 @@ export default function VoiceScreen() {
   }, []);
 
   const handleAction = async (
-    action: NonNullable<ChatMessage["actions"]>[number]
+    action: NonNullable<ConversationMessage["actions"]>[number]
   ) => {
     if (action.action === "open_compare") {
       router.push(ROUTES.COMPARE);
@@ -227,6 +295,11 @@ export default function VoiceScreen() {
     }
 
     if (action.action === "open_voice") {
+      return;
+    }
+
+    if (action.action === "switch_to_chat" || action.action === "open_chat") {
+      router.push(ROUTES.CHAT);
       return;
     }
 
@@ -261,18 +334,18 @@ export default function VoiceScreen() {
           content: `Term: ${term}\nMeaning: ${plain}\nExample: ${example}`.trim(),
           timestamp: getTimestamp(),
           language: LANGUAGE_LABELS[language],
-          glossary: [
-            {
-              term,
-              plain,
-              example,
-            },
-          ],
+          source: "voice",
+          glossary: [{ term, plain, example }],
         });
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Unable to explain the term.");
       }
     }
+  };
+
+  /** Handle smart chip taps in voice mode */
+  const handleChipSelect = (chip: string) => {
+    void sendVoicePrompt(chip);
   };
 
   const visualState = useMemo(() => {
@@ -309,6 +382,8 @@ export default function VoiceScreen() {
               clearMessages();
               setThreadId(null);
               lastSpokenIdRef.current = null;
+              setModeSwitchInfo(null);
+              setLastBotWithCards(null);
             }}
           >
             <RotateCcw className="mr-2 h-3 w-3" />
@@ -341,7 +416,7 @@ export default function VoiceScreen() {
                     : voice.isListening
                       ? (voice.transcript || "I'm listening...")
                       : voice.isProcessing || isThinking
-                        ? "Finding the best answer..."
+                        ? (voiceAcknowledgment || "Finding the best answer...")
                         : isSpeaking
                           ? "Saathi is speaking..."
                           : "Tap microphone to speak"}
@@ -362,8 +437,7 @@ export default function VoiceScreen() {
                       variant="secondary"
                       className="w-16 h-16 rounded-full shadow-md z-10 hover:bg-surface-dark hover:text-on-dark transition-all duration-300"
                       onClick={() => {
-                        window.speechSynthesis.cancel();
-                        setIsSpeaking(false);
+                        cancelSpeech();
                       }}
                     >
                       <VolumeX className="h-6 w-6" />
@@ -418,6 +492,30 @@ export default function VoiceScreen() {
               </CardContent>
             </Card>
 
+            {/* Visual Companion Card — shows rate data while voice speaks */}
+            <AnimatePresence>
+              {lastBotWithCards && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                >
+                  <VoiceCompanionCard message={lastBotWithCards} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Mode switch banner */}
+            <AnimatePresence>
+              {modeSwitchInfo && (
+                <ModeSwitchBanner
+                  targetMode={modeSwitchInfo.targetMode}
+                  reason={modeSwitchInfo.reason}
+                  onDismiss={() => setModeSwitchInfo(null)}
+                />
+              )}
+            </AnimatePresence>
+
             <Card className="p-5 border-outline bg-panel shadow-sm">
               <CardHeader className="pb-4 px-0 pt-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -439,6 +537,12 @@ export default function VoiceScreen() {
                     {shortlist.length > 0
                       ? `I can see your ${shortlist.length} shortlisted banks.`
                       : "No banks shortlisted. We'll start from scratch."}
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+                  <p className="text-sm text-text-muted leading-relaxed">
+                    <strong className="text-text-strong font-medium">Barge-in enabled</strong> — start speaking anytime to interrupt.
                   </p>
                 </div>
               </CardContent>
@@ -473,10 +577,37 @@ export default function VoiceScreen() {
                   ref={scrollRef}
                   className="flex-1 overflow-y-auto p-6 scroll-smooth custom-scrollbar"
                 >
-                  <ConversationTimeline messages={visibleMessages} onAction={handleAction} />
+                  <ConversationTimeline
+                    messages={visibleMessages}
+                    onAction={handleAction}
+                    onChipSelect={handleChipSelect}
+                    showSmartChips={!isThinking}
+                    isTyping={isThinking}
+                  />
                   
+                  {/* Voice acknowledgment bubble */}
                   <AnimatePresence>
-                    {isThinking && (
+                    {voiceAcknowledgment && isThinking && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="flex justify-start mt-4"
+                      >
+                        <div className="inline-flex items-center gap-3 rounded-2xl rounded-tl-sm border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-accent shadow-sm">
+                          <div className="flex gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                          {voiceAcknowledgment}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <AnimatePresence>
+                    {isThinking && !voiceAcknowledgment && (
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}

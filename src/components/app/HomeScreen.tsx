@@ -20,7 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import type { FDRate } from "@/lib/fd-data";
 import { ROUTES } from "@/lib/routes";
 import { useAuthStore } from "@/stores/authStore";
-import { useChatStore } from "@/stores/chatStore";
+import { useConversationStore } from "@/stores/conversationStore";
 import { useCompareStore } from "@/stores/compareStore";
 
 const quickActions = [
@@ -59,7 +59,7 @@ const itemVariants: Variants = {
 
 export default function HomeScreen() {
   const user = useAuthStore((state) => state.user);
-  const messages = useChatStore((state) => state.messages);
+  const messages = useConversationStore((state) => state.messages);
   const shortlist = useCompareStore((state) => state.shortlist);
   const [topRates, setTopRates] = useState<FDRate[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);

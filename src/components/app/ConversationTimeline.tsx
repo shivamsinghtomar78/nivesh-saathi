@@ -7,28 +7,35 @@ import {
   ExternalLink,
   MessageCircleMore,
   Mic,
+  Pencil,
   RefreshCw,
   Sparkles,
 } from "lucide-react";
 
 import StructuredAnswer from "@/components/shared/StructuredAnswer";
+import SmartChips from "@/components/shared/SmartChips";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { ChatMessage } from "@/stores/chatStore";
+import type { ConversationMessage } from "@/stores/conversationStore";
 
 type ConversationTimelineProps = {
-  messages: ChatMessage[];
-  onAction: (action: NonNullable<ChatMessage["actions"]>[number]) => void;
-  onRetry?: (message: ChatMessage) => void;
+  messages: ConversationMessage[];
+  onAction: (action: NonNullable<ConversationMessage["actions"]>[number]) => void;
+  onRetry?: (message: ConversationMessage) => void;
+  onEdit?: (message: ConversationMessage) => void;
+  onChipSelect?: (chip: string) => void;
+  /** Only show smart chips on the very last bot message */
+  showSmartChips?: boolean;
+  isTyping?: boolean;
 };
 
-function getActionIcon(action: NonNullable<ChatMessage["actions"]>[number]) {
-  if (action.action === "open_voice") {
+function getActionIcon(action: NonNullable<ConversationMessage["actions"]>[number]) {
+  if (action.action === "open_voice" || action.action === "switch_to_voice") {
     return Mic;
   }
 
-  if (action.action === "open_compare") {
+  if (action.action === "open_compare" || action.action === "switch_to_chat" || action.action === "open_chat") {
     return MessageCircleMore;
   }
 
@@ -43,12 +50,21 @@ export default function ConversationTimeline({
   messages,
   onAction,
   onRetry,
+  onEdit,
+  onChipSelect,
+  showSmartChips = true,
+  isTyping = false,
 }: ConversationTimelineProps) {
+  // Find the last bot message index for smart chip placement
+  const lastBotIndex = [...messages].reverse().findIndex((m) => m.role === "bot");
+  const lastBotMessageIdx = lastBotIndex >= 0 ? messages.length - 1 - lastBotIndex : -1;
+
   return (
     <div className="space-y-6">
       <AnimatePresence initial={false}>
-        {messages.map((message) => {
+        {messages.map((message, msgIndex) => {
           const isUser = message.role === "user";
+          const isLastBot = msgIndex === lastBotMessageIdx;
 
           return (
             <motion.article
@@ -85,7 +101,35 @@ export default function ConversationTimeline({
                     >
                       {message.timestamp}
                     </span>
+                    {/* Source indicator */}
+                    {message.source && (
+                      <span className={cn(
+                        "text-[9px] font-medium uppercase tracking-wider",
+                        isUser ? "text-on-dark/40" : "text-text-muted/40"
+                      )}>
+                        via {message.source}
+                      </span>
+                    )}
                   </div>
+                  {/* Edit button for user messages */}
+                  {isUser && !message.failed && onEdit && (
+                    <button
+                      type="button"
+                      onClick={() => onEdit(message)}
+                      className="opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100 p-1 rounded-md hover:bg-white/10 transition"
+                      title="Edit message"
+                    >
+                      <Pencil className="h-3 w-3 text-on-dark/60" />
+                    </button>
+                  )}
+                  {message.edited && (
+                    <span className={cn(
+                      "text-[9px] italic",
+                      isUser ? "text-on-dark/40" : "text-text-muted/50"
+                    )}>
+                      edited
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-1">
@@ -231,6 +275,15 @@ export default function ConversationTimeline({
                       💡 {message.followUpPrompt}
                     </button>
                   </div>
+                )}
+
+                {/* Smart follow-up chips (only on last bot message) */}
+                {isLastBot && showSmartChips && !isTyping && onChipSelect && (
+                  <SmartChips
+                    chips={message.suggestedChips ?? []}
+                    onSelect={onChipSelect}
+                    disabled={isTyping}
+                  />
                 )}
               </div>
             </motion.article>

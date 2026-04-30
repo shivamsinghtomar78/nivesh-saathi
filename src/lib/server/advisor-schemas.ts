@@ -60,6 +60,9 @@ export const advisorActionSchema = z.object({
 });
 export type AdvisorAction = z.infer<typeof advisorActionSchema>;
 
+export const conversationModeSchema = z.enum(["chat", "voice"]);
+export type ConversationMode = z.infer<typeof conversationModeSchema>;
+
 export const advisorResponseSchema = z.object({
   text: z.string(),
   rateCards: z.array(advisorRateCardSchema).default([]),
@@ -67,6 +70,13 @@ export const advisorResponseSchema = z.object({
   glossary: z.array(glossaryItemSchema).default([]),
   followUpPrompt: z.string().default(""),
   warnings: z.array(z.string()).default([]),
+  /** Smart follow-up chips generated based on context */
+  suggestedChips: z.array(z.string()).default([]),
+  /** Suggestion to switch modes when content is better suited for another interface */
+  modeSwitchSuggestion: z.object({
+    targetMode: conversationModeSchema,
+    reason: z.string(),
+  }).optional(),
 });
 export type AdvisorResponse = z.infer<typeof advisorResponseSchema>;
 
@@ -80,6 +90,8 @@ export const chatRequestSchema = z.object({
   seniorCitizen: z.boolean().optional(),
   bankType: bankTypeFilterSchema.optional(),
   shortlistBankIds: z.array(z.string().trim().min(1)).max(10).optional(),
+  /** Current interaction mode — voice responses are shortened automatically */
+  mode: conversationModeSchema.default("chat"),
 });
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
 

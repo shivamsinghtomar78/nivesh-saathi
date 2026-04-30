@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { RotateCcw, Send, MessageSquareText, Sparkles, BookOpen, ChevronDown, Lightbulb } from "lucide-react";
+import { RotateCcw, Send, MessageSquareText, Sparkles, BookOpen, ChevronDown, Lightbulb, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
@@ -11,6 +11,7 @@ import AuthGate from "@/components/auth/AuthGate";
 import AppShell from "@/components/app/AppShell";
 import ConversationTimeline from "@/components/app/ConversationTimeline";
 import EmptyState from "@/components/shared/EmptyState";
+import ModeSwitchBanner from "@/components/shared/ModeSwitchBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +21,7 @@ import type { AdvisorResponse } from "@/lib/server/advisor-schemas";
 import { LANGUAGE_LABELS } from "@/lib/copy";
 import { useAutoResize } from "@/hooks/useAutoResize";
 import { useAuthStore } from "@/stores/authStore";
-import { useChatStore, type ChatMessage } from "@/stores/chatStore";
+import { useConversationStore, type ConversationMessage } from "@/stores/conversationStore";
 import { useCompareStore } from "@/stores/compareStore";
 
 const MAX_CHARS = 800;
@@ -74,14 +75,17 @@ function getTimestamp() {
   }).format(new Date());
 }
 
-function createBotMessage(languageLabel: string, response: AdvisorResponse): ChatMessage {
+function createBotMessage(languageLabel: string, response: AdvisorResponse): ConversationMessage {
   return {
     id: createMessageId(),
     role: "bot",
     content: response.text,
     timestamp: getTimestamp(),
     language: languageLabel,
+    source: "chat",
     followUpPrompt: response.followUpPrompt,
+    suggestedChips: response.suggestedChips ?? [],
+    modeSwitchSuggested: !!response.modeSwitchSuggestion,
     rateCards: response.rateCards.map((card) => ({
       bankId: card.bankId,
       bankName: card.bankName,
@@ -115,23 +119,32 @@ const itemVariants: Variants = {
 export default function TextChatScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  const language = useChatStore((state) => state.language);
-  const messages = useChatStore((state) => state.messages);
-  const threadId = useChatStore((state) => state.threadId);
-  const isTyping = useChatStore((state) => state.isTyping);
-  const addMessage = useChatStore((state) => state.addMessage);
-  const clearMessages = useChatStore((state) => state.clearMessages);
-  const setThreadId = useChatStore((state) => state.setThreadId);
-  const setTyping = useChatStore((state) => state.setTyping);
-  const markLastFailed = useChatStore((state) => state.markLastFailed);
-  const retryLastMessage = useChatStore((state) => state.retryLastMessage);
+  const language = useConversationStore((state) => state.language);
+  const messages = useConversationStore((state) => state.messages);
+  const threadId = useConversationStore((state) => state.threadId);
+  const isTyping = useConversationStore((state) => state.isTyping);
+  const addMessage = useConversationStore((state) => state.addMessage);
+  const clearMessages = useConversationStore((state) => state.clearMessages);
+  const setThreadId = useConversationStore((state) => state.setThreadId);
+  const setTyping = useConversationStore((state) => state.setTyping);
+  const setActiveMode = useConversationStore((state) => state.setActiveMode);
+  const markLastFailed = useConversationStore((state) => state.markLastFailed);
+  const retryLastMessage = useConversationStore((state) => state.retryLastMessage);
+  const updateMessage = useConversationStore((state) => state.updateMessage);
   const shortlist = useCompareStore((state) => state.shortlist);
   const [draft, setDraft] = useState("");
   const [showScrollFab, setShowScrollFab] = useState(false);
   const [thinkingSeconds, setThinkingSeconds] = useState(0);
+  const [modeSwitchInfo, setModeSwitchInfo] = useState<{ targetMode: "chat" | "voice"; reason: string } | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const thinkingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const handleAutoResize = useAutoResize(120);
+
+  // Set active mode on mount
+  useEffect(() => {
+    setActiveMode("chat");
+  }, [setActiveMode]);
 
   // Check if user has scrolled away from bottom
   const handleScroll = useCallback(() => {
@@ -184,8 +197,10 @@ export default function TextChatScreen() {
       content: message,
       timestamp: getTimestamp(),
       language: LANGUAGE_LABELS[language],
+      source: "chat",
     });
     setDraft("");
+    setEditingMessageId(null);
     setTyping(true);
 
     try {
@@ -199,6 +214,7 @@ export default function TextChatScreen() {
           language,
           threadId: threadId ?? undefined,
           shortlistBankIds: shortlist,
+          mode: "chat",
         }),
       });
       const payload = (await response.json()) as ChatApiPayload;
@@ -208,7 +224,13 @@ export default function TextChatScreen() {
       }
 
       setThreadId(payload.threadId ?? null);
-      addMessage(createBotMessage(LANGUAGE_LABELS[language], payload.response));
+      const botMsg = createBotMessage(LANGUAGE_LABELS[language], payload.response);
+      addMessage(botMsg);
+
+      // Check for mode-switch suggestion
+      if (payload.response.modeSwitchSuggestion) {
+        setModeSwitchInfo(payload.response.modeSwitchSuggestion);
+      }
     } catch (error) {
       markLastFailed();
       toast.error(error instanceof Error ? error.message : "Chat failed.");
@@ -217,15 +239,26 @@ export default function TextChatScreen() {
     }
   };
 
-  const handleRetry = (msg: ChatMessage) => {
+  const handleRetry = (msg: ConversationMessage) => {
     const failedMsg = retryLastMessage();
     if (failedMsg) {
       void sendMessage(failedMsg.content);
     }
   };
 
+  /** Message editing: populate draft and mark as editing */
+  const handleEdit = (msg: ConversationMessage) => {
+    setDraft(msg.content);
+    setEditingMessageId(msg.id);
+  };
+
+  /** Handle smart chip selection */
+  const handleChipSelect = (chip: string) => {
+    void sendMessage(chip);
+  };
+
   const handleAction = async (
-    action: NonNullable<ChatMessage["actions"]>[number]
+    action: NonNullable<ConversationMessage["actions"]>[number]
   ) => {
     // Handle follow-up prompt taps (no action set, just a label)
     if (!action.action && action.label) {
@@ -238,7 +271,7 @@ export default function TextChatScreen() {
       return;
     }
 
-    if (action.action === "open_voice") {
+    if (action.action === "open_voice" || action.action === "switch_to_voice") {
       router.push(ROUTES.VOICE);
       return;
     }
@@ -274,13 +307,8 @@ export default function TextChatScreen() {
           content: `Term: ${term}\nMeaning: ${plain}\nExample: ${example}`.trim(),
           timestamp: getTimestamp(),
           language: LANGUAGE_LABELS[language],
-          glossary: [
-            {
-              term,
-              plain,
-              example,
-            },
-          ],
+          source: "chat",
+          glossary: [{ term, plain, example }],
         });
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Unable to explain the term.");
@@ -297,6 +325,12 @@ export default function TextChatScreen() {
       description="Ask questions about fixed deposits, get recommendations based on your shortlist, and clarify financial jargon."
       actions={
         <div className="flex gap-3">
+          <Link href={ROUTES.VOICE}>
+            <Button size="sm" variant="outline" className="rounded-full bg-panel-glass">
+              <Mic className="mr-2 h-4 w-4" />
+              Switch to Voice
+            </Button>
+          </Link>
           <Link href={ROUTES.COMPARE}>
             <Button size="sm" variant="outline" className="rounded-full bg-panel-glass">
               View Shortlist
@@ -309,6 +343,7 @@ export default function TextChatScreen() {
             onClick={() => {
               clearMessages();
               setThreadId(null);
+              setModeSwitchInfo(null);
             }}
           >
             <RotateCcw className="mr-2 h-3 w-3" />
@@ -410,6 +445,10 @@ export default function TextChatScreen() {
                         messages={messages}
                         onAction={handleAction}
                         onRetry={handleRetry}
+                        onEdit={handleEdit}
+                        onChipSelect={handleChipSelect}
+                        showSmartChips={true}
+                        isTyping={isTyping}
                       />
                       
                       {/* Suggestion chips visible when < 3 messages */}
@@ -451,6 +490,17 @@ export default function TextChatScreen() {
                   </AnimatePresence>
                 </div>
 
+                {/* Mode switch suggestion banner */}
+                <AnimatePresence>
+                  {modeSwitchInfo && (
+                    <ModeSwitchBanner
+                      targetMode={modeSwitchInfo.targetMode}
+                      reason={modeSwitchInfo.reason}
+                      onDismiss={() => setModeSwitchInfo(null)}
+                    />
+                  )}
+                </AnimatePresence>
+
                 {/* Scroll-to-bottom FAB */}
                 <AnimatePresence>
                   {showScrollFab && (
@@ -468,6 +518,29 @@ export default function TextChatScreen() {
                 </AnimatePresence>
 
                 <div className="p-4 bg-panel/80 backdrop-blur-md border-t border-outline/50 shrink-0">
+                  {/* Editing indicator */}
+                  <AnimatePresence>
+                    {editingMessageId && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="flex items-center gap-2 mb-2 px-2"
+                      >
+                        <span className="text-xs text-accent font-medium">Editing message</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingMessageId(null);
+                            setDraft("");
+                          }}
+                          className="text-xs text-text-muted hover:text-text-strong transition"
+                        >
+                          Cancel
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <div className="relative flex items-end gap-2 bg-input-bg border border-outline rounded-2xl p-2 transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
                     <textarea
                       value={draft}
@@ -479,6 +552,11 @@ export default function TextChatScreen() {
                       onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
                           event.preventDefault();
+                          if (editingMessageId) {
+                            // Mark old message as edited, send new
+                            updateMessage(editingMessageId, { edited: true, content: draft });
+                            setEditingMessageId(null);
+                          }
                           void sendMessage(draft);
                         }
                       }}

@@ -16,6 +16,7 @@ import {
   type AppLanguage,
   type BankTypeFilter,
   type ChatRequest,
+  type ConversationMode,
 } from "@/lib/server/advisor-schemas";
 import { buildDeterministicAdvisorResponse } from "@/lib/server/fd-service";
 import { hasLlmConfig } from "@/lib/server/env";
@@ -47,6 +48,7 @@ const narrativeSchema = z.object({
 const agentState = new StateSchema({
   messages: MessagesValue,
   language: z.enum(["en", "hi", "ta", "bn"]).optional(),
+  mode: z.enum(["chat", "voice"]).optional(),
   requestedAmount: z.number().optional(),
   requestedTenorMonths: z.number().optional(),
   seniorCitizen: z.boolean().optional(),
@@ -278,9 +280,77 @@ async function assembleResponseNode(state: typeof agentState.State) {
   return { response };
 }
 
+/**
+ * Generate smart follow-up chip suggestions based on response content.
+ */
+function generateSuggestedChips(response: AdvisorResponse, language: AppLanguage): string[] {
+  const chips: string[] = [];
+  const isHindi = language === "hi";
+
+  if (response.rateCards.length > 0) {
+    chips.push(
+      isHindi ? "Senior citizen rate batao" : "Show senior citizen rates",
+      isHindi ? "Kaunsa bank sabse safe hai?" : "Which bank is safest?",
+    );
+  }
+
+  if (response.glossary.length > 0) {
+    chips.push(
+      isHindi ? "Aur example dijiye" : "Give me a real example",
+    );
+  }
+
+  if (response.rateCards.length === 0 && response.glossary.length === 0) {
+    chips.push(
+      isHindi ? "FD rates compare karo" : "Compare FD rates",
+      isHindi ? "Maturity kitni hogi?" : "Calculate my maturity",
+    );
+  }
+
+  return chips.slice(0, 3);
+}
+
+/**
+ * Detect if the response content is better suited for a different mode.
+ * E.g., data-heavy rate comparisons should suggest switching to chat from voice.
+ */
+function detectModeSwitchSuggestion(
+  response: AdvisorResponse,
+  currentMode: ConversationMode,
+  language: AppLanguage
+): AdvisorResponse["modeSwitchSuggestion"] {
+  // In voice mode, suggest switching to chat for data-heavy responses
+  if (currentMode === "voice" && response.rateCards.length > 1) {
+    return {
+      targetMode: "chat",
+      reason: language === "hi"
+        ? "Rates compare karne ke liye chat mode better rahega — table dikhega."
+        : "This comparison has detailed data — switch to chat to see the full table.",
+    };
+  }
+
+  // In chat mode, suggest voice for simple Q&A
+  if (
+    currentMode === "chat" &&
+    response.rateCards.length === 0 &&
+    response.glossary.length <= 1 &&
+    response.text.length < 150
+  ) {
+    return {
+      targetMode: "voice",
+      reason: language === "hi"
+        ? "Is tarah ke sawaalon ke liye voice mode try kijiye — zyada natural lagega."
+        : "For quick questions like this, try voice mode — it feels more natural.",
+    };
+  }
+
+  return undefined;
+}
+
 async function narrateNode(state: typeof agentState.State) {
   const response = state.response;
   const language = (state.language ?? "en") as AppLanguage;
+  const mode = (state.mode ?? "chat") as ConversationMode;
 
   if (!response) {
     const fallback = await buildDeterministicAdvisorResponse({
@@ -291,6 +361,10 @@ async function narrateNode(state: typeof agentState.State) {
       glossaryTermIds: ["pa", "tenor", "dicgc"],
     });
 
+    // Enrich with smart chips and mode-switch
+    fallback.suggestedChips = generateSuggestedChips(fallback, language);
+    fallback.modeSwitchSuggestion = detectModeSwitchSuggestion(fallback, mode, language);
+
     return {
       response: fallback,
       messages: [new AIMessage(fallback.text)],
@@ -298,6 +372,10 @@ async function narrateNode(state: typeof agentState.State) {
   }
 
   if (!hasLlmConfig) {
+    // Enrich response before returning
+    response.suggestedChips = generateSuggestedChips(response, language);
+    response.modeSwitchSuggestion = detectModeSwitchSuggestion(response, mode, language);
+
     return {
       messages: [new AIMessage(response.text)],
     };
@@ -313,16 +391,22 @@ async function narrateNode(state: typeof agentState.State) {
   if (language === "ta") languagePrompt = "You MUST answer entirely in conversational Tamil.";
   if (language === "bn") languagePrompt = "You MUST answer entirely in conversational Bengali.";
 
+  // P0: Response length adaptation — voice gets concise, chat gets rich
+  const modeInstruction = mode === "voice"
+    ? "IMPORTANT: This response will be SPOKEN ALOUD. Keep it under 3 sentences maximum. Use simple, conversational phrasing. Do NOT use bullet points, headings, or structured formatting. Speak as if talking to a friend. If there are multiple rate cards, mention only the top 1-2."
+    : "Structure text with short labelled sections and hyphen bullets. You may be detailed.";
+
   const prompt: LlmMessage[] = [
     {
       role: "system",
       content:
-        `You are Nivesh Saathi, a warm fixed deposit guide for India. Keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings. Structure text with short labelled sections and hyphen bullets. Use plain text only: no markdown bold markers, no asterisks, and no tables. ${languagePrompt}`,
+        `You are Nivesh Saathi, a warm fixed deposit guide for India. Keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings. Use plain text only: no markdown bold markers, no asterisks, and no tables. ${modeInstruction} ${languagePrompt}`,
     },
     {
       role: "user",
       content: JSON.stringify({
         language,
+        mode,
         recentMessages,
         structuredResponse: {
           rateCards: response.rateCards,
@@ -336,11 +420,13 @@ async function narrateNode(state: typeof agentState.State) {
   try {
     const llmResponse = await invokeLlm(prompt, {
       temperature: 0.2,
-      maxTokens: 900,
+      maxTokens: mode === "voice" ? 300 : 900,
     });
     const parsed = llmResponse ? safeJsonParse(llmResponse, narrativeSchema) : null;
 
     if (!parsed) {
+      response.suggestedChips = generateSuggestedChips(response, language);
+      response.modeSwitchSuggestion = detectModeSwitchSuggestion(response, mode, language);
       return {
         messages: [new AIMessage(response.text)],
       };
@@ -352,6 +438,8 @@ async function narrateNode(state: typeof agentState.State) {
       const validRates = response.rateCards.map((c) => `${c.rateValue.toFixed(2)}%`);
       const hasHallucination = mentionedRates.some((r) => !validRates.includes(r));
       if (hasHallucination) {
+        response.suggestedChips = generateSuggestedChips(response, language);
+        response.modeSwitchSuggestion = detectModeSwitchSuggestion(response, mode, language);
         return {
           messages: [new AIMessage(response.text)],
         };
@@ -363,6 +451,8 @@ async function narrateNode(state: typeof agentState.State) {
       text: parsed.text,
       followUpPrompt: parsed.followUpPrompt ?? response.followUpPrompt,
       warnings: parsed.warnings ?? response.warnings,
+      suggestedChips: generateSuggestedChips(response, language),
+      modeSwitchSuggestion: detectModeSwitchSuggestion(response, mode, language),
     };
 
     return {
@@ -370,6 +460,8 @@ async function narrateNode(state: typeof agentState.State) {
       messages: [new AIMessage(finalResponse.text)],
     };
   } catch {
+    response.suggestedChips = generateSuggestedChips(response, language);
+    response.modeSwitchSuggestion = detectModeSwitchSuggestion(response, mode, language);
     return {
       messages: [new AIMessage(response.text)],
     };
@@ -424,6 +516,7 @@ export async function invokeFdAdvisor(input: ChatRequest) {
     {
       messages: [...history, new HumanMessage(input.message)],
       language: input.language,
+      mode: input.mode ?? "chat",
       requestedAmount: input.amount ?? prefs.amount,
       requestedTenorMonths: input.tenorMonths ?? prefs.tenorMonths,
       seniorCitizen: input.seniorCitizen ?? prefs.seniorCitizen,

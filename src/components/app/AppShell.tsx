@@ -14,7 +14,7 @@ import { firebaseAuth } from "@/lib/firebase";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
-import { useChatStore } from "@/stores/chatStore";
+import { useConversationStore } from "@/stores/conversationStore";
 
 const NAV_ITEMS = [
   { href: ROUTES.HOME, key: "home" as const, icon: Home },
@@ -40,8 +40,8 @@ export default function AppShell({
 }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const language = useChatStore((state) => state.language);
-  const setLanguage = useChatStore((state) => state.setLanguage);
+  const language = useConversationStore((state) => state.language);
+  const setLanguage = useConversationStore((state) => state.setLanguage);
   const user = useAuthStore((state) => state.user);
   const clearUser = useAuthStore((state) => state.clearUser);
   const copy = APP_COPY[language];

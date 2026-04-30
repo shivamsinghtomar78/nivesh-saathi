@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Languages, TrendingUp, MessageCircleMore, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LANGUAGE_LABELS } from "@/lib/copy";
-import { useChatStore } from "@/stores/chatStore";
+import { useConversationStore } from "@/stores/conversationStore";
 import type { AppLanguage } from "@/lib/server/advisor-schemas";
 
 const STEPS = [
@@ -32,8 +32,8 @@ interface OnboardingModalProps {
 
 export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const [step, setStep] = useState(0);
-  const language = useChatStore((s) => s.language);
-  const setLanguage = useChatStore((s) => s.setLanguage);
+  const language = useConversationStore((s) => s.language);
+  const setLanguage = useConversationStore((s) => s.setLanguage);
   const current = STEPS[step];
   const Icon = current.icon;
   const isLast = step === STEPS.length - 1;

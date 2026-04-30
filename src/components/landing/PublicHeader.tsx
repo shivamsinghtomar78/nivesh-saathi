@@ -8,15 +8,15 @@ import { ArrowRight, Globe, Sparkles } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
 import { LANGUAGE_LABELS } from "@/lib/copy";
 import { useAuthStore } from "@/stores/authStore";
-import { useChatStore } from "@/stores/chatStore";
+import { useConversationStore } from "@/stores/conversationStore";
 import type { AppLanguage } from "@/lib/server/advisor-schemas";
 
 export default function PublicHeader() {
   const [mounted, setMounted] = React.useState(false);
   const [langOpen, setLangOpen] = React.useState(false);
   const user = useAuthStore((state) => state.user);
-  const language = useChatStore((s) => s.language);
-  const setLanguage = useChatStore((s) => s.setLanguage);
+  const language = useConversationStore((s) => s.language);
+  const setLanguage = useConversationStore((s) => s.setLanguage);
   const reduceMotion = useReducedMotion();
 
   React.useEffect(() => {

@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FD_RATES } from "@/lib/fd-data";
 import { ROUTES } from "@/lib/routes";
 import { useAuthStore } from "@/stores/authStore";
-import { useChatStore } from "@/stores/chatStore";
+import { useConversationStore } from "@/stores/conversationStore";
 import { useCompareStore } from "@/stores/compareStore";
 
 type ProfilePayload = {
@@ -50,7 +50,7 @@ function formatDate(value?: string) {
 export default function ProfilePage() {
   const user = useAuthStore((state) => state.user);
   const userId = user?.uid;
-  const messages = useChatStore((state) => state.messages);
+  const messages = useConversationStore((state) => state.messages);
   const shortlist = useCompareStore((state) => state.shortlist);
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
 
