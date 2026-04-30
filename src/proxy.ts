@@ -2,7 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE_NAME = "__session";
 
-const PROTECTED_ROUTES = ["/home", "/compare", "/chat", "/voice", "/profile"];
+const PROTECTED_ROUTES = [
+  "/home",
+  "/compare",
+  "/chat",
+  "/voice",
+  "/profile",
+  "/share",
+];
 
 export function proxy(request: NextRequest) {
   const isProtectedRoute = PROTECTED_ROUTES.some(
@@ -35,5 +42,6 @@ export const config = {
     "/chat/:path*",
     "/voice/:path*",
     "/profile/:path*",
+    "/share/:path*",
   ],
 };

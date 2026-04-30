@@ -5,12 +5,12 @@ import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
 import {
   ArrowRight,
+  BarChart3,
   Languages,
   MessageCircleMore,
   Mic,
   ShieldCheck,
   Sparkles,
-  TrendingUp,
   Zap,
 } from "lucide-react";
 
@@ -18,15 +18,15 @@ import PublicHeader from "@/components/landing/PublicHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/routes";
-/* ── Contextual Visuals instead of 3D Torus Knot ── */
+/* Contextual rate visuals for the public hero. */
 const FloatingRateCards = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-highlight/5" />
+      <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-accent-warm/8" />
       <motion.div
         animate={{ y: [0, -20, 0], rotate: [0, 2, 0] }}
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-[20%] left-[10%] w-48 p-4 rounded-xl border border-outline/50 bg-panel-glass/40 backdrop-blur-md shadow-card-lg hidden lg:block"
+        className="absolute left-[10%] top-[20%] hidden w-48 rounded-[var(--radius-panel)] border border-outline/50 bg-panel-glass/70 p-4 shadow-[var(--shadow-card)] backdrop-blur-md lg:block"
       >
         <div className="text-[10px] font-semibold text-text-muted mb-1 uppercase">Senior Citizen</div>
         <div className="text-2xl font-bold text-accent">9.10%</div>
@@ -35,7 +35,7 @@ const FloatingRateCards = () => {
       <motion.div
         animate={{ y: [0, 15, 0], rotate: [0, -1, 0] }}
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="absolute bottom-[25%] right-[12%] w-48 p-4 rounded-xl border border-outline/50 bg-panel-glass/40 backdrop-blur-md shadow-card-lg hidden lg:block"
+        className="absolute bottom-[25%] right-[12%] hidden w-48 rounded-[var(--radius-panel)] border border-outline/50 bg-panel-glass/70 p-4 shadow-[var(--shadow-card)] backdrop-blur-md lg:block"
       >
         <div className="text-[10px] font-semibold text-text-muted mb-1 uppercase">Tax Saver (5 Yr)</div>
         <div className="text-2xl font-bold text-highlight">7.20%</div>
@@ -66,7 +66,7 @@ const journeyCards = [
 const trustBadges = [
   { icon: Zap, label: "Powered by Gemini AI" },
   { icon: ShieldCheck, label: "DICGC Insured Banks" },
-  { icon: TrendingUp, label: "8+ Banks Compared" },
+  { icon: BarChart3, label: "8+ Banks Compared" },
 ];
 
 const containerVariants: Variants = {
@@ -89,38 +89,6 @@ const itemVariants: Variants = {
   },
 };
 
-import type { FDRate } from "@/lib/fd-data";
-
-function RateTicker() {
-  const [topRate, setTopRate] = React.useState<FDRate | null>(null);
-
-  React.useEffect(() => {
-    fetch("/api/fd-rates?limit=1")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.rates?.[0]) {
-          setTopRate(data.rates[0]);
-        }
-      })
-      .catch(() => {});
-  }, []);
-  
-  if (!topRate) return null;
-
-  const displayRate = topRate.regularRate ?? topRate.seniorRate ?? 0;
-
-  return (
-    <div className="overflow-hidden whitespace-nowrap bg-accent/10 border border-accent/20 rounded-full px-1 py-1 max-w-fit mx-auto backdrop-blur-sm">
-      <div className="flex items-center gap-2 px-4 py-1">
-        <TrendingUp className="w-3.5 h-3.5 text-accent shrink-0" />
-        <span className="text-xs font-semibold text-accent tracking-wide">
-          Top rate today: {displayRate.toFixed(2)}% - {topRate.bankName}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 export default function LandingScreen() {
   const [isMobile, setIsMobile] = React.useState(false);
 
@@ -136,11 +104,11 @@ export default function LandingScreen() {
     };
   }, []);
 
-  const primaryHref = `${ROUTES.CHAT}?wizard=best-fd`;
-  const primaryLabel = "Find my best FD";
+  const primaryHref = ROUTES.LOGIN;
+  const primaryLabel = "Sign in securely";
 
   return (
-    <main className="dark-context min-h-screen relative overflow-hidden bg-black">
+    <main className="dark-context relative min-h-screen overflow-hidden bg-app">
       <PublicHeader />
       
       {/* Subtle floating rate cards background */}
@@ -148,7 +116,7 @@ export default function LandingScreen() {
         {!isMobile ? (
           <FloatingRateCards />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-accent/8 via-transparent to-highlight/6" />
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-accent-warm/8" />
         )}
       </div>
 
@@ -160,13 +128,8 @@ export default function LandingScreen() {
           viewport={{ once: true, margin: "-50px" }}
           className="text-center max-w-4xl mx-auto"
         >
-          {/* Rate teaser ticker */}
-          <motion.div variants={itemVariants} className="mb-6">
-            <RateTicker />
-          </motion.div>
-
           <motion.div variants={itemVariants} className="flex justify-center mb-6">
-            <Badge variant="accent" className="px-4 py-1.5 text-sm shadow-sm bg-panel-glass backdrop-blur-md border-outline">
+            <Badge variant="accent" className="border-outline bg-panel-glass px-4 py-1.5 text-sm shadow-[var(--shadow-soft-layer)] backdrop-blur-md">
               <Sparkles className="w-4 h-4 mr-2 text-accent" />
               Next-Gen FD Advisor
             </Badge>
@@ -203,18 +166,12 @@ export default function LandingScreen() {
             })}
           </motion.div>
           
-          {/* Single bold CTA */}
+          {/* Authentication-first CTA */}
           <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href={primaryHref}>
-              <Button size="lg" className="rounded-full px-8 h-14 text-base shadow-lg transition-transform hover:scale-105 active:scale-95">
+              <Button size="lg" className="h-14 rounded-full px-8 text-base">
                 {primaryLabel}
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            {/* Guest browse option */}
-            <Link href={ROUTES.COMPARE}>
-              <Button size="lg" variant="outline" className="rounded-full px-8 h-14 text-base bg-panel-glass/30 backdrop-blur-sm border-outline text-text-muted hover:text-text-strong transition-transform hover:scale-105 active:scale-95">
-                Browse Rates Free
               </Button>
             </Link>
           </motion.div>
@@ -249,9 +206,9 @@ export default function LandingScreen() {
                   viewport={{ once: true, margin: "-50px" }}
                   transition={{ duration: 0.5, delay: index * 0.15 }}
                   whileHover={{ y: -5 }}
-                  className="bg-panel rounded-[var(--radius-card)] p-8 border border-outline shadow-soft transition-colors hover:border-accent/30 group"
+                  className="group rounded-[var(--radius-card)] border border-outline bg-panel p-8 shadow-[var(--shadow-card)] transition hover:-translate-y-1 hover:border-accent/30 hover:shadow-[var(--shadow-card-hover)]"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-surface-dark text-on-dark flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-[var(--radius-panel)] bg-accent text-white shadow-[0_12px_28px_rgba(10,127,100,0.22)] transition-transform duration-300 group-hover:scale-105">
                     <Icon className="h-6 w-6" />
                   </div>
                   <h3 className="text-xl font-semibold text-text-strong mb-3">
@@ -313,8 +270,8 @@ export default function LandingScreen() {
             transition={{ duration: 0.8 }}
             className="relative"
           >
-            <div className="aspect-square max-w-md mx-auto relative bg-gradient-to-tr from-panel to-inner-panel rounded-[var(--radius-card)] border border-outline shadow-card-lg overflow-hidden flex flex-col justify-center p-8">
-               <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accent/10 via-transparent to-transparent opacity-50"></div>
+            <div className="relative mx-auto flex aspect-square max-w-md flex-col justify-center overflow-hidden rounded-[var(--radius-card)] border border-outline bg-gradient-to-tr from-panel to-inner-panel p-8 shadow-[var(--shadow-card)]">
+               <div className="absolute left-0 top-0 h-full w-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accent/15 via-transparent to-transparent opacity-60"></div>
                
                <div className="relative z-10 space-y-4">
                  {["English", "Hindi", "Tamil", "Bengali"].map((lang, i) => (
@@ -324,7 +281,7 @@ export default function LandingScreen() {
                      whileInView={{ opacity: 1, x: 0 }}
                      viewport={{ once: true }}
                      transition={{ delay: i * 0.1 + 0.3 }}
-                     className={`p-4 rounded-2xl border ${i === 0 ? 'bg-surface-dark text-on-dark border-transparent' : 'bg-panel border-outline text-text-strong'} flex justify-between items-center`}
+                     className={`flex items-center justify-between rounded-[var(--radius-panel)] border p-4 ${i === 0 ? 'border-transparent bg-accent text-white' : 'border-outline bg-panel text-text-strong'}`}
                    >
                      <span className="font-medium">{lang}</span>
                      {i === 0 && <div className="w-2 h-2 rounded-full bg-accent animate-pulse"></div>}
@@ -361,7 +318,7 @@ export default function LandingScreen() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.12, duration: 0.5 }}
-                className="bg-panel rounded-[var(--radius-card)] p-7 border border-outline hover:border-accent/30 transition-colors"
+                className="rounded-[var(--radius-card)] border border-outline bg-panel p-7 shadow-[var(--shadow-card)] transition hover:-translate-y-1 hover:border-accent/30 hover:shadow-[var(--shadow-card-hover)]"
               >
                 <span className="inline-flex rounded-full border border-accent/20 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent">
                   {persona.label}
@@ -379,7 +336,7 @@ export default function LandingScreen() {
         <div className="mx-auto max-w-7xl px-4 md:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <p className="text-text-muted text-sm">
-              © {new Date().getFullYear()} Nivesh Saathi. Secure & intelligent FD advisor.
+              (c) {new Date().getFullYear()} Nivesh Saathi. Secure & intelligent FD advisor.
             </p>
             <div className="flex items-center gap-6">
               <Link href={ROUTES.PRIVACY} className="text-xs text-text-muted hover:text-text-strong transition">Privacy Policy</Link>

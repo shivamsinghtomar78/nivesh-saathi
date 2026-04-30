@@ -172,7 +172,7 @@ export default function ConversationTimeline({
                             </p>
                           </div>
                           {card.badge ? (
-                            <Badge variant="outline" className="bg-white/50 text-[10px] uppercase tracking-wider">
+                            <Badge variant="outline" className="bg-panel/80 text-[10px] uppercase tracking-wider">
                               {card.badge}
                             </Badge>
                           ) : null}
@@ -240,7 +240,7 @@ export default function ConversationTimeline({
                           variant={action.type === "primary" ? "secondary" : "outline"}
                           size="sm"
                           onClick={() => onAction(action)}
-                          className={cn("rounded-full", action.type !== "primary" && "bg-white")}
+                          className={cn("rounded-full", action.type !== "primary" && "bg-input-bg")}
                         >
                           <Icon className="mr-1.5 h-3.5 w-3.5" />
                           {action.label}

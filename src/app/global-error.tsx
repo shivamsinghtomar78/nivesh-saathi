@@ -15,7 +15,7 @@ export default function GlobalError({
       <body className="bg-app">
         <div className="flex min-h-screen items-center justify-center px-4 py-16">
           <div className="w-full max-w-xl rounded-[var(--radius-card)] border border-outline bg-panel p-8 text-center shadow-soft">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-outline bg-panel-strong text-highlight">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-outline bg-accent-soft text-accent">
               <AlertTriangle className="h-7 w-7" />
             </div>
             <h1 className="mt-5 text-3xl font-semibold text-text-strong">

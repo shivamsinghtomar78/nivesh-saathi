@@ -1,5 +1,6 @@
 import { appLanguageSchema } from "@/lib/server/advisor-schemas";
 import { jsonError, jsonSuccess } from "@/lib/server/api";
+import { requireFirebaseSession } from "@/lib/server/auth";
 import { localizeJargonEntry } from "@/lib/server/jargon-catalog";
 
 export const runtime = "nodejs";
@@ -12,6 +13,9 @@ type RouteContext = {
 };
 
 export async function GET(request: Request, context: RouteContext) {
+  const auth = await requireFirebaseSession(request);
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const language = appLanguageSchema.catch("hi").parse(
     searchParams.get("language") ?? "hi"

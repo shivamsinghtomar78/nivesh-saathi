@@ -64,7 +64,7 @@ export default function VoiceCompanionCard({ message }: VoiceCompanionCardProps)
                   )}
                 </div>
                 {card.badge && (
-                  <Badge variant="outline" className="text-[9px] bg-white/50">
+              <Badge variant="outline" className="bg-panel/80 text-[9px]">
                     {card.badge}
                   </Badge>
                 )}

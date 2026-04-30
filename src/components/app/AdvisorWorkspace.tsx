@@ -18,7 +18,6 @@ import { toast } from "sonner";
 import AdvisorComposer from "@/components/app/AdvisorComposer";
 import AdvisorInsightPanel, { hasAdvisorInsights } from "@/components/app/AdvisorInsightPanel";
 import AdvisorVoiceDock from "@/components/app/AdvisorVoiceDock";
-import BestFdWizard from "@/components/app/BestFdWizard";
 import AppShell from "@/components/app/AppShell";
 import ConversationTimeline from "@/components/app/ConversationTimeline";
 import AuthGate from "@/components/auth/AuthGate";
@@ -191,7 +190,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [showWizard, setShowWizard] = useState(false);
   const [showMobileInsights, setShowMobileInsights] = useState(false);
   const [selectedRateCard, setSelectedRateCard] = useState<RateCard | null>(null);
   const [contextPrincipal, setContextPrincipal] = useState<number | undefined>();
@@ -210,13 +208,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   useEffect(() => {
     setActiveMode(initialMode);
   }, [initialMode, setActiveMode]);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("wizard") === "best-fd") {
-      const timer = window.setTimeout(() => setShowWizard(true), 0);
-      return () => window.clearTimeout(timer);
-    }
-  }, []);
 
   const switchMode = useCallback(
     (nextMode: ConversationMode, updateRoute = true) => {
@@ -349,7 +340,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       });
 
       setDraft("");
-      setShowWizard(false);
       setTyping(true);
       setStreamingMessage(null);
       latestStreamMeta.current = null;
@@ -403,7 +393,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       top: scrollRef.current.scrollHeight,
       behavior: "smooth",
     });
-  }, [messages, streamingMessage, isTyping, showWizard]);
+  }, [messages, streamingMessage, isTyping]);
 
   useEffect(() => {
     return () => cancelSpeech();
@@ -509,7 +499,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     setSelectedRateCard(null);
     setModeSwitchInfo(null);
     setShowMenu(false);
-    setShowWizard(false);
   };
 
   return (
@@ -521,8 +510,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     >
       <AuthGate
         title="Sign in to save your advisor"
-        body="You can browse rates as a guest. Sign in to save conversations, watch rates, and sync your FD context."
-        allowGuest
+        body="Sign in to access Saathi, save conversations, watch rates, and sync your FD context."
       >
         <HistoryDrawer open={showHistory} onClose={() => setShowHistory(false)} />
 
@@ -546,7 +534,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                     <p className="truncate text-xs text-text-muted">
                       {user
                         ? `${shortlist.length} shortlisted banks in context`
-                        : "Guest mode. Sign in only when you want to save."}
+                        : "Sign in to access your advisor."}
                     </p>
                   </div>
                 </div>
@@ -634,21 +622,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
             </header>
 
             <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-5 custom-scrollbar md:px-6">
-              <AnimatePresence>
-                {showWizard ? (
-                  <BestFdWizard
-                    onClose={() => setShowWizard(false)}
-                    onSubmit={(payload) => {
-                      void sendAdvisorMessage(payload.prompt, "chat", {
-                        amount: payload.amount,
-                        seniorCitizen: payload.seniorCitizen,
-                        tenorMonths: payload.tenorMonths,
-                      });
-                    }}
-                  />
-                ) : null}
-              </AnimatePresence>
-
               <ConversationTimeline
                 messages={visibleMessages}
                 onAction={handleAction}
@@ -722,13 +695,12 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
               language={language}
               mode={mode}
               prompts={SAMPLE_PROMPTS[language]}
-              showPrompts={showPromptChips && !showWizard}
+              showPrompts={showPromptChips}
               onCancelEdit={() => {
                 setEditingMessageId(null);
                 setDraft("");
               }}
               onChange={setDraft}
-              onOpenWizard={() => setShowWizard(true)}
               onPrompt={(prompt) => void sendAdvisorMessage(prompt, mode)}
               onSubmit={() => void sendAdvisorMessage(draft, mode)}
               onVoiceMode={() => switchMode("voice")}

@@ -65,7 +65,7 @@ export function OnboardingWizard() {
                 onClick={() => setProfileField("investmentGoal", goal.id)}
                 className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-3 transition-all ${
                   isSelected
-                    ? "border-highlight bg-highlight/10 text-highlight"
+                        ? "border-accent bg-accent/10 text-accent"
                     : "border-outline bg-input-bg text-text-muted hover:border-text-strong"
                 }`}
               >
@@ -100,7 +100,7 @@ export function OnboardingWizard() {
             max={5000000}
             step={10000}
             onValueChange={(vals) => setProfileField("availableAmount", vals[0])}
-            className="[&_[role=slider]]:bg-highlight [&_[role=slider]]:border-highlight [&>.relative>.absolute]:bg-highlight-hover"
+                    className="[&_[role=slider]]:border-accent [&_[role=slider]]:bg-accent [&>.relative>.absolute]:bg-accent-hover"
           />
         </div>
       ),
@@ -125,7 +125,7 @@ export function OnboardingWizard() {
                 onClick={() => setProfileField("investmentHorizonMonths", horizon.id)}
                 className={`p-4 rounded-xl border text-center transition-all ${
                   isSelected
-                    ? "border-highlight bg-highlight/10 text-highlight"
+                        ? "border-accent bg-accent/10 text-accent"
                     : "border-outline bg-input-bg text-text-muted hover:border-text-strong"
                 }`}
               >
@@ -147,7 +147,7 @@ export function OnboardingWizard() {
             onClick={() => setProfileField("isSeniorCitizen", true)}
             className={`flex-1 p-4 rounded-xl border text-center transition-all ${
               profile.isSeniorCitizen === true
-                ? "border-highlight bg-highlight/10 text-highlight"
+                        ? "border-accent bg-accent/10 text-accent"
                 : "border-outline bg-input-bg text-text-muted hover:border-text-strong"
             }`}
           >
@@ -158,7 +158,7 @@ export function OnboardingWizard() {
             onClick={() => setProfileField("isSeniorCitizen", false)}
             className={`flex-1 p-4 rounded-xl border text-center transition-all ${
               profile.isSeniorCitizen === false
-                ? "border-highlight bg-highlight/10 text-highlight"
+                        ? "border-accent bg-accent/10 text-accent"
                 : "border-outline bg-input-bg text-text-muted hover:border-text-strong"
             }`}
           >
@@ -178,7 +178,7 @@ export function OnboardingWizard() {
       <Card className="w-full max-w-lg overflow-hidden bg-panel shadow-2xl border-outline relative">
         <div className="h-1 w-full bg-surface-dark absolute top-0 left-0">
           <motion.div
-            className="h-full bg-highlight"
+                    className="h-full bg-accent"
             initial={{ width: 0 }}
             animate={{ width: `${(step / steps.length) * 100}%` }}
           />
@@ -222,7 +222,7 @@ export function OnboardingWizard() {
           <Button
             onClick={step === steps.length ? handleComplete : handleNext}
             disabled={!currentStep.isValid}
-            className="bg-highlight hover:bg-highlight-hover text-on-dark min-w-[120px]"
+                  className="min-w-[120px] bg-accent text-white hover:bg-accent-hover"
           >
             {step === steps.length ? (
               <>Finish <Check className="w-4 h-4 ml-2" /></>

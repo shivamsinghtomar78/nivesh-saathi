@@ -28,7 +28,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="relative flex h-10 w-10 items-center justify-center rounded-full border border-outline bg-input-bg text-text-strong transition hover:border-highlight hover:shadow-sm overflow-hidden"
+      className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-outline bg-input-bg text-text-strong transition hover:border-accent/35 hover:shadow-[var(--shadow-soft-layer)]"
       aria-label="Toggle theme"
       suppressHydrationWarning
     >

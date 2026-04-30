@@ -32,14 +32,14 @@ export default async function LoginPage({
   const nextPath = getSafeNextPath(params?.next);
 
   return (
-    <main className="dark-context min-h-screen bg-black">
+    <main className="dark-context min-h-screen bg-app">
       <section className="grid min-h-screen lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-8 lg:px-12">
           <MotionStagger className="w-full max-w-xl">
             <MotionStaggerItem>
               <Link
                 href={ROUTES.LANDING}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-text-muted transition hover:text-highlight"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-text-muted transition hover:text-accent"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to Nivesh Saathi
@@ -48,7 +48,7 @@ export default async function LoginPage({
 
             <MotionStaggerItem>
               <div className="mt-10 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-highlight text-black">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-panel)] bg-accent text-white">
                   <Sparkles className="h-6 w-6" />
                 </div>
                 <div>
@@ -68,17 +68,6 @@ export default async function LoginPage({
               </div>
             </MotionStaggerItem>
 
-            {/* Guest browse option */}
-            <MotionStaggerItem>
-              <div className="mt-6 text-center">
-                <Link
-                  href={ROUTES.COMPARE}
-                  className="text-sm font-medium text-text-muted hover:text-highlight transition underline-offset-4 hover:underline"
-                >
-                  Continue as Guest — Browse FD Rates →
-                </Link>
-              </div>
-            </MotionStaggerItem>
           </MotionStagger>
         </div>
 
@@ -96,7 +85,7 @@ export default async function LoginPage({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/18 to-transparent" />
           <MotionFloat className="absolute bottom-10 left-10 right-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/45 px-4 py-2 text-xs uppercase tracking-[0.2em] text-highlight backdrop-blur">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/45 px-4 py-2 text-xs uppercase tracking-[0.2em] text-accent backdrop-blur">
               <ShieldCheck className="h-4 w-4" />
               Bank-grade encryption
             </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Mic, Send, Sparkles } from "lucide-react";
+import { Mic, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useAutoResize } from "@/hooks/useAutoResize";
@@ -20,7 +20,6 @@ type AdvisorComposerProps = {
   showPrompts: boolean;
   onCancelEdit: () => void;
   onChange: (value: string) => void;
-  onOpenWizard: () => void;
   onPrompt: (prompt: string) => void;
   onSubmit: () => void;
   onVoiceMode: () => void;
@@ -36,7 +35,6 @@ export default function AdvisorComposer({
   showPrompts,
   onCancelEdit,
   onChange,
-  onOpenWizard,
   onPrompt,
   onSubmit,
   onVoiceMode,
@@ -53,14 +51,6 @@ export default function AdvisorComposer({
             exit={{ opacity: 0, y: 6 }}
             className="mb-3 flex flex-wrap gap-2"
           >
-            <button
-              type="button"
-              onClick={onOpenWizard}
-              className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/15"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Best FD for me
-            </button>
             {prompts.slice(0, 3).map((prompt) => (
               <button
                 key={prompt}

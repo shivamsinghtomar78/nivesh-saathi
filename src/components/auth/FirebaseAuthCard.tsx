@@ -143,7 +143,7 @@ export default function FirebaseAuthCard({
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-highlight-soft text-highlight">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-panel)] bg-accent-soft text-accent">
             <ShieldCheck className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
@@ -163,7 +163,7 @@ export default function FirebaseAuthCard({
           <motion.button
             type="button"
             onClick={() => router.push(nextPath)}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-highlight px-4 text-sm font-semibold text-black transition hover:brightness-110"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-input)] bg-accent px-4 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(10,127,100,0.22)] transition hover:bg-accent-hover"
             whileHover={reduceMotion ? undefined : { y: -2 }}
             whileTap={reduceMotion ? undefined : { scale: 0.97 }}
           >
@@ -174,7 +174,7 @@ export default function FirebaseAuthCard({
             type="button"
             onClick={() => void handleSignOut()}
             disabled={busyAction === "sign-out"}
-            className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-outline px-4 text-sm font-semibold text-text-strong transition hover:border-highlight hover:text-highlight disabled:opacity-60"
+            className="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-input)] border border-outline px-4 text-sm font-semibold text-text-strong transition hover:border-accent/35 hover:text-accent disabled:opacity-60"
             whileHover={reduceMotion ? undefined : { y: -2 }}
             whileTap={reduceMotion ? undefined : { scale: 0.97 }}
           >
@@ -209,7 +209,7 @@ export default function FirebaseAuthCard({
               <button
                 type="button"
                 onClick={() => setIsSignUp((value) => !value)}
-                className="font-semibold text-highlight underline-offset-4 hover:underline"
+                className="font-semibold text-accent underline-offset-4 hover:underline"
               >
                 {isSignUp ? "Login" : "Create one"}
               </button>
@@ -241,7 +241,7 @@ export default function FirebaseAuthCard({
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
             Enter work email
           </span>
-          <div className="flex min-h-14 items-center rounded-[var(--radius-input)] border border-outline bg-panel px-4 transition focus-within:border-highlight">
+          <div className="flex min-h-14 items-center rounded-[var(--radius-input)] border border-outline bg-panel px-4 transition focus-within:border-accent">
             <Mail className="h-4 w-4 text-text-muted" />
             <input
               type="email"
@@ -270,7 +270,7 @@ export default function FirebaseAuthCard({
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="********"
-            className="min-h-14 rounded-[var(--radius-input)] border border-outline bg-panel px-4 text-base text-text-strong outline-none transition placeholder:text-text-muted/70 focus:border-highlight"
+            className="min-h-14 rounded-[var(--radius-input)] border border-outline bg-panel px-4 text-base text-text-strong outline-none transition placeholder:text-text-muted/70 focus:border-accent"
             autoComplete={isSignUp ? "new-password" : "current-password"}
           />
         </motion.label>
@@ -278,7 +278,7 @@ export default function FirebaseAuthCard({
         <motion.button
           type="submit"
           disabled={busyAction !== null}
-          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] bg-highlight px-5 text-sm font-bold uppercase tracking-[0.08em] text-black transition hover:brightness-110 disabled:opacity-60"
+          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] bg-accent px-5 text-sm font-bold uppercase tracking-[0.08em] text-white shadow-[0_12px_28px_rgba(10,127,100,0.22)] transition hover:bg-accent-hover disabled:opacity-60"
           variants={{
             hidden: { opacity: 0, y: 12 },
             show: { opacity: 1, y: 0 },
@@ -291,7 +291,7 @@ export default function FirebaseAuthCard({
           ) : (
             <CheckCircle2 className="h-5 w-5" />
           )}
-          {isSignUp ? "Start for free" : "Sign in"}
+          {isSignUp ? "Create secure account" : "Sign in"}
           <ArrowRight className="h-4 w-4" />
         </motion.button>
       </motion.form>
@@ -309,14 +309,14 @@ export default function FirebaseAuthCard({
           type="button"
           onClick={() => void handleGoogleAuth()}
           disabled={busyAction !== null}
-          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] border border-outline bg-panel px-5 text-sm font-bold uppercase tracking-[0.06em] text-text-strong transition hover:border-highlight hover:text-highlight disabled:opacity-60"
+          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] border border-outline bg-panel px-5 text-sm font-bold uppercase tracking-[0.06em] text-text-strong transition hover:border-accent/35 hover:text-accent disabled:opacity-60"
           whileHover={reduceMotion ? undefined : { y: -2 }}
           whileTap={reduceMotion ? undefined : { scale: 0.97 }}
         >
           {busyAction === "google" ? (
             <LoaderCircle className="h-5 w-5 animate-spin" />
           ) : (
-            <span className="text-lg font-black text-highlight">G</span>
+            <span className="text-lg font-black text-accent">G</span>
           )}
           {isSignUp ? "Sign up with Google" : "Sign in with Google"}
         </motion.button>

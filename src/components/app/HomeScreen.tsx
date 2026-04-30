@@ -25,9 +25,9 @@ import { useCompareStore } from "@/stores/compareStore";
 
 const quickActions = [
   {
-    href: `${ROUTES.CHAT}?wizard=best-fd`,
-    title: "Find My Best FD",
-    body: "Answer three quick questions and get ranked recommendations from Saathi.",
+    href: ROUTES.CHAT,
+    title: "Ask Saathi",
+    body: "Chat with the AI advisor for recommendations, calculations, and safety notes.",
     icon: MessageCircleMore,
   },
   {
@@ -65,25 +65,29 @@ export default function HomeScreen() {
   const [topRates, setTopRates] = useState<FDRate[]>([]);
 
   useEffect(() => {
+    if (!user) {
+      return;
+    }
+
     fetch("/api/fd-rates?limit=3")
       .then((r) => r.json())
       .then((d) => setTopRates(d.rates || []))
       .catch(() => {});
-  }, []);
+  }, [user]);
 
   return (
     <AppShell
       eyebrow="Dashboard"
       title="Welcome to Nivesh Saathi"
       description="Your personalized hub for comparing fixed deposits, chatting with our intelligent assistant, and securing the best rates."
-      actions={
-        <Link href={`${ROUTES.CHAT}?wizard=best-fd`}>
+      actions={user ? (
+        <Link href={ROUTES.CHAT}>
           <Button variant="secondary" className="rounded-full shadow-sm">
-            Find my best FD
+            Ask Saathi
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </Link>
-      }
+      ) : null}
     >
       <AuthGate
         title="Sign in to view your dashboard"
@@ -147,7 +151,7 @@ export default function HomeScreen() {
                 return (
                   <motion.div variants={itemVariants} key={action.href}>
                     <Link href={action.href} className="block h-full outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-[var(--radius-card)]">
-                      <Card className="h-full p-5 border-outline bg-panel transition-all duration-300 hover:shadow-md hover:border-highlight group cursor-pointer">
+                      <Card className="group h-full cursor-pointer border-outline bg-panel p-5 transition-all duration-300 hover:-translate-y-1 hover:border-accent/35 hover:shadow-[var(--shadow-card-hover)]">
                         <CardHeader className="p-0">
                           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-dark text-on-dark transition-transform duration-300 group-hover:scale-110 group-hover:shadow-soft">
                             <Icon className="h-5 w-5" />
@@ -193,8 +197,8 @@ export default function HomeScreen() {
                           {rate.bankType.replace("-", " ")}
                         </p>
                       </div>
-                      {rate.badge && (
-                        <Badge variant="outline" className="bg-white/50 text-[10px] uppercase tracking-wider">
+                          {rate.badge && (
+                        <Badge variant="outline" className="bg-panel/80 text-[10px] uppercase tracking-wider">
                           {rate.badge}
                         </Badge>
                       )}

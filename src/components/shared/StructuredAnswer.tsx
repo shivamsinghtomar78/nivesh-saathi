@@ -124,7 +124,7 @@ export default function StructuredAnswer({
           return (
             <p
               key={`${block.type}-${index}`}
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-highlight"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-accent"
             >
               {block.text}
             </p>
@@ -142,7 +142,7 @@ export default function StructuredAnswer({
                   key={`${item}-${itemIndex}`}
                   className="flex gap-3 rounded-2xl border border-outline bg-app/70 px-3 py-2"
                 >
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-highlight" />
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                   <span>{parseInline(item)}</span>
                 </li>
               ))}

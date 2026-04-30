@@ -88,7 +88,7 @@ export function PortfolioSplitCard({ split }: PortfolioSplitCardProps) {
           ))}
         </div>
         
-        <div className="flex items-start gap-2 bg-highlight/10 text-highlight p-3 rounded-lg text-xs">
+            <div className="flex items-start gap-2 rounded-[var(--radius-input)] bg-accent-warm-soft p-3 text-xs text-accent-warm">
           <Info className="w-4 h-4 shrink-0 mt-0.5" />
           <p>By splitting your investment, you maximize returns while keeping deposits in each bank fully insured under the Rs 5L DICGC limit.</p>
         </div>

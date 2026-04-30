@@ -53,6 +53,10 @@ export default function CompareScreen() {
   const watchedBankSet = useMemo(() => new Set(watchedBankIds), [watchedBankIds]);
 
   useEffect(() => {
+    if (!user) {
+      return;
+    }
+
     const controller = new AbortController();
     const params = new URLSearchParams({
       amount: String(amount),
@@ -80,11 +84,15 @@ export default function CompareScreen() {
       });
 
     return () => controller.abort();
-  }, [amount, bankType, seniorCitizen, tenorMonths]);
+  }, [amount, bankType, seniorCitizen, tenorMonths, user]);
 
   const [shortlistedBanks, setShortlistedBanks] = useState<FDRate[]>([]);
 
   useEffect(() => {
+    if (!user) {
+      return;
+    }
+
     if (shortlist.length === 0) {
       const timer = window.setTimeout(() => setShortlistedBanks([]), 0);
       return () => window.clearTimeout(timer);
@@ -98,7 +106,7 @@ export default function CompareScreen() {
       })
       .catch(() => {});
     return () => controller.abort();
-  }, [shortlist]);
+  }, [shortlist, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -134,12 +142,12 @@ export default function CompareScreen() {
       eyebrow="Market Comparison"
       title="Analyze and Shortlist Fixed Deposits"
       description="Filter by your preferences, compare returns side-by-side, and build a shortlist to discuss with our AI advisors."
-      actions={
+      actions={user ? (
         <div className="flex gap-3">
-          <Link href={`${ROUTES.CHAT}?wizard=best-fd`}>
+          <Link href={ROUTES.CHAT}>
             <Button variant="secondary" className="rounded-full shadow-sm">
               <MessageCircleMore className="mr-2 h-4 w-4" />
-              Find my best FD
+              Ask Saathi
             </Button>
           </Link>
           <Link href={ROUTES.VOICE}>
@@ -149,13 +157,11 @@ export default function CompareScreen() {
             </Button>
           </Link>
         </div>
-      }
+      ) : null}
     >
-      {/* Guest browsing enabled for Compare */}
       <AuthGate
         title="Sign in to view comparisons"
         body="Your shortlist and preferences are securely synced to your profile."
-        allowGuest
       >
         <div className="grid gap-8 xl:grid-cols-[1fr_360px]">
           <div className="grid gap-8">
@@ -284,7 +290,7 @@ export default function CompareScreen() {
                       >
                         <Card className={cn(
                           "p-6 transition-all duration-300",
-                          shortlisted ? "border-accent shadow-md bg-panel" : "border-outline shadow-sm bg-panel-glass hover:shadow-md hover:border-highlight"
+                          shortlisted ? "border-accent bg-panel shadow-[var(--shadow-card)]" : "border-outline bg-panel-glass shadow-sm hover:border-accent/35 hover:shadow-[var(--shadow-card)]"
                         )}>
                           <div className="flex flex-col md:flex-row gap-6">
                             <div className="flex-1">
@@ -298,7 +304,7 @@ export default function CompareScreen() {
                                     {rate.bankType.replace("-", " ")} Bank
                                   </p>
                                 </div>
-                                {rate.badge && <Badge variant="outline" className="bg-white">{rate.badge}</Badge>}
+                                {rate.badge && <Badge variant="outline" className="bg-panel">{rate.badge}</Badge>}
                               </div>
                               
                               <div className="grid grid-cols-2 gap-4 mb-4">
@@ -354,7 +360,7 @@ export default function CompareScreen() {
                                     href={buildAffiliateBookingUrl(rate, "compare_card")}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-outline bg-input-bg px-3 text-sm font-semibold text-text-strong transition hover:bg-white"
+                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-outline bg-input-bg px-3 text-sm font-semibold text-text-strong transition hover:border-accent/35 hover:bg-panel-strong"
                                   >
                                     <ExternalLink className="h-4 w-4" />
                                     Book

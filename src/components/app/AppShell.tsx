@@ -74,14 +74,14 @@ export default function AppShell({
 
   return (
     <div className="bg-app min-h-screen">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-outline bg-panel-glass/95 backdrop-blur-xl">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-outline bg-panel-glass/90 shadow-[0_8px_30px_rgba(20,32,40,0.06)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 md:px-6 lg:px-8">
           <Link href={ROUTES.HOME} className="flex min-w-0 items-center gap-3 group">
             <motion.div 
               whileHover={{ rotate: 5, scale: 1.05 }}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface-dark text-on-dark shadow-soft"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-panel)] bg-surface-dark text-on-dark shadow-[var(--shadow-soft-layer)]"
             >
-              <Sparkles className="h-5 w-5 group-hover:text-highlight transition-colors" />
+              <Sparkles className="h-5 w-5 transition-colors group-hover:text-accent" />
             </motion.div>
             <div className="min-w-0 hidden sm:block">
               <p className="truncate text-lg font-semibold text-text-strong">
@@ -103,14 +103,14 @@ export default function AppShell({
                 >
                   <span className={cn(
                     "relative z-10 transition-colors duration-300",
-                    active ? "text-on-dark" : "text-text-muted group-hover:text-text-strong"
+                    active ? "text-white dark:text-[#07110f]" : "text-text-muted group-hover:text-text-strong"
                   )}>
                     {copy.nav[item.key]}
                   </span>
                   {active && (
                     <motion.div
                       layoutId="activeNavBackground"
-                      className="absolute inset-0 bg-surface-dark rounded-full"
+                      className="absolute inset-0 rounded-full bg-accent shadow-[0_10px_24px_rgba(10,127,100,0.22)]"
                       initial={false}
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
@@ -130,8 +130,8 @@ export default function AppShell({
                   className={cn(
                     "rounded-full px-3 py-1.5 text-xs font-medium transition",
                     language === code
-                      ? "bg-surface-dark text-on-dark shadow-sm"
-                      : "text-text-muted hover:text-text-strong hover:bg-black/5"
+                      ? "bg-accent text-white shadow-sm dark:text-[#07110f]"
+                      : "text-text-muted hover:bg-inner-panel hover:text-text-strong"
                   )}
                 >
                   {label}
@@ -145,7 +145,7 @@ export default function AppShell({
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center gap-2 h-10 pl-3 pr-2 rounded-full border border-outline bg-input-bg text-text-strong transition hover:border-highlight hover:shadow-sm"
+                  className="flex h-10 items-center gap-2 rounded-full border border-outline bg-input-bg pl-3 pr-2 text-text-strong transition hover:border-accent/40 hover:shadow-[var(--shadow-soft-layer)]"
                 >
                   <UserRound className="h-4 w-4" />
                   <span className="text-sm font-medium max-w-[80px] truncate hidden sm:inline-block">
@@ -161,7 +161,7 @@ export default function AppShell({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-48 rounded-[var(--radius-panel)] border border-outline bg-panel shadow-lg overflow-hidden py-1"
+                      className="absolute right-0 mt-2 w-48 overflow-hidden rounded-[var(--radius-panel)] border border-outline bg-panel py-1 shadow-[var(--shadow-card)]"
                     >
                       <div className="px-4 py-3 border-b border-outline mb-1">
                         <p className="text-sm font-medium text-text-strong truncate">{user.displayName || 'User'}</p>
@@ -170,7 +170,7 @@ export default function AppShell({
                       <Link
                         href={ROUTES.PROFILE}
                         onClick={() => setIsProfileOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-text-muted hover:bg-black/5 hover:text-text-strong transition"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-text-muted transition hover:bg-inner-panel hover:text-text-strong"
                       >
                         <Settings className="h-4 w-4" />
                         Settings
@@ -244,7 +244,7 @@ export default function AppShell({
       </main>
 
       {/* Bottom nav with Lucide icons */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/92 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(20,32,40,0.06)] backdrop-blur-xl lg:hidden">
         <div className="mx-auto grid max-w-3xl grid-cols-4 gap-1 px-2 py-2">
           {NAV_ITEMS.map((item) => {
             const active =
@@ -265,7 +265,7 @@ export default function AppShell({
                 {active && (
                   <motion.div
                     layoutId="activeBottomNav"
-                    className="absolute inset-0 bg-surface-dark/5 rounded-2xl -z-10"
+                    className="absolute inset-0 -z-10 rounded-[var(--radius-panel)] bg-accent-soft"
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}

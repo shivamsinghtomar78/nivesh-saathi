@@ -1,11 +1,14 @@
 import { jsonError, jsonSuccess } from "@/lib/server/api";
 import { cacheSet } from "@/lib/server/cache";
-import { requireFirebaseSession } from "@/lib/server/auth";
+import { requireCsrfProtection, requireFirebaseSession } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
+    const csrfError = requireCsrfProtection(request);
+    if (csrfError) return csrfError;
+
     const sessionResult = await requireFirebaseSession(request);
     if (!sessionResult.ok) {
       return sessionResult.response;

@@ -1,10 +1,34 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { SESSION_COOKIE_NAME } from "@/lib/auth-constants";
 import { getSharedResponse } from "@/lib/server/persistence";
+import { getFirebaseAdminAuth } from "@/lib/server/firebase-admin";
 import { ROUTES } from "@/lib/routes";
+
+async function requireSignedInShareAccess(pathname: string) {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const loginPath = `${ROUTES.LOGIN}?next=${encodeURIComponent(pathname)}`;
+
+  if (!sessionCookie) {
+    redirect(loginPath);
+  }
+
+  const adminAuth = getFirebaseAdminAuth();
+  if (!adminAuth) {
+    redirect(loginPath);
+  }
+
+  try {
+    await adminAuth.verifySessionCookie(sessionCookie, true);
+  } catch {
+    redirect(loginPath);
+  }
+}
 
 export default async function SharePage({
   params,
@@ -12,6 +36,8 @@ export default async function SharePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await requireSignedInShareAccess(`/share/${id}`);
+
   const shared = await getSharedResponse(id);
 
   if (!shared) {

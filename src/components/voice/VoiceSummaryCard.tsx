@@ -24,7 +24,7 @@ export function VoiceSummaryCard({ summary, topRates, onClose }: VoiceSummaryCar
       onClick={onClose}
     >
       <Card 
-        className="w-full max-w-md overflow-hidden bg-panel shadow-2xl border-highlight"
+      className="w-full max-w-md overflow-hidden border-accent bg-panel shadow-[var(--shadow-card-hover)]"
         onClick={(e) => e.stopPropagation()}
       >
         <CardHeader className="bg-surface-dark pb-6 text-center">
@@ -70,7 +70,7 @@ export function VoiceSummaryCard({ summary, topRates, onClose }: VoiceSummaryCar
             Close
           </Button>
           <Link href={ROUTES.COMPARE} className="flex-1">
-            <Button className="w-full bg-highlight hover:bg-highlight-hover text-on-dark">
+          <Button className="w-full">
               Compare Rates <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>

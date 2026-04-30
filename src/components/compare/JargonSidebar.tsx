@@ -54,7 +54,7 @@ export default function JargonSidebar({
             <div className="border-b border-outline px-5 py-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-highlight">
+          <p className="text-xs uppercase tracking-[0.24em] text-accent">
                     Jargon explainer
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold text-text-strong">
@@ -65,7 +65,7 @@ export default function JargonSidebar({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline text-text-muted transition hover:border-highlight hover:text-text-strong"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline text-text-muted transition hover:border-accent/35 hover:text-text-strong"
                   aria-label="Close sidebar"
                 >
                   <X className="h-5 w-5" />
@@ -86,7 +86,7 @@ export default function JargonSidebar({
 
               <div className="mt-5 rounded-[28px] border border-outline bg-panel-strong p-5">
                 <div className="flex items-center gap-3">
-                  <Sparkles className="h-5 w-5 text-highlight" />
+              <Sparkles className="h-5 w-5 text-accent" />
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-text-strong">
                     How it behaves
                   </p>
@@ -94,19 +94,19 @@ export default function JargonSidebar({
 
                 <div className="mt-5 grid grid-cols-3 gap-3 text-center">
                   <div className="rounded-2xl border border-outline bg-app px-3 py-4">
-                    <Banknote className="mx-auto h-5 w-5 text-highlight" />
+              <Banknote className="mx-auto h-5 w-5 text-accent" />
                     <p className="mt-3 text-xs uppercase tracking-[0.2em] text-text-muted">
                       Start
                     </p>
                   </div>
                   <div className="rounded-2xl border border-outline bg-app px-3 py-4">
-                    <Clock3 className="mx-auto h-5 w-5 text-highlight" />
+              <Clock3 className="mx-auto h-5 w-5 text-accent" />
                     <p className="mt-3 text-xs uppercase tracking-[0.2em] text-text-muted">
                       Time
                     </p>
                   </div>
                   <div className="rounded-2xl border border-outline bg-app px-3 py-4">
-                    <TrendingUp className="mx-auto h-5 w-5 text-highlight" />
+              <TrendingUp className="mx-auto h-5 w-5 text-accent" />
                     <p className="mt-3 text-xs uppercase tracking-[0.2em] text-text-muted">
                       Growth
                     </p>
@@ -135,7 +135,7 @@ export default function JargonSidebar({
                         key={relatedTerm.id}
                         type="button"
                         onClick={() => onSelectTerm(relatedTerm.id)}
-                        className="flex items-center justify-between rounded-2xl border border-outline bg-app px-4 py-3 text-left transition hover:border-highlight hover:bg-panel"
+              className="flex items-center justify-between rounded-[var(--radius-panel)] border border-outline bg-app px-4 py-3 text-left transition hover:border-accent/35 hover:bg-panel"
                       >
                         <div>
                           <p className="text-sm font-semibold text-text-strong">
@@ -145,7 +145,7 @@ export default function JargonSidebar({
                             {relatedTerm.termHi}
                           </p>
                         </div>
-                        <ArrowRight className="h-4 w-4 text-highlight" />
+              <ArrowRight className="h-4 w-4 text-accent" />
                       </button>
                     ))}
                   </div>

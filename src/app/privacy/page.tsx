@@ -24,9 +24,9 @@ export default function PrivacyPage() {
             actions.
           </p>
           <p>
-            Guest users can browse rates and ask limited questions. Signing in is
-            required to sync history, save profile memory, watch rates, or
-            persist recommendations across devices.
+            All product features require sign-in. Authentication is required to
+            compare rates, use Saathi, sync history, save profile memory, watch
+            rates, or persist recommendations across devices.
           </p>
           <p>
             FD information can change. Always confirm final terms directly with

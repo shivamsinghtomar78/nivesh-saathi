@@ -14,8 +14,8 @@ import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { logServerWarn } from "@/lib/server/telemetry";
 import { ROUTES } from "@/lib/routes";
 import {
-  getOptionalFirebaseSession,
   requireCsrfProtection,
+  requireFirebaseSession,
 } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
@@ -28,7 +28,7 @@ export async function OPTIONS() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization, x-csrf-token",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, x-nivesh-csrf",
     },
   });
 }
@@ -45,16 +45,15 @@ export async function POST(request: Request) {
       return csrfError;
     }
 
-    const sessionResult = await getOptionalFirebaseSession(request);
+    const sessionResult = await requireFirebaseSession(request);
     if (!sessionResult.ok) {
       return sessionResult.response;
     }
 
     const ip = getRequestIp(request);
-    const userKey = sessionResult.session?.uid ?? `guest:${ip}`;
     const rateLimit = await enforceRateLimit({
-      key: `chat:${userKey}:${ip}`,
-      limit: sessionResult.session ? 16 : 8,
+      key: `chat:${sessionResult.session.uid}:${ip}`,
+      limit: 16,
       window: "1 m",
     });
 
@@ -67,40 +66,36 @@ export async function POST(request: Request) {
     const body = await request.json();
     const input = chatRequestSchema.parse(body);
 
-    if (input.userId && input.userId !== sessionResult.session?.uid) {
+    if (input.userId && input.userId !== sessionResult.session.uid) {
       return jsonError("Chat user does not match the signed-in session.", 403);
     }
 
     if (input.threadId) {
-      if (!sessionResult.session) {
-        return jsonError("Sign in to continue a saved chat thread.", 401);
-      }
       const ownerId = await getChatSessionOwner(input.threadId);
       if (ownerId && ownerId !== sessionResult.session.uid) {
         return jsonError("Chat thread does not belong to this user.", 403);
       }
     }
 
-    const authenticatedInput = sessionResult.session
-      ? { ...input, userId: sessionResult.session.uid }
-      : { ...input, userId: undefined, threadId: undefined };
+    const authenticatedInput = {
+      ...input,
+      userId: sessionResult.session.uid,
+    };
     const promptRisk = assessPromptRisk(input.message);
 
     if (promptRisk.blocked) {
       logServerWarn("chat_prompt_blocked", {
         ip,
-        userId: sessionResult.session?.uid ?? "guest",
+        userId: sessionResult.session.uid,
         reasons: promptRisk.reasons,
         confidence: promptRisk.confidence,
       });
-      if (sessionResult.session) {
-        await persistFlaggedMessage({
-          userId: sessionResult.session.uid,
-          message: input.message,
-          reasons: promptRisk.reasons,
-          confidence: promptRisk.confidence,
-        });
-      }
+      await persistFlaggedMessage({
+        userId: sessionResult.session.uid,
+        message: input.message,
+        reasons: promptRisk.reasons,
+        confidence: promptRisk.confidence,
+      });
 
       return jsonSuccess({
         threadId: authenticatedInput.threadId ?? crypto.randomUUID(),
@@ -130,16 +125,14 @@ export async function POST(request: Request) {
       message: promptRisk.normalizedMessage,
     });
 
-    if (sessionResult.session && authenticatedInput.userId) {
-      await persistChatSessionTurn({
-        threadId: result.threadId,
-        userId: authenticatedInput.userId,
-        language: authenticatedInput.language,
-        userMessage: promptRisk.normalizedMessage,
-        assistantMessage: result.response.text,
-        fdContextIds: result.response.rateCards.map((card) => card.bankId),
-      });
-    }
+    await persistChatSessionTurn({
+      threadId: result.threadId,
+      userId: authenticatedInput.userId,
+      language: authenticatedInput.language,
+      userMessage: promptRisk.normalizedMessage,
+      assistantMessage: result.response.text,
+      fdContextIds: result.response.rateCards.map((card) => card.bankId),
+    });
 
     return jsonSuccess(result);
   } catch (error) {

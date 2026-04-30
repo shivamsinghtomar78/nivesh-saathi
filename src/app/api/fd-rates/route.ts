@@ -1,12 +1,17 @@
 import { fdRatesQuerySchema } from "@/lib/server/advisor-schemas";
 import { handleRouteError, jsonSuccess } from "@/lib/server/api";
+import { requireFirebaseSession } from "@/lib/server/auth";
 import { getFDRates } from "@/lib/server/fd-service";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const preferredRegion = "bom1";
 
 export async function GET(request: Request) {
   try {
+    const auth = await requireFirebaseSession(request);
+    if (!auth.ok) return auth.response;
+
     const { searchParams } = new URL(request.url);
     const query = fdRatesQuerySchema.parse({
       bankId: searchParams.get("bankId") ?? undefined,

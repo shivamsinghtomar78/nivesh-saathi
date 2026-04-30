@@ -4,16 +4,20 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold transition disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold shadow-none transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-200 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.99] disabled:pointer-events-none disabled:translate-y-0 disabled:scale-100 disabled:opacity-45 focus-visible:outline-none",
   {
     variants: {
       variant: {
-        primary: "bg-highlight text-surface-dark hover:brightness-105",
-        secondary: "bg-surface-dark text-on-dark hover:bg-surface-dark-hover",
+        primary:
+          "bg-accent text-white shadow-[0_12px_28px_rgba(10,127,100,0.22)] hover:bg-[#08735b] hover:shadow-[0_16px_34px_rgba(10,127,100,0.28)] dark:text-[#07110f] dark:hover:bg-[#73e5c1]",
+        secondary:
+          "bg-surface-dark text-on-dark shadow-[var(--shadow-soft-layer)] hover:bg-surface-dark-hover",
         outline:
-          "border border-outline bg-input-bg text-text-strong hover:bg-white",
-        soft: "bg-highlight-soft text-text-strong hover:bg-highlight/25",
-        ghost: "text-text-muted hover:bg-outline hover:text-text-strong",
+          "border border-outline bg-input-bg text-text-strong hover:border-accent/35 hover:bg-panel-strong hover:shadow-[var(--shadow-soft-layer)]",
+        soft:
+          "border border-accent/15 bg-accent-soft text-accent hover:border-accent/25 hover:bg-accent/15",
+        ghost:
+          "text-text-muted hover:bg-inner-panel hover:text-text-strong",
       },
       size: {
         sm: "min-h-9 px-3 text-xs",

@@ -89,13 +89,13 @@ export default function ProfilePage() {
       eyebrow="Profile"
       title="Account, shortlist, and stored sessions"
       description="Everything tied to the signed-in user now lives inside the same app orchestration, including shortlist context and saved advisor threads."
-      actions={
+      actions={user ? (
         <Link href={ROUTES.HOME}>
           <Button size="lg" variant="secondary">
             Back to home
           </Button>
         </Link>
-      }
+      ) : null}
     >
       <AuthGate
         title="Sign in to view your profile"
@@ -276,7 +276,7 @@ export default function ProfilePage() {
               ) : (
                 <Link
                   href={ROUTES.COMPARE}
-                  className="inline-flex items-center rounded-[var(--radius-panel)] border border-dashed border-outline bg-inner-panel p-5 text-sm font-semibold text-text-muted transition hover:border-highlight hover:text-text-strong"
+                  className="inline-flex items-center rounded-[var(--radius-panel)] border border-dashed border-outline bg-inner-panel p-5 text-sm font-semibold text-text-muted transition hover:border-accent/35 hover:text-text-strong"
                 >
                   Build a shortlist from compare
                 </Link>
