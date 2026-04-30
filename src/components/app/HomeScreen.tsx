@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FDRate } from "@/lib/fd-data";
+import { LANGUAGE_LABELS } from "@/lib/copy";
 import { ROUTES } from "@/lib/routes";
 import { useAuthStore } from "@/stores/authStore";
 import { useConversationStore } from "@/stores/conversationStore";
@@ -24,21 +25,21 @@ import { useCompareStore } from "@/stores/compareStore";
 
 const quickActions = [
   {
+    href: `${ROUTES.CHAT}?wizard=best-fd`,
+    title: "Find My Best FD",
+    body: "Answer three quick questions and get ranked recommendations from Saathi.",
+    icon: MessageCircleMore,
+  },
+  {
     href: ROUTES.COMPARE,
-    title: "Compare Banks",
+    title: "Compare Rates",
     body: "Analyze and shortlist rates across public, private, and small finance banks.",
     icon: BarChart3,
   },
   {
-    href: ROUTES.CHAT,
-    title: "Text Assistant",
-    body: "Chat with our AI for quick answers, rate calculations, and market insights.",
-    icon: MessageCircleMore,
-  },
-  {
     href: ROUTES.VOICE,
-    title: "Voice Assistant",
-    body: "Hands-free, intelligent voice guidance for exploring your investment options.",
+    title: "Ask by Voice",
+    body: "Continue the same advisor thread hands-free with concise spoken answers.",
     icon: Mic,
   },
 ];
@@ -59,6 +60,7 @@ const itemVariants: Variants = {
 export default function HomeScreen() {
   const user = useAuthStore((state) => state.user);
   const messages = useConversationStore((state) => state.messages);
+  const language = useConversationStore((state) => state.language);
   const shortlist = useCompareStore((state) => state.shortlist);
   const [topRates, setTopRates] = useState<FDRate[]>([]);
 
@@ -75,9 +77,9 @@ export default function HomeScreen() {
       title="Welcome to Nivesh Saathi"
       description="Your personalized hub for comparing fixed deposits, chatting with our intelligent assistant, and securing the best rates."
       actions={
-        <Link href={ROUTES.COMPARE}>
+        <Link href={`${ROUTES.CHAT}?wizard=best-fd`}>
           <Button variant="secondary" className="rounded-full shadow-sm">
-            Explore Rates
+            Find my best FD
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </Link>
@@ -132,7 +134,7 @@ export default function HomeScreen() {
                       Language
                     </p>
                     <p className="mt-2 text-3xl font-semibold text-text-strong">
-                      EN
+                      {LANGUAGE_LABELS[language]}
                     </p>
                   </div>
                 </CardContent>

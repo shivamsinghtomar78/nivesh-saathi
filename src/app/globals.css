@@ -19,9 +19,9 @@
   --color-success: #0f9f73;
 
   /* ── Standardised border-radius tiers ── */
-  --radius-card: 28px;
-  --radius-panel: 20px;
-  --radius-input: 14px;
+  --radius-card: 16px;
+  --radius-panel: 12px;
+  --radius-input: 10px;
   --radius-pill: 9999px;
 
   /* ── Standardised surfaces ── */

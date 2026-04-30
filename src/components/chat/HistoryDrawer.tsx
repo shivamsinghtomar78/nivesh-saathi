@@ -164,7 +164,7 @@ export function HistoryDrawer({ open, onClose }: { open: boolean; onClose: () =>
                                 {thread.latestMessage || "Conversation"}
                               </p>
                               <p className="text-[11px] text-text-muted mt-1">
-                                {thread.messageCount} messages · {thread.language}
+                                {thread.messageCount} messages - {thread.language}
                               </p>
                             </div>
                             <ChevronRight className="h-4 w-4 text-text-muted/40 group-hover:text-accent transition shrink-0 mt-1" />

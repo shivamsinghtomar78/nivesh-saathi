@@ -111,3 +111,37 @@ export async function requireFirebaseSession(request: Request): Promise<
     };
   }
 }
+
+export async function getOptionalFirebaseSession(request: Request): Promise<
+  | {
+      ok: true;
+      session: VerifiedSession | null;
+    }
+  | {
+      ok: false;
+      response: Response;
+    }
+> {
+  const sessionCookie = getCookieValue(request, SESSION_COOKIE_NAME);
+  if (!sessionCookie) {
+    return { ok: true, session: null };
+  }
+
+  const adminAuth = getFirebaseAdminAuth();
+  if (!adminAuth) {
+    return {
+      ok: false,
+      response: jsonError("Firebase admin is not configured", 503),
+    };
+  }
+
+  try {
+    const session = await adminAuth.verifySessionCookie(sessionCookie, true);
+    return { ok: true, session };
+  } catch {
+    return {
+      ok: false,
+      response: jsonError("Session expired. Please sign in again.", 401),
+    };
+  }
+}

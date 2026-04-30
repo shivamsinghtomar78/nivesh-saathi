@@ -31,6 +31,7 @@ type AppShellProps = {
   description: string;
   actions?: ReactNode;
   children: ReactNode;
+  workspace?: boolean;
 };
 
 export default function AppShell({
@@ -38,6 +39,7 @@ export default function AppShell({
   children,
   description,
   eyebrow,
+  workspace = false,
   title,
 }: AppShellProps) {
   const pathname = usePathname();
@@ -199,36 +201,41 @@ export default function AppShell({
         </div>
       </header>
 
-      <main className="min-h-screen pt-24 pb-24 lg:pb-12">
+      <main className={cn("min-h-screen pb-24 lg:pb-12", workspace ? "pt-20" : "pt-24")}>
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-6 md:px-6 lg:px-8"
+          className={cn(
+            "mx-auto flex max-w-7xl flex-col px-4 md:px-6 lg:px-8",
+            workspace ? "gap-4 py-3" : "gap-8 py-6"
+          )}
         >
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b border-outline pb-6">
-            <div className="max-w-2xl">
-              <motion.p 
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-                className="text-xs font-semibold uppercase tracking-[0.2em] text-accent mb-2"
-              >
-                {eyebrow}
-              </motion.p>
-              <motion.h1 
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                className="text-3xl font-semibold tracking-tight text-text-strong md:text-4xl"
-              >
-                {title}
-              </motion.h1>
-              <motion.p 
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                className="mt-3 text-base leading-relaxed text-text-muted"
-              >
-                {description}
-              </motion.p>
+          {!workspace ? (
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b border-outline pb-6">
+              <div className="max-w-2xl">
+                <motion.p
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+                  className="text-xs font-semibold uppercase tracking-[0.2em] text-accent mb-2"
+                >
+                  {eyebrow}
+                </motion.p>
+                <motion.h1
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                  className="text-3xl font-semibold tracking-tight text-text-strong md:text-4xl"
+                >
+                  {title}
+                </motion.h1>
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                  className="mt-3 text-base leading-relaxed text-text-muted"
+                >
+                  {description}
+                </motion.p>
+              </div>
+              {actions ? <div className="flex flex-wrap gap-3 mt-4 md:mt-0">{actions}</div> : null}
             </div>
-            {actions ? <div className="flex flex-wrap gap-3 mt-4 md:mt-0">{actions}</div> : null}
-          </div>
+          ) : null}
 
           <div className="relative">
             {children}

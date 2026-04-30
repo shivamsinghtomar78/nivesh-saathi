@@ -17,12 +17,43 @@ const COMPOUNDING_OPTIONS: Array<{ value: CompoundingMode; label: string }> = [
   { value: "annual", label: "Annual" },
 ];
 
-export function FDCalculatorCard() {
-  const [principal, setPrincipal] = useState(100000);
-  const [tenorMonths, setTenorMonths] = useState(12);
-  const [ratePercent, setRatePercent] = useState(7.5);
-  const [compounding, setCompounding] = useState<CompoundingMode>("quarterly");
+type FDCalculatorCardProps = {
+  bankName?: string;
+  compact?: boolean;
+  defaultCompounding?: CompoundingMode;
+  defaultPrincipal?: number;
+  defaultRatePercent?: number;
+  defaultTenorMonths?: number;
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+export function FDCalculatorCard({
+  bankName,
+  compact = false,
+  defaultCompounding = "quarterly",
+  defaultPrincipal = 100000,
+  defaultRatePercent = 7.5,
+  defaultTenorMonths = 12,
+}: FDCalculatorCardProps) {
+  const [principal, setPrincipal] = useState(() => clamp(defaultPrincipal, 10000, 5000000));
+  const [tenorMonths, setTenorMonths] = useState(() => clamp(defaultTenorMonths, 3, 60));
+  const [ratePercent, setRatePercent] = useState(() => clamp(defaultRatePercent, 4, 10));
+  const [compounding, setCompounding] = useState<CompoundingMode>(defaultCompounding);
   const [displayAmount, setDisplayAmount] = useState(principal);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setPrincipal(clamp(defaultPrincipal, 10000, 5000000));
+      setTenorMonths(clamp(defaultTenorMonths, 3, 60));
+      setRatePercent(clamp(defaultRatePercent, 4, 10));
+      setCompounding(defaultCompounding);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [defaultCompounding, defaultPrincipal, defaultRatePercent, defaultTenorMonths]);
 
   const maturity = useMemo(
     () =>
@@ -60,7 +91,9 @@ export function FDCalculatorCard() {
               FD Calculator
             </CardTitle>
             <CardDescription className="mt-1 text-xs">
-              Adjust amount, rate, tenure, and compounding without leaving chat.
+              {bankName
+                ? `Pre-filled from ${bankName}. Adjust any assumption live.`
+                : "Adjust amount, rate, tenure, and compounding without leaving chat."}
             </CardDescription>
           </div>
           <div className="rounded-full border border-accent/20 bg-accent/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-accent">
@@ -69,8 +102,8 @@ export function FDCalculatorCard() {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-5 pt-5">
-        <div className="rounded-2xl border border-outline bg-inner-panel p-4">
+      <CardContent className={compact ? "space-y-4 pt-4" : "space-y-5 pt-5"}>
+        <div className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
             Estimated maturity
           </p>
@@ -86,16 +119,30 @@ export function FDCalculatorCard() {
             <span>Interest earned: {formatCurrency(maturity.interestEarned)}</span>
             <span>Effective yield: {maturity.effectiveYield}%</span>
           </div>
+          {principal > 500000 ? (
+            <p className="mt-3 rounded-[var(--radius-input)] border border-accent-warm/20 bg-accent-warm/10 px-3 py-2 text-xs leading-relaxed text-text-strong">
+              DICGC insurance generally covers deposits up to Rs 5 lakh per depositor per bank. Consider splitting larger amounts.
+            </p>
+          ) : null}
         </div>
 
-        <div className="grid gap-5">
+        <div className={compact ? "grid gap-4" : "grid gap-5"}>
           <label className="grid gap-3">
             <span className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
               <span className="inline-flex items-center gap-1.5">
                 <IndianRupee className="h-3.5 w-3.5" />
                 Principal
               </span>
-              <span className="text-text-strong">{formatCurrency(principal)}</span>
+              <input
+                type="number"
+                min={10000}
+                max={5000000}
+                step={10000}
+                value={principal}
+                onChange={(event) => setPrincipal(clamp(Number(event.target.value) || 10000, 10000, 5000000))}
+                className="h-8 w-28 rounded-[var(--radius-input)] border border-outline bg-input-bg px-2 text-right text-xs font-semibold text-text-strong outline-none"
+                aria-label="FD principal amount"
+              />
             </span>
             <Slider
               min={10000}
@@ -113,7 +160,16 @@ export function FDCalculatorCard() {
                 <TimerReset className="h-3.5 w-3.5" />
                 Tenure
               </span>
-              <span className="text-text-strong">{tenorMonths} months</span>
+              <input
+                type="number"
+                min={3}
+                max={60}
+                step={3}
+                value={tenorMonths}
+                onChange={(event) => setTenorMonths(clamp(Number(event.target.value) || 3, 3, 60))}
+                className="h-8 w-20 rounded-[var(--radius-input)] border border-outline bg-input-bg px-2 text-right text-xs font-semibold text-text-strong outline-none"
+                aria-label="FD tenure in months"
+              />
             </span>
             <Slider
               min={3}
@@ -131,7 +187,16 @@ export function FDCalculatorCard() {
                 <Percent className="h-3.5 w-3.5" />
                 Interest rate
               </span>
-              <span className="text-text-strong">{ratePercent.toFixed(2)}% p.a.</span>
+              <input
+                type="number"
+                min={4}
+                max={10}
+                step={0.05}
+                value={ratePercent}
+                onChange={(event) => setRatePercent(clamp(Number(event.target.value) || 4, 4, 10))}
+                className="h-8 w-20 rounded-[var(--radius-input)] border border-outline bg-input-bg px-2 text-right text-xs font-semibold text-text-strong outline-none"
+                aria-label="FD interest rate"
+              />
             </span>
             <Slider
               min={4}

@@ -22,12 +22,16 @@ interface SpeechRecognitionEventLike extends Event {
   results: ArrayLike<SpeechRecognitionResultLike>;
 }
 
+interface SpeechRecognitionErrorEventLike extends Event {
+  error?: string;
+}
+
 interface SpeechRecognitionLike extends EventTarget {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((event: Event) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
@@ -195,8 +199,12 @@ export function useVoiceInput(options: VoiceHookOptions) {
           setTranscript(nextTranscript);
         }
       };
-      recognition.onerror = () => {
-        setError("Voice recognition could not understand you clearly.");
+      recognition.onerror = (event) => {
+        setError(
+          event.error === "not-allowed" || event.error === "service-not-allowed"
+            ? "Microphone blocked. Allow mic access in your browser, or continue in chat."
+            : "Voice recognition could not understand you clearly. You can try again or type instead."
+        );
         setStatus("error");
       };
       recognition.onend = () => {
@@ -222,7 +230,13 @@ export function useVoiceInput(options: VoiceHookOptions) {
 
     transcriptRef.current = "";
     setTranscript("");
-    await startRecorderFallback();
+    try {
+      await startRecorderFallback();
+    } catch {
+      setError("Microphone blocked. Allow mic access in your browser, or continue in chat.");
+      setStatus("error");
+      stopMediaTracks();
+    }
   };
 
   const stopListening = () => {

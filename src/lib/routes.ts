@@ -6,4 +6,6 @@ export const ROUTES = {
   CHAT: "/chat",
   VOICE: "/voice",
   PROFILE: "/profile",
+  PRIVACY: "/privacy",
+  TERMS: "/terms",
 } as const;

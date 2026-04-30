@@ -136,16 +136,16 @@ export default function CompareScreen() {
       description="Filter by your preferences, compare returns side-by-side, and build a shortlist to discuss with our AI advisors."
       actions={
         <div className="flex gap-3">
-          <Link href={ROUTES.CHAT}>
+          <Link href={`${ROUTES.CHAT}?wizard=best-fd`}>
             <Button variant="secondary" className="rounded-full shadow-sm">
               <MessageCircleMore className="mr-2 h-4 w-4" />
-              Discuss in Chat
+              Find my best FD
             </Button>
           </Link>
           <Link href={ROUTES.VOICE}>
             <Button variant="outline" className="rounded-full bg-panel-glass">
               <Mic className="mr-2 h-4 w-4" />
-              Start Voice Call
+              Ask by Voice
             </Button>
           </Link>
         </div>
@@ -340,7 +340,8 @@ export default function CompareScreen() {
                                     onClick={() => void toggleWatcher(rate.id)}
                                     disabled={!user}
                                     className="w-full bg-input-bg"
-                                    aria-label={`Watch ${rate.bankName} rate changes`}
+                                    aria-label={user ? `Watch ${rate.bankName} rate changes` : "Sign in to watch rate changes"}
+                                    title={user ? "Watch rate changes" : "Sign in to watch rate changes"}
                                   >
                                     {watchedBankSet.has(rate.id) ? (
                                       <BellRing className="h-4 w-4 text-accent" />
@@ -450,7 +451,7 @@ export default function CompareScreen() {
                   <div className="mt-4 grid gap-3">
                     <Link href={ROUTES.CHAT}>
                       <Button variant="secondary" className="w-full justify-between" disabled={shortlistedBanks.length === 0}>
-                        Ask AI Assistant
+                        Ask Saathi
                         <ArrowUpRight className="h-4 w-4 opacity-70" />
                       </Button>
                     </Link>
@@ -552,7 +553,7 @@ export default function CompareScreen() {
                     )}
                     <Link href={ROUTES.CHAT} onClick={() => setShowBottomSheet(false)}>
                       <Button variant="secondary" className="w-full justify-between mt-2" disabled={shortlistedBanks.length === 0}>
-                        Ask AI Assistant
+                        Ask Saathi
                         <ArrowUpRight className="h-4 w-4 opacity-70" />
                       </Button>
                     </Link>

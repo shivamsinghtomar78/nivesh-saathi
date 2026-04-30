@@ -90,7 +90,6 @@ const itemVariants: Variants = {
 };
 
 import type { FDRate } from "@/lib/fd-data";
-import { useAuthStore } from "@/stores/authStore";
 
 function RateTicker() {
   const [topRate, setTopRate] = React.useState<FDRate | null>(null);
@@ -115,7 +114,7 @@ function RateTicker() {
       <div className="flex items-center gap-2 px-4 py-1">
         <TrendingUp className="w-3.5 h-3.5 text-accent shrink-0" />
         <span className="text-xs font-semibold text-accent tracking-wide">
-          Top rate today: {displayRate.toFixed(2)}% — {topRate.bankName}
+          Top rate today: {displayRate.toFixed(2)}% - {topRate.bankName}
         </span>
       </div>
     </div>
@@ -124,7 +123,6 @@ function RateTicker() {
 
 export default function LandingScreen() {
   const [isMobile, setIsMobile] = React.useState(false);
-  const user = useAuthStore((state) => state.user);
 
   React.useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
@@ -138,8 +136,8 @@ export default function LandingScreen() {
     };
   }, []);
 
-  const primaryHref = user ? ROUTES.HOME : ROUTES.LOGIN;
-  const primaryLabel = user ? "Open Home" : "Get Started";
+  const primaryHref = `${ROUTES.CHAT}?wizard=best-fd`;
+  const primaryLabel = "Find my best FD";
 
   return (
     <main className="dark-context min-h-screen relative overflow-hidden bg-black">
@@ -189,7 +187,7 @@ export default function LandingScreen() {
             className="text-lg md:text-xl text-text-muted max-w-2xl mx-auto mb-8 leading-relaxed"
           >
             Compare 8+ banks, get AI-powered guidance via text or voice, and secure
-            the highest returns — all in one place.
+            the highest returns - all in one place.
           </motion.p>
 
           {/* Trust signals */}
@@ -353,9 +351,9 @@ export default function LandingScreen() {
           </motion.div>
           <div className="grid sm:grid-cols-3 gap-6">
             {[
-              { emoji: "🏡", title: "Retiree", body: "Find the safest senior citizen rates with DICGC insurance guidance." },
-              { emoji: "🌱", title: "First-time Investor", body: "Jargon-free explanations and step-by-step comparisons for beginners." },
-              { emoji: "🌏", title: "NRI", body: "Compare NRO/NRE-friendly banks with the best returns for overseas Indians." },
+              { label: "Senior", title: "Retiree", body: "Find the safest senior citizen rates with DICGC insurance guidance." },
+              { label: "New", title: "First-time Investor", body: "Jargon-free explanations and step-by-step comparisons for beginners." },
+              { label: "NRI", title: "NRI", body: "Compare NRO/NRE-friendly banks with the best returns for overseas Indians." },
             ].map((persona, i) => (
               <motion.div
                 key={persona.title}
@@ -365,7 +363,9 @@ export default function LandingScreen() {
                 transition={{ delay: i * 0.12, duration: 0.5 }}
                 className="bg-panel rounded-[var(--radius-card)] p-7 border border-outline hover:border-accent/30 transition-colors"
               >
-                <span className="text-3xl">{persona.emoji}</span>
+                <span className="inline-flex rounded-full border border-accent/20 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent">
+                  {persona.label}
+                </span>
                 <h3 className="mt-4 text-lg font-semibold text-text-strong">{persona.title}</h3>
                 <p className="mt-2 text-sm text-text-muted leading-relaxed">{persona.body}</p>
               </motion.div>
@@ -382,8 +382,8 @@ export default function LandingScreen() {
               © {new Date().getFullYear()} Nivesh Saathi. Secure & intelligent FD advisor.
             </p>
             <div className="flex items-center gap-6">
-              <a href="#" className="text-xs text-text-muted hover:text-text-strong transition">Privacy Policy</a>
-              <a href="#" className="text-xs text-text-muted hover:text-text-strong transition">Terms of Service</a>
+              <Link href={ROUTES.PRIVACY} className="text-xs text-text-muted hover:text-text-strong transition">Privacy Policy</Link>
+              <Link href={ROUTES.TERMS} className="text-xs text-text-muted hover:text-text-strong transition">Terms of Service</Link>
               <a href="https://github.com/shivamsinghtomar78/nivesh-saathi" target="_blank" rel="noopener noreferrer" className="text-xs text-text-muted hover:text-text-strong transition">GitHub</a>
               <a href="mailto:contact@niveshsaathi.in" className="text-xs text-text-muted hover:text-text-strong transition">Contact</a>
             </div>

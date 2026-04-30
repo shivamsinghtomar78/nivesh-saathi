@@ -62,6 +62,9 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
       message: string;
       language: string;
       threadId?: string;
+      amount?: number;
+      tenorMonths?: number;
+      seniorCitizen?: boolean;
       shortlistBankIds?: string[];
       mode?: "chat" | "voice";
     }) => {

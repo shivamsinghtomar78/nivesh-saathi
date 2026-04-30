@@ -14,8 +14,8 @@ import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { logServerWarn } from "@/lib/server/telemetry";
 import { ROUTES } from "@/lib/routes";
 import {
+  getOptionalFirebaseSession,
   requireCsrfProtection,
-  requireFirebaseSession,
 } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
@@ -56,13 +56,14 @@ export async function POST(request: Request) {
     const csrfError = requireCsrfProtection(request);
     if (csrfError) return csrfError;
 
-    const sessionResult = await requireFirebaseSession(request);
+    const sessionResult = await getOptionalFirebaseSession(request);
     if (!sessionResult.ok) return sessionResult.response;
 
     const ip = getRequestIp(request);
+    const userKey = sessionResult.session?.uid ?? `guest:${ip}`;
     const rateLimit = await enforceRateLimit({
-      key: `chat:${sessionResult.session.uid}:${ip}`,
-      limit: 16,
+      key: `chat:${userKey}:${ip}`,
+      limit: sessionResult.session ? 16 : 8,
       window: "1 m",
     });
 
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const input = chatRequestSchema.parse(body);
 
-    if (input.userId && input.userId !== sessionResult.session.uid) {
+    if (input.userId && input.userId !== sessionResult.session?.uid) {
       return new Response(
         JSON.stringify({ ok: false, error: "User mismatch" }),
         { status: 403, headers: { "Content-Type": "application/json" } }
@@ -84,6 +85,12 @@ export async function POST(request: Request) {
     }
 
     if (input.threadId) {
+      if (!sessionResult.session) {
+        return new Response(
+          JSON.stringify({ ok: false, error: "Sign in to continue a saved chat thread" }),
+          { status: 401, headers: { "Content-Type": "application/json" } }
+        );
+      }
       const ownerId = await getChatSessionOwner(input.threadId);
       if (ownerId && ownerId !== sessionResult.session.uid) {
         return new Response(
@@ -93,22 +100,26 @@ export async function POST(request: Request) {
       }
     }
 
-    const authenticatedInput = { ...input, userId: sessionResult.session.uid };
+    const authenticatedInput = sessionResult.session
+      ? { ...input, userId: sessionResult.session.uid }
+      : { ...input, userId: undefined, threadId: undefined };
     const promptRisk = assessPromptRisk(input.message);
 
     if (promptRisk.blocked) {
       logServerWarn("chat_prompt_blocked", {
         ip,
-        userId: sessionResult.session.uid,
+        userId: sessionResult.session?.uid ?? "guest",
         reasons: promptRisk.reasons,
         confidence: promptRisk.confidence,
       });
-      await persistFlaggedMessage({
-        userId: sessionResult.session.uid,
-        message: input.message,
-        reasons: promptRisk.reasons,
-        confidence: promptRisk.confidence,
-      });
+      if (sessionResult.session) {
+        await persistFlaggedMessage({
+          userId: sessionResult.session.uid,
+          message: input.message,
+          reasons: promptRisk.reasons,
+          confidence: promptRisk.confidence,
+        });
+      }
 
       const blockedText = buildBlockedPromptResponse(authenticatedInput.language);
       const encoder = new TextEncoder();
@@ -149,14 +160,16 @@ export async function POST(request: Request) {
     });
 
     // Persist asynchronously
-    void persistChatSessionTurn({
-      threadId: result.threadId,
-      userId: authenticatedInput.userId,
-      language: authenticatedInput.language,
-      userMessage: promptRisk.normalizedMessage,
-      assistantMessage: result.response.text,
-      fdContextIds: result.response.rateCards.map((card) => card.bankId),
-    });
+    if (sessionResult.session && authenticatedInput.userId) {
+      void persistChatSessionTurn({
+        threadId: result.threadId,
+        userId: authenticatedInput.userId,
+        language: authenticatedInput.language,
+        userMessage: promptRisk.normalizedMessage,
+        assistantMessage: result.response.text,
+        fdContextIds: result.response.rateCards.map((card) => card.bankId),
+      });
+    }
 
     // Stream the response
     const fullText = result.response.text;
