@@ -1,4 +1,5 @@
 import { FD_RATES, type FDRate } from "@/lib/fd-data";
+import { buildAffiliateBookingUrl } from "@/lib/affiliate";
 import { calculateMaturity } from "@/lib/maturity";
 import { formatCurrency } from "@/lib/utils";
 import { ROUTES } from "@/lib/routes";
@@ -9,11 +10,13 @@ import {
   type AppLanguage,
   type BankTypeFilter,
   type FDRatesQuery,
+  type PortfolioSplit,
+  type PortfolioSplitAllocation,
 } from "@/lib/server/advisor-schemas";
 import { cacheGet, cacheSet } from "@/lib/server/cache";
 import { resolveGlossary } from "@/lib/server/jargon-catalog";
 
-const SIX_HOURS_IN_SECONDS = 60 * 60 * 6;
+const ONE_HOUR_IN_SECONDS = 60 * 60;
 const RATES_CACHE_VERSION = "v2";
 
 const LOCALIZED_COPY: Record<
@@ -141,11 +144,35 @@ export async function getFDRates(query: FDRatesQuery = {}) {
     filtered = filtered.filter((rate) => rate.bankType === query.bankType);
   }
 
-  filtered.sort(
-    (left, right) =>
-      getApplicableRate(right, query.seniorCitizen) -
-      getApplicableRate(left, query.seniorCitizen)
-  );
+  // F-03 Personalised FD Ranking Algorithm
+  const DICGC_LIMIT = 500000;
+  
+  filtered.sort((left, right) => {
+    const rateLeft = getApplicableRate(left, query.seniorCitizen);
+    const rateRight = getApplicableRate(right, query.seniorCitizen);
+    
+    // Base score is the interest rate itself (e.g. 7.5 = 7.5 points)
+    let scoreLeft = rateLeft;
+    let scoreRight = rateRight;
+
+    // Weight 1: DICGC Safety (Penalize non-public banks if amount > 5L)
+    if (query.amount && query.amount > DICGC_LIMIT) {
+      if (left.bankType !== "public") scoreLeft -= 0.5;
+      if (right.bankType !== "public") scoreRight -= 0.5;
+    }
+
+    // Weight 2: Bank Type Preference (Boost preferred bank type by 1.0)
+    // Note: If query.bankType is set, we already filtered, but just in case we add this as a soft boost
+    // if we change it to soft filtering later.
+    
+    // Weight 3: Badges (Boost best-value or popular)
+    if (left.badge === "best-value") scoreLeft += 0.2;
+    if (right.badge === "best-value") scoreRight += 0.2;
+    if (left.badge === "safe-choice") scoreLeft += 0.1;
+    if (right.badge === "safe-choice") scoreRight += 0.1;
+
+    return scoreRight - scoreLeft;
+  });
 
   if (query.limit) {
     filtered = filtered.slice(0, query.limit);
@@ -153,7 +180,7 @@ export async function getFDRates(query: FDRatesQuery = {}) {
 
   const normalized = filtered.map(withRuntimeRateDefaults);
 
-  await cacheSet(cacheKey, normalized, SIX_HOURS_IN_SECONDS);
+  await cacheSet(cacheKey, normalized, ONE_HOUR_IN_SECONDS);
   return normalized;
 }
 
@@ -230,7 +257,7 @@ export function createAdvisorRateCard(params: {
     )}`,
     badge: rate.badge ? BADGE_LABELS[rate.badge] : undefined,
     safetyNote: LOCALIZED_COPY[language].safety,
-    officialUrl: rate.officialUrl,
+    officialUrl: buildAffiliateBookingUrl(rate, "advisor_card"),
     sourceLabel: rate.sourceLabel,
     sourceUrl: rate.sourceUrl,
     asOf: rate.asOf,
@@ -380,6 +407,85 @@ Next step:
 - Share your amount, tenure, or safety concern and I will narrow this further.`;
 }
 
+export function calculatePortfolioDiversification(params: {
+  amount: number;
+  rates: FDRate[];
+  tenorMonths: number;
+  seniorCitizen?: boolean;
+}): PortfolioSplit | undefined {
+  const DICGC_LIMIT = 500000;
+  
+  if (params.amount <= DICGC_LIMIT || params.rates.length === 0) {
+    return undefined; // No need to diversify
+  }
+
+  let remainingAmount = params.amount;
+  const allocations: PortfolioSplitAllocation[] = [];
+  let totalMaturity = 0;
+
+  // Assume rates are already sorted by highest rate
+  for (const rate of params.rates) {
+    if (remainingAmount <= 0) break;
+    
+    // Allocate up to DICGC limit per bank
+    const allocationAmount = Math.min(remainingAmount, DICGC_LIMIT);
+    const applicableRate = getApplicableRate(rate, params.seniorCitizen);
+    
+    const maturity = calculateMaturity({
+      principal: allocationAmount,
+      ratePercent: applicableRate,
+      tenorMonths: params.tenorMonths,
+      compounding: rate.compounding,
+    });
+
+    allocations.push({
+      bankId: rate.id,
+      bankName: rate.bankName,
+      allocationAmount,
+      rate: applicableRate,
+      maturityAmount: maturity.maturityAmount,
+    });
+
+    totalMaturity += maturity.maturityAmount;
+    remainingAmount -= allocationAmount;
+  }
+
+  // If there's still remaining amount, we loop back through the top banks
+  // (Meaning they are investing > DICGC limit across all banks available, so we just distribute remaining)
+  if (remainingAmount > 0 && allocations.length > 0) {
+    let i = 0;
+    while (remainingAmount > 0) {
+      const bankIdx = i % allocations.length;
+      const rate = params.rates[bankIdx];
+      const chunk = Math.min(remainingAmount, DICGC_LIMIT);
+      
+      const applicableRate = getApplicableRate(rate, params.seniorCitizen);
+      const maturity = calculateMaturity({
+        principal: chunk,
+        ratePercent: applicableRate,
+        tenorMonths: params.tenorMonths,
+        compounding: rate.compounding,
+      });
+
+      allocations[bankIdx].allocationAmount += chunk;
+      allocations[bankIdx].maturityAmount += maturity.maturityAmount;
+      totalMaturity += maturity.maturityAmount;
+      
+      remainingAmount -= chunk;
+      i++;
+    }
+  }
+
+  const blendedRate = allocations.reduce((acc, a) => acc + (a.rate * (a.allocationAmount / params.amount)), 0);
+
+  return {
+    totalAmount: params.amount,
+    allocations,
+    totalMaturity,
+    blendedRate,
+  };
+}
+
 export async function buildDeterministicAdvisorResponse(params: {
   language: AppLanguage;
   amount: number;
@@ -412,20 +518,34 @@ export async function buildDeterministicAdvisorResponse(params: {
       : rates;
   const topRates = candidateRates.slice(0, 3);
 
-  const rateCards = topRates.map((rate) =>
-    createAdvisorRateCard({
+  const rateCards = topRates.map((rate, index) => {
+    const card = createAdvisorRateCard({
       rate,
       amount,
       tenorMonths,
       language,
       seniorCitizen,
-    })
-  );
+    });
+    
+    // F-03: The top result of our personalized scoring algorithm is highlighted
+    if (index === 0 && !card.badge) {
+      card.badge = "Top Pick For You";
+    }
+    return card;
+  });
 
   const glossary = resolveGlossary(
     glossaryTermIds.length > 0 ? glossaryTermIds : ["pa", "tenor", "dicgc"],
     language
   );
+
+  // Determine if we should include portfolio diversification advice
+  const portfolioSplit = calculatePortfolioDiversification({
+    amount,
+    rates: candidateRates,
+    tenorMonths,
+    seniorCitizen,
+  });
 
   const response: AdvisorResponse = {
     text: buildFallbackText({ language, amount, tenorMonths, rateCards }),
@@ -438,7 +558,9 @@ export async function buildDeterministicAdvisorResponse(params: {
     glossary,
     followUpPrompt: LOCALIZED_COPY[language].followUp,
     warnings: rateCards.length === 0 ? [LOCALIZED_COPY[language].noMatch] : [],
+    tone: rateCards.length === 0 ? "cautionary" : "informative",
     suggestedChips: [],
+    portfolioSplit,
   };
 
   return response;

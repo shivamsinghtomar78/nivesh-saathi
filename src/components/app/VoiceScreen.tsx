@@ -13,6 +13,7 @@ import AppShell from "@/components/app/AppShell";
 import ConversationTimeline from "@/components/app/ConversationTimeline";
 import ModeSwitchBanner from "@/components/shared/ModeSwitchBanner";
 import VoiceCompanionCard from "@/components/shared/VoiceCompanionCard";
+import { VoiceSummaryCard } from "@/components/voice/VoiceSummaryCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,6 +86,7 @@ function createBotMessage(languageLabel: string, response: AdvisorResponse): Con
     timestamp: getTimestamp(),
     language: languageLabel,
     source: "voice",
+    tone: response.tone,
     suggestedChips: response.suggestedChips ?? [],
     modeSwitchSuggested: !!response.modeSwitchSuggestion,
     rateCards: response.rateCards.map((card) => ({
@@ -135,6 +137,10 @@ export default function VoiceScreen() {
   const [isThinking, setIsThinking] = useState(false);
   const [modeSwitchInfo, setModeSwitchInfo] = useState<{ targetMode: "chat" | "voice"; reason: string } | null>(null);
   const [lastBotWithCards, setLastBotWithCards] = useState<ConversationMessage | null>(null);
+  const [voiceSummary, setVoiceSummary] = useState<{
+    summary: string;
+    topRates: { bankName: string; rate: string }[];
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const lastSpokenIdRef = useRef<string | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -160,7 +166,7 @@ export default function VoiceScreen() {
     }
   }, []);
 
-  const speakReply = useCallback((text: string) => {
+  const speakReply = useCallback((text: string, tone?: ConversationMessage["tone"]) => {
     if (typeof window === "undefined" || !window.speechSynthesis || !autoSpeak) {
       return;
     }
@@ -168,6 +174,13 @@ export default function VoiceScreen() {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = LANGUAGE_META[language].speechSynthesis;
+    if (tone === "cautionary") {
+      utterance.rate = 0.88;
+      utterance.pitch = 0.92;
+    } else if (tone === "celebratory") {
+      utterance.rate = 1.04;
+      utterance.pitch = 1.08;
+    }
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
@@ -252,7 +265,8 @@ export default function VoiceScreen() {
   // Barge-in: cancel speech when user starts listening
   useEffect(() => {
     if (voice.isListening) {
-      cancelSpeech();
+      const timer = window.setTimeout(cancelSpeech, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [voice.isListening, cancelSpeech]);
 
@@ -275,8 +289,41 @@ export default function VoiceScreen() {
     }
 
     lastSpokenIdRef.current = lastBotMessage.id;
-    speakReply(lastBotMessage.content);
+    speakReply(lastBotMessage.content, lastBotMessage.tone);
   }, [speakReply, visibleMessages]);
+
+  const summarizeVoiceSession = async () => {
+    try {
+      const response = await fetch("/api/voice/summary", {
+        method: "POST",
+        headers: withCsrfHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          messages: visibleMessages.map((message) => ({
+            role: message.role,
+            content: message.content,
+            rateCards: message.rateCards,
+          })),
+        }),
+      });
+      const payload = (await response.json()) as {
+        summary?: string;
+        topRates?: { bankName: string; rate: string }[];
+      };
+      setVoiceSummary({
+        summary: payload.summary ?? "Here is a quick recap of what we discussed.",
+        topRates: payload.topRates ?? [],
+      });
+    } catch {
+      setVoiceSummary({
+        summary: "Here is a quick recap of what we discussed.",
+        topRates:
+          lastBotWithCards?.rateCards?.map((card) => ({
+            bankName: card.bankName ?? "Bank",
+            rate: card.rate,
+          })) ?? [],
+      });
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -376,6 +423,15 @@ export default function VoiceScreen() {
           </Link>
           <Button
             size="sm"
+            variant="outline"
+            className="rounded-full bg-panel-glass"
+            onClick={() => void summarizeVoiceSession()}
+            disabled={visibleMessages.length <= 1}
+          >
+            Session Summary
+          </Button>
+          <Button
+            size="sm"
             variant="secondary"
             className="rounded-full shadow-sm"
             onClick={() => {
@@ -396,6 +452,15 @@ export default function VoiceScreen() {
         title="Sign in for voice advice"
         body="Sign in to save your conversation history and keep your device settings in sync."
       >
+        <AnimatePresence>
+          {voiceSummary && (
+            <VoiceSummaryCard
+              summary={voiceSummary.summary}
+              topRates={voiceSummary.topRates}
+              onClose={() => setVoiceSummary(null)}
+            />
+          )}
+        </AnimatePresence>
         <motion.div 
           variants={containerVariants}
           initial="hidden"

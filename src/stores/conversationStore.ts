@@ -65,10 +65,25 @@ export interface ConversationMessage {
     example: string;
   }[];
   followUpPrompt?: string;
+  tone?: "informative" | "celebratory" | "cautionary";
   /** Smart chips suggested after this message */
   suggestedChips?: string[];
   /** Whether mode-switch was suggested for this message */
   modeSwitchSuggested?: boolean;
+  portfolioSplit?: {
+    totalAmount: number;
+    totalMaturity: number;
+    blendedRate: number;
+    allocations: {
+      bankId: string;
+      bankName: string;
+      allocationAmount: number;
+      rate: number;
+      maturityAmount: number;
+    }[];
+  };
+  showCalculator?: boolean;
+  showTimeMachine?: boolean;
 }
 
 interface ConversationState {
@@ -82,6 +97,7 @@ interface ConversationState {
 
   // Actions
   addMessage: (msg: ConversationMessage) => void;
+  setMessages: (messages: ConversationMessage[]) => void;
   updateMessage: (id: string, updates: Partial<ConversationMessage>) => void;
   setLanguage: (lang: AppLanguage) => void;
   setThreadId: (threadId: string | null) => void;
@@ -179,6 +195,8 @@ export const useConversationStore = create<ConversationState>()(
           }
           return { messages: updated };
         }),
+
+      setMessages: (messages) => set({ messages }),
 
       updateMessage: (id, updates) =>
         set((state) => ({

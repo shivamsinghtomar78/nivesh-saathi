@@ -18,6 +18,25 @@ type StoredChatSession = {
 
 const chatSessionMemoryStore = new Map<string, StoredChatSession>();
 
+export type SharedRateCard = {
+  bankName?: string;
+  rate?: string;
+  tenor?: string;
+  maturityPreview?: string;
+  safetyNote?: string;
+};
+
+export type SharedResponse = {
+  id: string;
+  userId?: string;
+  messageText: string;
+  rateCards: SharedRateCard[];
+  createdAt: string;
+  expiresAt: string;
+};
+
+const sharedResponseMemoryStore = new Map<string, SharedResponse>();
+
 export type ProfileChatSummary = {
   threadId: string;
   language: AppLanguage;
@@ -26,6 +45,8 @@ export type ProfileChatSummary = {
   updatedAt: string;
   latestMessage?: string;
 };
+
+export type ProfileChatSession = StoredChatSession;
 
 export async function persistUserProfile(input: {
   uid: string;
@@ -91,6 +112,37 @@ export async function getUserChatSummaries(userId: string) {
       error: error instanceof Error ? error.message : "unknown",
     });
     return memorySessions;
+  }
+}
+
+export async function getUserChatSession(input: {
+  userId: string;
+  threadId: string;
+}) {
+  const memorySession = chatSessionMemoryStore.get(input.threadId);
+  if (memorySession?.userId === input.userId) {
+    return memorySession;
+  }
+
+  const db = getFirebaseAdminDb();
+  if (!db) {
+    return null;
+  }
+
+  try {
+    const snapshot = await db.collection("chatSessions").doc(input.threadId).get();
+    if (!snapshot.exists) {
+      return null;
+    }
+    const session = snapshot.data() as StoredChatSession;
+    return session.userId === input.userId ? session : null;
+  } catch (error) {
+    logServerError("user_chat_session_lookup_failed", {
+      userId: input.userId,
+      threadId: input.threadId,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return null;
   }
 }
 
@@ -202,5 +254,106 @@ export async function persistFlaggedMessage(input: {
     logServerError("persist_flagged_message_failed", {
       error: error instanceof Error ? error.message : "unknown",
     });
+  }
+}
+
+export type UserMemory = {
+  uid: string;
+  investmentGoals?: string;
+  preferredTenorMonths?: number;
+  riskTolerance?: string;
+  pastBanksConsidered?: string[];
+  seniorCitizen?: boolean;
+  amount?: number;
+  themePreference?: "light" | "dark" | "system";
+  updatedAt: string;
+};
+
+export async function getUserMemory(uid: string): Promise<UserMemory | null> {
+  const db = getFirebaseAdminDb();
+  if (!db) return null;
+  try {
+    const doc = await db.collection("user_profiles").doc(uid).collection("memory").doc("context").get();
+    if (doc.exists) {
+      return doc.data() as UserMemory;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateUserMemory(uid: string, updates: Partial<UserMemory>) {
+  const db = getFirebaseAdminDb();
+  if (!db) return;
+  try {
+    const memoryRef = db.collection("user_profiles").doc(uid).collection("memory").doc("context");
+    await memoryRef.set({ ...updates, uid, updatedAt: new Date().toISOString() }, { merge: true });
+  } catch (error) {
+    logServerError("update_user_memory_failed", { uid, error: error instanceof Error ? error.message : "unknown" });
+  }
+}
+
+export async function persistSharedResponse(input: {
+  userId?: string;
+  messageText: string;
+  rateCards: SharedRateCard[];
+}) {
+  const now = new Date();
+  const shared: SharedResponse = {
+    id: crypto.randomUUID(),
+    userId: input.userId,
+    messageText: input.messageText,
+    rateCards: input.rateCards,
+    createdAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + 1000 * 60 * 60 * 24 * 14).toISOString(),
+  };
+
+  sharedResponseMemoryStore.set(shared.id, shared);
+
+  const db = getFirebaseAdminDb();
+  if (db) {
+    try {
+      await db.collection("shared_responses").doc(shared.id).set(shared);
+    } catch (error) {
+      logServerError("shared_response_persist_failed", {
+        id: shared.id,
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    }
+  }
+
+  return shared;
+}
+
+export async function getSharedResponse(id: string) {
+  const memoryShared = sharedResponseMemoryStore.get(id);
+  const now = Date.now();
+  if (memoryShared) {
+    if (new Date(memoryShared.expiresAt).getTime() <= now) {
+      sharedResponseMemoryStore.delete(id);
+      return null;
+    }
+    return memoryShared;
+  }
+
+  const db = getFirebaseAdminDb();
+  if (!db) return null;
+
+  try {
+    const snapshot = await db.collection("shared_responses").doc(id).get();
+    if (!snapshot.exists) return null;
+
+    const shared = snapshot.data() as SharedResponse;
+    if (new Date(shared.expiresAt).getTime() <= now) {
+      return null;
+    }
+    return shared;
+  } catch (error) {
+    logServerError("shared_response_lookup_failed", {
+      id,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    return null;
   }
 }

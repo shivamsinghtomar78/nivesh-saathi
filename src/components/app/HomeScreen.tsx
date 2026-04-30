@@ -15,7 +15,6 @@ import AppShell from "@/components/app/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import OnboardingModal from "@/components/shared/OnboardingModal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FDRate } from "@/lib/fd-data";
 import { ROUTES } from "@/lib/routes";
@@ -62,7 +61,6 @@ export default function HomeScreen() {
   const messages = useConversationStore((state) => state.messages);
   const shortlist = useCompareStore((state) => state.shortlist);
   const [topRates, setTopRates] = useState<FDRate[]>([]);
-  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     fetch("/api/fd-rates?limit=3")
@@ -70,22 +68,6 @@ export default function HomeScreen() {
       .then((d) => setTopRates(d.rates || []))
       .catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (user && typeof window !== "undefined") {
-      const hasOnboarded = localStorage.getItem(`onboarded-${user.uid}`);
-      if (!hasOnboarded) {
-        setShowOnboarding(true);
-      }
-    }
-  }, [user]);
-
-  const handleOnboardingComplete = () => {
-    if (user && typeof window !== "undefined") {
-      localStorage.setItem(`onboarded-${user.uid}`, "true");
-    }
-    setShowOnboarding(false);
-  };
 
   return (
     <AppShell
@@ -235,7 +217,6 @@ export default function HomeScreen() {
             </Card>
           </motion.div>
         </motion.div>
-        {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} />}
       </AuthGate>
     </AppShell>
   );

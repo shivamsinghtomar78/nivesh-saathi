@@ -123,17 +123,23 @@ function RateTicker() {
 }
 
 export default function LandingScreen() {
-  const [mounted, setMounted] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
   const user = useAuthStore((state) => state.user);
 
   React.useEffect(() => {
-    setMounted(true);
-    setIsMobile(window.matchMedia("(max-width: 767px)").matches);
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const updateIsMobile = () => setIsMobile(mediaQuery.matches);
+    const frame = window.requestAnimationFrame(updateIsMobile);
+    mediaQuery.addEventListener("change", updateIsMobile);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      mediaQuery.removeEventListener("change", updateIsMobile);
+    };
   }, []);
 
-  const primaryHref = mounted && user ? ROUTES.HOME : ROUTES.LOGIN;
-  const primaryLabel = mounted && user ? "Open Home" : "Get Started";
+  const primaryHref = user ? ROUTES.HOME : ROUTES.LOGIN;
+  const primaryLabel = user ? "Open Home" : "Get Started";
 
   return (
     <main className="dark-context min-h-screen relative overflow-hidden bg-black">

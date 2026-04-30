@@ -13,7 +13,7 @@ export default function NotFound() {
           Page not found
         </h1>
         <p className="text-sm leading-6 text-text-muted mb-8 max-w-sm mx-auto">
-          We couldn't find the page you were looking for. It might have been moved or doesn't exist.
+          We couldn&apos;t find the page you were looking for. It might have been moved or doesn&apos;t exist.
         </p>
         <Link href="/">
           <Button variant="secondary" size="lg" className="rounded-full shadow-sm">

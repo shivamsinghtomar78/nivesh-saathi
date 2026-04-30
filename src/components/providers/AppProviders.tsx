@@ -3,6 +3,7 @@
 import { Toaster } from "sonner";
 
 import AuthBootstrap from "@/components/providers/AuthBootstrap";
+import OfflineBanner from "@/components/providers/OfflineBanner";
 import PwaRegistrar from "@/components/providers/PwaRegistrar";
 
 export default function AppProviders() {
@@ -10,6 +11,7 @@ export default function AppProviders() {
     <>
       <AuthBootstrap />
       <PwaRegistrar />
+      <OfflineBanner />
       <Toaster
         position="top-center"
         richColors

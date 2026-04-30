@@ -15,6 +15,8 @@ import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import { useConversationStore } from "@/stores/conversationStore";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
 const NAV_ITEMS = [
   { href: ROUTES.HOME, key: "home" as const, icon: Home },
@@ -134,6 +136,8 @@ export default function AppShell({
                 </button>
               ))}
             </div>
+            
+            <ThemeToggle />
 
             {user ? (
               <div className="relative" ref={profileRef}>
@@ -265,6 +269,7 @@ export default function AppShell({
           })}
         </div>
       </nav>
+      <OnboardingWizard />
     </div>
   );
 }

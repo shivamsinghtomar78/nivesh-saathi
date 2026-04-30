@@ -8,6 +8,7 @@ import {
 import { Analytics } from "@vercel/analytics/next";
 
 import AppProviders from "@/components/providers/AppProviders";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -53,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#08121c" />
         <link rel="preconnect" href="https://firebaseapp.com" />
@@ -62,9 +63,16 @@ export default function RootLayout({
       <body
         className={`${notoSerifDevanagari.variable} ${notoSerif.variable} ${workSans.variable} ${ibmPlexMono.variable} bg-app text-text-strong`}
       >
-        <AppProviders />
-        {children}
-        <Analytics />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AppProviders />
+          {children}
+          <Analytics />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -179,7 +179,7 @@ export function useVoiceInput(options: VoiceHookOptions) {
     setError(null);
     const Recognition = getSpeechRecognitionConstructor();
 
-    if (Recognition && language === "en") {
+    if (Recognition) {
       const recognition = new Recognition();
       recognition.lang = LANGUAGE_META[language].speechRecognition;
       recognition.continuous = false;

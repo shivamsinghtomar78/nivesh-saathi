@@ -63,6 +63,23 @@ export type AdvisorAction = z.infer<typeof advisorActionSchema>;
 export const conversationModeSchema = z.enum(["chat", "voice"]);
 export type ConversationMode = z.infer<typeof conversationModeSchema>;
 
+export const portfolioSplitAllocationSchema = z.object({
+  bankId: z.string(),
+  bankName: z.string(),
+  allocationAmount: z.number(),
+  rate: z.number(),
+  maturityAmount: z.number(),
+});
+export type PortfolioSplitAllocation = z.infer<typeof portfolioSplitAllocationSchema>;
+
+export const portfolioSplitSchema = z.object({
+  totalAmount: z.number(),
+  allocations: z.array(portfolioSplitAllocationSchema),
+  totalMaturity: z.number(),
+  blendedRate: z.number(),
+});
+export type PortfolioSplit = z.infer<typeof portfolioSplitSchema>;
+
 export const advisorResponseSchema = z.object({
   text: z.string(),
   rateCards: z.array(advisorRateCardSchema).default([]),
@@ -70,6 +87,7 @@ export const advisorResponseSchema = z.object({
   glossary: z.array(glossaryItemSchema).default([]),
   followUpPrompt: z.string().default(""),
   warnings: z.array(z.string()).default([]),
+  tone: z.enum(["informative", "celebratory", "cautionary"]).default("informative"),
   /** Smart follow-up chips generated based on context */
   suggestedChips: z.array(z.string()).default([]),
   /** Suggestion to switch modes when content is better suited for another interface */
@@ -77,6 +95,9 @@ export const advisorResponseSchema = z.object({
     targetMode: conversationModeSchema,
     reason: z.string(),
   }).optional(),
+  portfolioSplit: portfolioSplitSchema.optional(),
+  showCalculator: z.boolean().optional(),
+  showTimeMachine: z.boolean().optional(),
 });
 export type AdvisorResponse = z.infer<typeof advisorResponseSchema>;
 

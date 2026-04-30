@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Star, Filter, Calculator, Landmark, MessageCircleMore, Mic, X, ChevronUp } from "lucide-react";
+import { ArrowUpRight, Star, Filter, Calculator, Landmark, MessageCircleMore, Mic, X, ChevronUp, Bell, BellRing, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 import AuthGate from "@/components/auth/AuthGate";
@@ -13,9 +13,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { EmptyState } from "@/components/ui/empty-state";
 import type { FDRate } from "@/lib/fd-data";
 import { calculateMaturity } from "@/lib/maturity";
+import { buildAffiliateBookingUrl } from "@/lib/affiliate";
+import { withCsrfHeaders } from "@/lib/csrf";
 import { ROUTES } from "@/lib/routes";
 import { formatCurrency, cn } from "@/lib/utils";
 import type { BankTypeFilter } from "@/lib/server/advisor-schemas";
+import { useAuthStore } from "@/stores/authStore";
 import { useCompareStore } from "@/stores/compareStore";
 
 const TENOR_OPTIONS = [6, 12, 18, 24, 36, 60];
@@ -36,6 +39,7 @@ const itemVariants: Variants = {
 };
 
 export default function CompareScreen() {
+  const user = useAuthStore((state) => state.user);
   const shortlist = useCompareStore((state) => state.shortlist);
   const toggleShortlist = useCompareStore((state) => state.toggleShortlist);
   const [amount, setAmount] = useState(100000);
@@ -45,6 +49,8 @@ export default function CompareScreen() {
   const [rates, setRates] = useState<FDRate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [watchedBankIds, setWatchedBankIds] = useState<string[]>([]);
+  const watchedBankSet = useMemo(() => new Set(watchedBankIds), [watchedBankIds]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -80,8 +86,8 @@ export default function CompareScreen() {
 
   useEffect(() => {
     if (shortlist.length === 0) {
-      setShortlistedBanks([]);
-      return;
+      const timer = window.setTimeout(() => setShortlistedBanks([]), 0);
+      return () => window.clearTimeout(timer);
     }
     const controller = new AbortController();
     fetch(`/api/fd-rates`, { signal: controller.signal })
@@ -93,6 +99,35 @@ export default function CompareScreen() {
       .catch(() => {});
     return () => controller.abort();
   }, [shortlist]);
+
+  useEffect(() => {
+    if (!user) return;
+    const controller = new AbortController();
+    fetch("/api/watchers", { signal: controller.signal })
+      .then((response) => response.json())
+      .then((payload: { watchers?: string[] }) => {
+        setWatchedBankIds(payload.watchers ?? []);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [user]);
+
+  const toggleWatcher = async (bankId: string) => {
+    if (!user) return;
+    const isWatching = watchedBankIds.includes(bankId);
+    setWatchedBankIds((current) =>
+      isWatching ? current.filter((id) => id !== bankId) : [...current, bankId]
+    );
+    await fetch("/api/watchers", {
+      method: isWatching ? "DELETE" : "POST",
+      headers: withCsrfHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ bankId }),
+    }).catch(() => {
+      setWatchedBankIds((current) =>
+        isWatching ? [...current, bankId] : current.filter((id) => id !== bankId)
+      );
+    });
+  };
 
   return (
     <AppShell
@@ -299,6 +334,31 @@ export default function CompareScreen() {
                                   <Star className={cn("mr-2 h-4 w-4", shortlisted ? "fill-current" : "")} />
                                   {shortlisted ? "Added to Shortlist" : "Shortlist Rate"}
                                 </Button>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => void toggleWatcher(rate.id)}
+                                    disabled={!user}
+                                    className="w-full bg-input-bg"
+                                    aria-label={`Watch ${rate.bankName} rate changes`}
+                                  >
+                                    {watchedBankSet.has(rate.id) ? (
+                                      <BellRing className="h-4 w-4 text-accent" />
+                                    ) : (
+                                      <Bell className="h-4 w-4" />
+                                    )}
+                                    {watchedBankSet.has(rate.id) ? "Watching" : "Watch"}
+                                  </Button>
+                                  <a
+                                    href={buildAffiliateBookingUrl(rate, "compare_card")}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-outline bg-input-bg px-3 text-sm font-semibold text-text-strong transition hover:bg-white"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                    Book
+                                  </a>
+                                </div>
                               </div>
                             </div>
                           </div>

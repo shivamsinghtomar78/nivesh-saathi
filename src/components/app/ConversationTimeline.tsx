@@ -14,8 +14,14 @@ import {
 
 import StructuredAnswer from "@/components/shared/StructuredAnswer";
 import SmartChips from "@/components/shared/SmartChips";
+import { PortfolioSplitCard } from "@/components/chat/PortfolioSplitCard";
+import { MessageReactions } from "@/components/chat/MessageReactions";
+import { ShareButton } from "@/components/chat/ShareButton";
+import { FDTimeMachineChart } from "@/components/chat/FDTimeMachineChart";
+import { FDCalculatorCard } from "@/components/chat/FDCalculatorCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { withCsrfHeaders } from "@/lib/csrf";
 import { cn } from "@/lib/utils";
 import type { ConversationMessage } from "@/stores/conversationStore";
 
@@ -60,7 +66,7 @@ export default function ConversationTimeline({
   const lastBotMessageIdx = lastBotIndex >= 0 ? messages.length - 1 - lastBotIndex : -1;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" role="log" aria-live="polite" aria-relevant="additions text">
       <AnimatePresence initial={false}>
         {messages.map((message, msgIndex) => {
           const isUser = message.role === "user";
@@ -72,7 +78,7 @@ export default function ConversationTimeline({
               initial={{ opacity: 0, y: 10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
+              className={cn("group flex w-full", isUser ? "justify-end" : "justify-start")}
             >
               <div
                 className={cn(
@@ -213,6 +219,13 @@ export default function ConversationTimeline({
                   </div>
                 )}
 
+                {/* Portfolio Split Diversification Card */}
+                {message.portfolioSplit && (
+                  <div className="mt-5">
+                    <PortfolioSplitCard split={message.portfolioSplit} />
+                  </div>
+                )}
+
                 {message.glossary && message.glossary.length > 0 && (
                   <div className="mt-5 grid gap-3">
                     {message.glossary.map((item) => (
@@ -258,6 +271,18 @@ export default function ConversationTimeline({
                   </div>
                 )}
 
+                {message.showTimeMachine && (
+                  <div className="mt-5">
+                    <FDTimeMachineChart />
+                  </div>
+                )}
+
+                {message.showCalculator && (
+                  <div className="mt-5">
+                    <FDCalculatorCard />
+                  </div>
+                )}
+
                 {/* Follow-up prompt chip */}
                 {message.followUpPrompt && (
                   <div className="mt-4 pt-3 border-t border-outline/50">
@@ -274,6 +299,23 @@ export default function ConversationTimeline({
                     >
                       💡 {message.followUpPrompt}
                     </button>
+                  </div>
+                )}
+
+                {/* Message action bar (Reactions & Share) */}
+                {!isUser && !message.failed && !isTyping && (
+                  <div className="mt-3 flex items-center justify-between pt-2 border-t border-outline/50 group/msg">
+                    <MessageReactions
+                      messageId={message.id}
+                      onFeedback={(id, reaction, reason) => {
+                        fetch("/api/feedback", {
+                          method: "POST",
+                          headers: withCsrfHeaders({ "Content-Type": "application/json" }),
+                          body: JSON.stringify({ messageId: id, reaction, reason }),
+                        }).catch(() => {});
+                      }}
+                    />
+                    <ShareButton messageText={message.content} rateCards={message.rateCards} />
                   </div>
                 )}
 

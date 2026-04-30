@@ -70,13 +70,15 @@ function parseAnswer(text: string): AnswerBlock[] {
   return blocks;
 }
 
+import { JargonHighlighter } from "../chat/JargonHighlighter";
+
 function parseInline(text: string) {
   const parts = text.split(/(\*\*.*?\*\*|\[.*?\]\(.*?\))/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
         <strong key={i} className="font-semibold text-text-strong">
-          {part.slice(2, -2)}
+          <JargonHighlighter text={part.slice(2, -2)} />
         </strong>
       );
     }
@@ -94,7 +96,7 @@ function parseInline(text: string) {
         </a>
       );
     }
-    return part;
+    return <JargonHighlighter key={i} text={part} />;
   });
 }
 

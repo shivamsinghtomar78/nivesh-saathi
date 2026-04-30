@@ -15,14 +15,14 @@ import ModeSwitchBanner from "@/components/shared/ModeSwitchBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { withCsrfHeaders } from "@/lib/csrf";
 import { ROUTES } from "@/lib/routes";
-import type { AdvisorResponse } from "@/lib/server/advisor-schemas";
 import { LANGUAGE_LABELS } from "@/lib/copy";
 import { useAutoResize } from "@/hooks/useAutoResize";
+import { useStreamingChat, type StreamMeta } from "@/hooks/useStreamingChat";
 import { useAuthStore } from "@/stores/authStore";
 import { useConversationStore, type ConversationMessage } from "@/stores/conversationStore";
 import { useCompareStore } from "@/stores/compareStore";
+import { HistoryDrawer } from "@/components/chat/HistoryDrawer";
 
 const MAX_CHARS = 800;
 
@@ -49,13 +49,6 @@ const SAMPLE_PROMPTS = {
   ],
 } as const;
 
-type ChatApiPayload = {
-  ok: boolean;
-  threadId?: string;
-  response?: AdvisorResponse;
-  error?: string;
-};
-
 type JargonPayload = {
   ok: boolean;
   term?: string;
@@ -75,18 +68,24 @@ function getTimestamp() {
   }).format(new Date());
 }
 
-function createBotMessage(languageLabel: string, response: AdvisorResponse): ConversationMessage {
+function createBotMessageFromStream(
+  languageLabel: string,
+  content: string,
+  meta: StreamMeta | null,
+  id = createMessageId()
+): ConversationMessage {
   return {
-    id: createMessageId(),
+    id,
     role: "bot",
-    content: response.text,
+    content,
     timestamp: getTimestamp(),
     language: languageLabel,
     source: "chat",
-    followUpPrompt: response.followUpPrompt,
-    suggestedChips: response.suggestedChips ?? [],
-    modeSwitchSuggested: !!response.modeSwitchSuggestion,
-    rateCards: response.rateCards.map((card) => ({
+    followUpPrompt: meta?.followUpPrompt,
+    suggestedChips: meta?.suggestedChips ?? [],
+    modeSwitchSuggested: !!meta?.modeSwitchSuggestion,
+    tone: meta?.tone,
+    rateCards: meta?.rateCards?.map((card) => ({
       bankId: card.bankId,
       bankName: card.bankName,
       bankNameLocal: card.bankNameLocal,
@@ -97,12 +96,15 @@ function createBotMessage(languageLabel: string, response: AdvisorResponse): Con
       badge: card.badge,
       officialUrl: card.officialUrl,
     })),
-    actions: response.actions,
-    glossary: response.glossary.map((item) => ({
+    actions: meta?.actions,
+    glossary: meta?.glossary?.map((item) => ({
       term: item.term,
       plain: item.plain,
       example: item.example,
     })),
+    portfolioSplit: meta?.portfolioSplit,
+    showCalculator: meta?.showCalculator,
+    showTimeMachine: meta?.showTimeMachine,
   };
 }
 
@@ -137,8 +139,12 @@ export default function TextChatScreen() {
   const [thinkingSeconds, setThinkingSeconds] = useState(0);
   const [modeSwitchInfo, setModeSwitchInfo] = useState<{ targetMode: "chat" | "voice"; reason: string } | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState<ConversationMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const thinkingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const latestStreamMeta = useRef<StreamMeta | null>(null);
+  const streamingMessageId = useRef<string | null>(null);
   const handleAutoResize = useAutoResize(120);
 
   // Set active mode on mount
@@ -164,26 +170,72 @@ export default function TextChatScreen() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [isTyping, messages, scrollToBottom]);
+  }, [isTyping, messages, scrollToBottom, streamingMessage]);
 
   // Elapsed seconds counter for typing indicator
   useEffect(() => {
     if (isTyping) {
-      setThinkingSeconds(0);
+      const resetTimer = window.setTimeout(() => setThinkingSeconds(0), 0);
       thinkingTimer.current = setInterval(() => {
         setThinkingSeconds((s) => s + 1);
       }, 1000);
+      return () => {
+        window.clearTimeout(resetTimer);
+        if (thinkingTimer.current) clearInterval(thinkingTimer.current);
+      };
     } else {
       if (thinkingTimer.current) {
         clearInterval(thinkingTimer.current);
         thinkingTimer.current = null;
       }
-      setThinkingSeconds(0);
+      const resetTimer = window.setTimeout(() => setThinkingSeconds(0), 0);
+      return () => window.clearTimeout(resetTimer);
     }
-    return () => {
-      if (thinkingTimer.current) clearInterval(thinkingTimer.current);
-    };
   }, [isTyping]);
+
+  const { sendStreamingMessage, isStreaming } = useStreamingChat({
+    onMeta: (meta) => {
+      latestStreamMeta.current = meta;
+      if (meta.threadId) setThreadId(meta.threadId);
+      if (meta.modeSwitchSuggestion) {
+        setModeSwitchInfo(meta.modeSwitchSuggestion);
+      }
+    },
+    onToken: (_token, accumulated) => {
+      const id = streamingMessageId.current ?? createMessageId();
+      streamingMessageId.current = id;
+      setStreamingMessage(
+        createBotMessageFromStream(
+          LANGUAGE_LABELS[language],
+          accumulated,
+          latestStreamMeta.current,
+          id
+        )
+      );
+      setTyping(false);
+    },
+    onDone: (fullText, meta) => {
+      setTyping(false);
+      const botMsg = createBotMessageFromStream(
+        LANGUAGE_LABELS[language],
+        fullText,
+        meta ?? latestStreamMeta.current,
+        streamingMessageId.current ?? createMessageId()
+      );
+      addMessage(botMsg);
+      setStreamingMessage(null);
+      latestStreamMeta.current = null;
+      streamingMessageId.current = null;
+    },
+    onError: (error) => {
+      setTyping(false);
+      setStreamingMessage(null);
+      latestStreamMeta.current = null;
+      streamingMessageId.current = null;
+      markLastFailed();
+      toast.error(error.message || "Chat failed.");
+    },
+  });
 
   const sendMessage = async (rawMessage: string) => {
     const message = rawMessage.trim();
@@ -202,44 +254,20 @@ export default function TextChatScreen() {
     setDraft("");
     setEditingMessageId(null);
     setTyping(true);
+    setStreamingMessage(null);
+    latestStreamMeta.current = null;
+    streamingMessageId.current = null;
 
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: withCsrfHeaders({
-          "Content-Type": "application/json",
-        }),
-        body: JSON.stringify({
-          message,
-          language,
-          threadId: threadId ?? undefined,
-          shortlistBankIds: shortlist,
-          mode: "chat",
-        }),
-      });
-      const payload = (await response.json()) as ChatApiPayload;
-
-      if (!response.ok || !payload.ok || !payload.response) {
-        throw new Error(payload.error || "Unable to get an answer right now.");
-      }
-
-      setThreadId(payload.threadId ?? null);
-      const botMsg = createBotMessage(LANGUAGE_LABELS[language], payload.response);
-      addMessage(botMsg);
-
-      // Check for mode-switch suggestion
-      if (payload.response.modeSwitchSuggestion) {
-        setModeSwitchInfo(payload.response.modeSwitchSuggestion);
-      }
-    } catch (error) {
-      markLastFailed();
-      toast.error(error instanceof Error ? error.message : "Chat failed.");
-    } finally {
-      setTyping(false);
-    }
+    await sendStreamingMessage({
+      message,
+      language,
+      threadId: threadId ?? undefined,
+      shortlistBankIds: shortlist,
+      mode: "chat",
+    });
   };
 
-  const handleRetry = (msg: ConversationMessage) => {
+  const handleRetry = () => {
     const failedMsg = retryLastMessage();
     if (failedMsg) {
       void sendMessage(failedMsg.content);
@@ -325,6 +353,15 @@ export default function TextChatScreen() {
       description="Ask questions about fixed deposits, get recommendations based on your shortlist, and clarify financial jargon."
       actions={
         <div className="flex gap-3">
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full bg-panel-glass"
+            onClick={() => setShowHistory(true)}
+          >
+            <BookOpen className="mr-2 h-4 w-4" />
+            History
+          </Button>
           <Link href={ROUTES.VOICE}>
             <Button size="sm" variant="outline" className="rounded-full bg-panel-glass">
               <Mic className="mr-2 h-4 w-4" />
@@ -356,6 +393,7 @@ export default function TextChatScreen() {
         title="Sign in to use the text bot"
         body="Sign in to save your conversation history and get personalized recommendations based on your profile."
       >
+        <HistoryDrawer open={showHistory} onClose={() => setShowHistory(false)} />
         <motion.div 
           variants={containerVariants}
           initial="hidden"
@@ -442,13 +480,13 @@ export default function TextChatScreen() {
                   ) : (
                     <>
                       <ConversationTimeline
-                        messages={messages}
+                        messages={streamingMessage ? [...messages, streamingMessage] : messages}
                         onAction={handleAction}
                         onRetry={handleRetry}
                         onEdit={handleEdit}
                         onChipSelect={handleChipSelect}
                         showSmartChips={true}
-                        isTyping={isTyping}
+                        isTyping={isTyping || !!streamingMessage}
                       />
                       
                       {/* Suggestion chips visible when < 3 messages */}
@@ -470,7 +508,7 @@ export default function TextChatScreen() {
                   )}
                   
                   <AnimatePresence>
-                    {isTyping && (
+                    {isTyping && !streamingMessage && (
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -572,7 +610,7 @@ export default function TextChatScreen() {
                         size="icon"
                         variant="secondary"
                         onClick={() => void sendMessage(draft)}
-                        disabled={isTyping || !draft.trim()}
+                        disabled={isTyping || isStreaming || !draft.trim()}
                         className="h-11 w-11 shrink-0 rounded-xl"
                       >
                         <Send className="h-4 w-4" />

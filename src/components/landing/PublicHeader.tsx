@@ -12,20 +12,15 @@ import { useConversationStore } from "@/stores/conversationStore";
 import type { AppLanguage } from "@/lib/server/advisor-schemas";
 
 export default function PublicHeader() {
-  const [mounted, setMounted] = React.useState(false);
   const [langOpen, setLangOpen] = React.useState(false);
   const user = useAuthStore((state) => state.user);
   const language = useConversationStore((s) => s.language);
   const setLanguage = useConversationStore((s) => s.setLanguage);
   const reduceMotion = useReducedMotion();
 
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const href = mounted && user ? ROUTES.HOME : ROUTES.LOGIN;
-  const label = mounted && user ? "Open home" : "Sign in";
-  const fullLabel = mounted && user ? "Open app home" : "Sign in / Login";
+  const href = user ? ROUTES.HOME : ROUTES.LOGIN;
+  const label = user ? "Open home" : "Sign in";
+  const fullLabel = user ? "Open app home" : "Sign in / Login";
 
   return (
     <motion.header

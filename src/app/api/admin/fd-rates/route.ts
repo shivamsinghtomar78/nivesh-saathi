@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
     await cacheSet("admin:fd-rates", body, 60 * 60 * 24 * 30);
     return jsonSuccess({ success: true, updated: body.length });
-  } catch (error) {
+  } catch {
     return jsonError("Failed to update FD rates", 500);
   }
 }

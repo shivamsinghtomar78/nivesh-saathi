@@ -1,7 +1,6 @@
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import {
   END,
-  MemorySaver,
   MessagesValue,
   START,
   StateGraph,
@@ -21,6 +20,7 @@ import {
 import { buildDeterministicAdvisorResponse } from "@/lib/server/fd-service";
 import { hasLlmConfig } from "@/lib/server/env";
 import { invokeLlm, type LlmMessage } from "@/lib/server/llm-client";
+import { getUserMemory, updateUserMemory } from "@/lib/server/persistence";
 
 const DEFAULT_AMOUNT = 50000;
 const DEFAULT_TENOR_MONTHS = 12;
@@ -37,12 +37,17 @@ const detectedIntentSchema = z.object({
   bankType: z.enum(["all", "public", "private", "small-finance"]),
   seniorCitizen: z.boolean(),
   termsToExplain: z.array(z.string()),
+  needsClarification: z.boolean(),
+  clarificationChips: z.array(z.string()),
 });
 
 const narrativeSchema = z.object({
   text: z.string().min(1),
   followUpPrompt: z.string().optional(),
   warnings: z.array(z.string()).optional(),
+  showCalculator: z.boolean().optional(),
+  showTimeMachine: z.boolean().optional(),
+  tone: z.enum(["informative", "celebratory", "cautionary"]).optional(),
 });
 
 const agentState = new StateSchema({
@@ -56,6 +61,7 @@ const agentState = new StateSchema({
   shortlistBankIds: z.array(z.string()).optional(),
   intent: detectedIntentSchema.optional(),
   response: advisorResponseSchema.optional(),
+  userMemory: z.any().optional(),
 });
 
 // Custom persistence via Upstash/Redis cache
@@ -178,6 +184,39 @@ function extractAmount(message: string) {
   return Number(explicitCurrencyMatch[1].replaceAll(",", ""));
 }
 
+function extractInvestmentAmount(message: string) {
+  const parseNumber = (value: string) => Number(value.replaceAll(",", ""));
+  const applyUnit = (value: number, unit?: string) => {
+    if (!unit) return value;
+    if (/^(lakh|laakh|lac)$/i.test(unit)) return value * 100000;
+    if (/^crore$/i.test(unit)) return value * 10000000;
+    return value;
+  };
+
+  const unitMatch = message.match(
+    /([0-9][0-9,]*(?:\.\d+)?)\s*(lakh|laakh|lac|crore)\b/i
+  );
+  if (unitMatch) {
+    return Math.round(applyUnit(parseNumber(unitMatch[1]), unitMatch[2]));
+  }
+
+  const prefixedCurrencyMatch = message.match(
+    /(?:\u20b9|rs\.?|inr|rupees?|rupay|rupaye)\s*([0-9][0-9,]*(?:\.\d+)?)(?:\s*(lakh|laakh|lac|crore))?/i
+  );
+  if (prefixedCurrencyMatch) {
+    return Math.round(
+      applyUnit(parseNumber(prefixedCurrencyMatch[1]), prefixedCurrencyMatch[2])
+    );
+  }
+
+  const suffixedCurrencyMatch = message.match(
+    /([0-9][0-9,]*(?:\.\d+)?)\s*(?:rupees?|rupay|rupaye|inr)\b/i
+  );
+  return suffixedCurrencyMatch
+    ? Math.round(parseNumber(suffixedCurrencyMatch[1]))
+    : null;
+}
+
 function extractTenorMonths(message: string) {
   const monthMatch = message.match(/(\d+)\s*(?:month|months|mo|mahine|maadham|mash)/i);
   if (monthMatch) {
@@ -213,6 +252,39 @@ function inferObjective(message: string, terms: string[]) {
   return "general_fd" as const;
 }
 
+function getClarificationChips(language: AppLanguage) {
+  if (language === "hi") {
+    return ["1 saal ke liye best FD", "Sabse safe bank", "Rs 5 lakh ka split plan"];
+  }
+  if (language === "ta") {
+    return ["Best 1 year FD", "Safest bank", "Rs 5 lakh split plan"];
+  }
+  if (language === "bn") {
+    return ["Best 1 year FD", "Safest bank", "Rs 5 lakh split plan"];
+  }
+  return ["Best 1 year FD", "Safest bank", "Split Rs 5 lakh safely"];
+}
+
+function needsIntentClarification(input: {
+  message: string;
+  objective: "compare_rates" | "understand_term" | "check_safety" | "general_fd";
+  amount: number | null;
+  tenorMonths: number | null;
+}) {
+  const normalized = input.message.toLowerCase().trim();
+  const wordCount = normalized.split(/\s+/).filter(Boolean).length;
+  const isVagueAsk =
+    /(best fd|safe investment|best investment|highest rate|fd rates?|which fd|kaunsi fd|best)/i.test(
+      normalized
+    ) || wordCount <= 4;
+
+  return (
+    isVagueAsk &&
+    (input.objective === "compare_rates" || input.objective === "general_fd") &&
+    (!input.amount || !input.tenorMonths)
+  );
+}
+
 function detectIntentHeuristically(input: {
   message: string;
   requestedAmount?: number;
@@ -221,12 +293,19 @@ function detectIntentHeuristically(input: {
   bankType?: BankTypeFilter;
 }) {
   const termsToExplain = detectTerms(input.message);
-  const amount = input.requestedAmount ?? extractAmount(input.message);
+  const amount = input.requestedAmount ?? extractInvestmentAmount(input.message) ?? extractAmount(input.message);
   const tenorMonths =
     input.requestedTenorMonths ?? extractTenorMonths(input.message);
+  const objective = inferObjective(input.message, termsToExplain);
+  const clarificationNeeded = needsIntentClarification({
+    message: input.message,
+    objective,
+    amount,
+    tenorMonths,
+  });
 
   return detectedIntentSchema.parse({
-    objective: inferObjective(input.message, termsToExplain),
+    objective,
     amount,
     tenorMonths,
     bankType:
@@ -242,12 +321,17 @@ function detectIntentHeuristically(input: {
       input.seniorCitizen ??
       /(senior citizen|senior|varishth|boyoshko|mooththa)/i.test(input.message),
     termsToExplain,
+    needsClarification: clarificationNeeded,
+    clarificationChips: clarificationNeeded
+      ? getClarificationChips("en")
+      : [],
   });
 }
 
 async function detectIntentNode(state: typeof agentState.State) {
   const latestMessage = state.messages.at(-1);
   const messageText = getMessageText(latestMessage?.content);
+  const language = (state.language ?? "en") as AppLanguage;
 
   const heuristicIntent = detectIntentHeuristically({
     message: messageText,
@@ -257,7 +341,14 @@ async function detectIntentNode(state: typeof agentState.State) {
     bankType: state.bankType,
   });
 
-  return { intent: heuristicIntent };
+  return {
+    intent: {
+      ...heuristicIntent,
+      clarificationChips: heuristicIntent.needsClarification
+        ? getClarificationChips(language)
+        : [],
+    },
+  };
 }
 
 async function assembleResponseNode(state: typeof agentState.State) {
@@ -310,6 +401,62 @@ function generateSuggestedChips(response: AdvisorResponse, language: AppLanguage
   return chips.slice(0, 3);
 }
 
+function shouldShowCalculator(message: string) {
+  return /(calculate|calculator|maturity|return|interest earned|kitni hogi|mature)/i.test(
+    message
+  );
+}
+
+function shouldShowTimeMachine(message: string) {
+  return /(historical|history|trend|past rate|last year|time machine|rates higher)/i.test(
+    message
+  );
+}
+
+function getClarificationPrompt(language: AppLanguage) {
+  if (language === "hi") {
+    return "Goal choose kijiye: highest return, safest bank, ya amount-tenure based recommendation.";
+  }
+  if (language === "ta") {
+    return "Highest return, safest bank, or amount-tenure recommendation - edhai paarkkalam?";
+  }
+  if (language === "bn") {
+    return "Highest return, safest bank, na amount-tenure recommendation - konta dekhben?";
+  }
+  return "Choose a direction: highest return, safest bank, or a recommendation based on your amount and tenure.";
+}
+
+function enrichResponse(params: {
+  response: AdvisorResponse;
+  language: AppLanguage;
+  mode: ConversationMode;
+  messageText: string;
+  intent?: z.infer<typeof detectedIntentSchema>;
+}) {
+  const { response, language, mode, messageText, intent } = params;
+  const clarificationChips =
+    intent?.needsClarification && intent.clarificationChips.length > 0
+      ? intent.clarificationChips
+      : null;
+
+  return {
+    ...response,
+    followUpPrompt: intent?.needsClarification
+      ? getClarificationPrompt(language)
+      : response.followUpPrompt,
+    showCalculator: response.showCalculator || shouldShowCalculator(messageText),
+    showTimeMachine: response.showTimeMachine || shouldShowTimeMachine(messageText),
+    suggestedChips: clarificationChips ?? generateSuggestedChips(response, language),
+    modeSwitchSuggestion: detectModeSwitchSuggestion(response, mode, language),
+    tone:
+      response.warnings.length > 0
+        ? ("cautionary" as const)
+        : response.portfolioSplit
+          ? ("celebratory" as const)
+          : response.tone,
+  } satisfies AdvisorResponse;
+}
+
 /**
  * Detect if the response content is better suited for a different mode.
  * E.g., data-heavy rate comparisons should suggest switching to chat from voice.
@@ -351,6 +498,8 @@ async function narrateNode(state: typeof agentState.State) {
   const response = state.response;
   const language = (state.language ?? "en") as AppLanguage;
   const mode = (state.mode ?? "chat") as ConversationMode;
+  const latestMessage = state.messages.at(-1);
+  const messageText = getMessageText(latestMessage?.content);
 
   if (!response) {
     const fallback = await buildDeterministicAdvisorResponse({
@@ -361,23 +510,32 @@ async function narrateNode(state: typeof agentState.State) {
       glossaryTermIds: ["pa", "tenor", "dicgc"],
     });
 
-    // Enrich with smart chips and mode-switch
-    fallback.suggestedChips = generateSuggestedChips(fallback, language);
-    fallback.modeSwitchSuggestion = detectModeSwitchSuggestion(fallback, mode, language);
+    const enrichedFallback = enrichResponse({
+      response: fallback,
+      language,
+      mode,
+      messageText,
+      intent: state.intent,
+    });
 
     return {
-      response: fallback,
-      messages: [new AIMessage(fallback.text)],
+      response: enrichedFallback,
+      messages: [new AIMessage(enrichedFallback.text)],
     };
   }
 
   if (!hasLlmConfig) {
-    // Enrich response before returning
-    response.suggestedChips = generateSuggestedChips(response, language);
-    response.modeSwitchSuggestion = detectModeSwitchSuggestion(response, mode, language);
+    const enrichedResponse = enrichResponse({
+      response,
+      language,
+      mode,
+      messageText,
+      intent: state.intent,
+    });
 
     return {
-      messages: [new AIMessage(response.text)],
+      response: enrichedResponse,
+      messages: [new AIMessage(enrichedResponse.text)],
     };
   }
 
@@ -396,11 +554,17 @@ async function narrateNode(state: typeof agentState.State) {
     ? "IMPORTANT: This response will be SPOKEN ALOUD. Keep it under 3 sentences maximum. Use simple, conversational phrasing. Do NOT use bullet points, headings, or structured formatting. Speak as if talking to a friend. If there are multiple rate cards, mention only the top 1-2."
     : "Structure text with short labelled sections and hyphen bullets. You may be detailed.";
 
+  let memoryContext = "";
+  if (state.userMemory) {
+    const mem = state.userMemory;
+    memoryContext = `User Profile Context: Investment Goal: ${mem.investmentGoals || "Unknown"}, Preferred Tenor: ${mem.preferredTenorMonths || "Unknown"} months, Risk: ${mem.riskTolerance || "Unknown"}, Amount: ${mem.amount || "Unknown"}. Keep this in mind when responding to make the user feel known. `;
+  }
+
   const prompt: LlmMessage[] = [
     {
       role: "system",
       content:
-        `You are Nivesh Saathi, a warm fixed deposit guide for India. Keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings. Use plain text only: no markdown bold markers, no asterisks, and no tables. ${modeInstruction} ${languagePrompt}`,
+        `You are Nivesh Saathi, a warm fixed deposit guide for India. ${memoryContext}Keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings, showCalculator, showTimeMachine, tone. Use plain text only: no markdown bold markers, no asterisks, and no tables. ${modeInstruction} ${languagePrompt}\nSet showCalculator=true if the user asks to calculate returns, maturity, or uses words like 'calculator' or 'calculate'. Set showTimeMachine=true if the user asks for historical rate trends, past rates, or 'time machine'. Tone must be one of informative, celebratory, cautionary.`,
     },
     {
       role: "user",
@@ -425,10 +589,16 @@ async function narrateNode(state: typeof agentState.State) {
     const parsed = llmResponse ? safeJsonParse(llmResponse, narrativeSchema) : null;
 
     if (!parsed) {
-      response.suggestedChips = generateSuggestedChips(response, language);
-      response.modeSwitchSuggestion = detectModeSwitchSuggestion(response, mode, language);
+      const enrichedResponse = enrichResponse({
+        response,
+        language,
+        mode,
+        messageText,
+        intent: state.intent,
+      });
       return {
-        messages: [new AIMessage(response.text)],
+        response: enrichedResponse,
+        messages: [new AIMessage(enrichedResponse.text)],
       };
     }
 
@@ -438,32 +608,51 @@ async function narrateNode(state: typeof agentState.State) {
       const validRates = response.rateCards.map((c) => `${c.rateValue.toFixed(2)}%`);
       const hasHallucination = mentionedRates.some((r) => !validRates.includes(r));
       if (hasHallucination) {
-        response.suggestedChips = generateSuggestedChips(response, language);
-        response.modeSwitchSuggestion = detectModeSwitchSuggestion(response, mode, language);
+        const enrichedResponse = enrichResponse({
+          response,
+          language,
+          mode,
+          messageText,
+          intent: state.intent,
+        });
         return {
-          messages: [new AIMessage(response.text)],
+          response: enrichedResponse,
+          messages: [new AIMessage(enrichedResponse.text)],
         };
       }
     }
 
-    const finalResponse: AdvisorResponse = {
-      ...response,
-      text: parsed.text,
-      followUpPrompt: parsed.followUpPrompt ?? response.followUpPrompt,
-      warnings: parsed.warnings ?? response.warnings,
-      suggestedChips: generateSuggestedChips(response, language),
-      modeSwitchSuggestion: detectModeSwitchSuggestion(response, mode, language),
-    };
+    const finalResponse = enrichResponse({
+      response: {
+        ...response,
+        text: parsed.text,
+        followUpPrompt: parsed.followUpPrompt ?? response.followUpPrompt,
+        warnings: parsed.warnings ?? response.warnings,
+        showCalculator: parsed.showCalculator ?? false,
+        showTimeMachine: parsed.showTimeMachine ?? false,
+        tone: parsed.tone ?? response.tone,
+      },
+      language,
+      mode,
+      messageText,
+      intent: state.intent,
+    });
 
     return {
       response: finalResponse,
       messages: [new AIMessage(finalResponse.text)],
     };
   } catch {
-    response.suggestedChips = generateSuggestedChips(response, language);
-    response.modeSwitchSuggestion = detectModeSwitchSuggestion(response, mode, language);
+    const enrichedResponse = enrichResponse({
+      response,
+      language,
+      mode,
+      messageText,
+      intent: state.intent,
+    });
     return {
-      messages: [new AIMessage(response.text)],
+      response: enrichedResponse,
+      messages: [new AIMessage(enrichedResponse.text)],
     };
   }
 }
@@ -490,9 +679,10 @@ export async function invokeFdAdvisor(input: ChatRequest) {
   const historyKey = `chat_history:${threadId}`;
   const prefsKey = `chat_prefs:${threadId}`;
   
-  const [rawHistory, cachedPrefs] = await Promise.all([
+  const [rawHistory, cachedPrefs, userMemory] = await Promise.all([
     cacheGet<Array<{ role: string; content: string }>>(historyKey),
-    cacheGet<ThreadPreferences>(prefsKey)
+    cacheGet<ThreadPreferences>(prefsKey),
+    getUserMemory(input.userId ?? ""),
   ]);
   
   const prefs = cachedPrefs || {};
@@ -517,11 +707,12 @@ export async function invokeFdAdvisor(input: ChatRequest) {
       messages: [...history, new HumanMessage(input.message)],
       language: input.language,
       mode: input.mode ?? "chat",
-      requestedAmount: input.amount ?? prefs.amount,
-      requestedTenorMonths: input.tenorMonths ?? prefs.tenorMonths,
-      seniorCitizen: input.seniorCitizen ?? prefs.seniorCitizen,
+      requestedAmount: input.amount ?? prefs.amount ?? userMemory?.amount,
+      requestedTenorMonths: input.tenorMonths ?? prefs.tenorMonths ?? userMemory?.preferredTenorMonths,
+      seniorCitizen: input.seniorCitizen ?? prefs.seniorCitizen ?? userMemory?.seniorCitizen,
       bankType: input.bankType ?? prefs.bankType,
-      shortlistBankIds: input.shortlistBankIds,
+      shortlistBankIds: input.shortlistBankIds ?? userMemory?.pastBanksConsidered,
+      userMemory,
     },
     {
       configurable: {
@@ -544,6 +735,15 @@ export async function invokeFdAdvisor(input: ChatRequest) {
       bankType: result.intent.bankType ?? prefs.bankType,
     };
     await cacheSet(prefsKey, newPrefs, 86400 * 5);
+
+    if (input.userId) {
+      await updateUserMemory(input.userId, {
+        amount: newPrefs.amount,
+        preferredTenorMonths: newPrefs.tenorMonths,
+        seniorCitizen: newPrefs.seniorCitizen,
+        pastBanksConsidered: result.response?.rateCards.map((card) => card.bankId),
+      });
+    }
   }
 
   return {
@@ -552,11 +752,11 @@ export async function invokeFdAdvisor(input: ChatRequest) {
       result.response ??
       (await buildDeterministicAdvisorResponse({
         language: input.language,
-        amount: input.amount ?? DEFAULT_AMOUNT,
-        tenorMonths: input.tenorMonths ?? DEFAULT_TENOR_MONTHS,
-        seniorCitizen: input.seniorCitizen,
-        bankType: input.bankType,
-        preferredBankIds: input.shortlistBankIds,
+        amount: input.amount ?? prefs.amount ?? userMemory?.amount ?? DEFAULT_AMOUNT,
+        tenorMonths: input.tenorMonths ?? prefs.tenorMonths ?? userMemory?.preferredTenorMonths ?? DEFAULT_TENOR_MONTHS,
+        seniorCitizen: input.seniorCitizen ?? prefs.seniorCitizen ?? userMemory?.seniorCitizen,
+        bankType: input.bankType ?? prefs.bankType,
+        preferredBankIds: input.shortlistBankIds ?? userMemory?.pastBanksConsidered,
         glossaryTermIds: ["pa", "tenor", "dicgc"],
       })),
   };

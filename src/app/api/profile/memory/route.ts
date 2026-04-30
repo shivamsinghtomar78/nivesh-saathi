@@ -1,0 +1,38 @@
+import { jsonSuccess, handleRouteError } from "@/lib/server/api";
+import { requireCsrfProtection, requireFirebaseSession } from "@/lib/server/auth";
+import { updateUserMemory } from "@/lib/server/persistence";
+import { z } from "zod";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const updateMemorySchema = z.object({
+  investmentGoals: z.string().optional(),
+  amount: z.number().optional(),
+  preferredTenorMonths: z.number().optional(),
+  seniorCitizen: z.boolean().optional(),
+  themePreference: z.enum(["light", "dark", "system"]).optional(),
+});
+
+export async function POST(request: Request) {
+  try {
+    const csrfError = requireCsrfProtection(request);
+    if (csrfError) return csrfError;
+
+    const auth = await requireFirebaseSession(request);
+    if (!auth.ok) {
+      return auth.response;
+    }
+
+    const body = await request.json();
+    const data = updateMemorySchema.parse(body);
+
+    await updateUserMemory(auth.session.uid, data);
+
+    return jsonSuccess({ updated: true });
+  } catch (error) {
+    return handleRouteError(error, "Failed to update user memory", {
+      zodMessage: "Invalid memory update payload",
+    });
+  }
+}
