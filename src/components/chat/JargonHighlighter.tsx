@@ -17,7 +17,7 @@ interface JargonHighlighterProps {
  * 
  * Scans assistant message text for known financial jargon terms
  * and renders them as clickable inline chips. Clicking opens a 
- * micro-tooltip with the definition — no page navigation needed.
+ * micro-tooltip with the definition, without page navigation.
  */
 export function JargonHighlighter({ text, className }: JargonHighlighterProps) {
   const [activeTerm, setActiveTerm] = useState<string | null>(null);
@@ -51,7 +51,7 @@ export function JargonHighlighter({ text, className }: JargonHighlighterProps) {
 
     // Add extra built-in terms not in the dictionary
     const extras: Record<string, { term: string; def: string; ex: string; patterns: string[] }> = {
-      kyc: { term: "KYC", def: "Know Your Customer — identity verification required to open an FD.", ex: "You need Aadhaar + PAN for KYC.", patterns: ["kyc"] },
+      kyc: { term: "KYC", def: "Know Your Customer: identity verification required to open an FD.", ex: "You need Aadhaar + PAN for KYC.", patterns: ["kyc"] },
       senior: { term: "Senior Citizen", def: "People aged 60+ get 0.25%-0.75% extra FD interest.", ex: "SBI gives 8% to seniors vs 7.5% regular.", patterns: ["senior citizen"] },
     };
     for (const extra of Object.values(extras)) {
@@ -180,7 +180,7 @@ export function JargonHighlighter({ text, className }: JargonHighlighterProps) {
                   </p>
                   {activeDefinition.example && (
                     <p className="mt-1.5 text-[11px] text-text-muted italic leading-relaxed">
-                      💡 {activeDefinition.example}
+                      Tip: {activeDefinition.example}
                     </p>
                   )}
                 </motion.div>

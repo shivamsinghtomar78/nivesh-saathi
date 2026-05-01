@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValue, useMotionValueEvent, useSpring } from "framer-motion";
 import { Calculator, IndianRupee, Percent, TimerReset } from "lucide-react";
 
@@ -43,6 +43,7 @@ export function FDCalculatorCard({
   const [ratePercent, setRatePercent] = useState(() => clamp(defaultRatePercent, 4, 10));
   const [compounding, setCompounding] = useState<CompoundingMode>(defaultCompounding);
   const [displayAmount, setDisplayAmount] = useState(principal);
+  const hasMounted = useRef(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -78,6 +79,10 @@ export function FDCalculatorCard({
   });
 
   useEffect(() => {
+    if (!hasMounted.current) {
+      setDisplayAmount(maturity.maturityAmount);
+      hasMounted.current = true;
+    }
     maturityValue.set(maturity.maturityAmount);
   }, [maturity.maturityAmount, maturityValue]);
 

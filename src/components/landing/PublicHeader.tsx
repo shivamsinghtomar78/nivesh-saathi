@@ -88,7 +88,7 @@ export default function PublicHeader() {
           >
             <Link
               href={href}
-              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-accent px-3 text-sm font-semibold text-white shadow-[0_0_30px_rgba(0,102,255,0.34)] transition hover:bg-accent-hover sm:px-5"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-accent px-3 text-sm font-semibold text-on-accent shadow-[0_18px_42px_rgba(89,221,185,0.18)] transition hover:bg-accent-hover sm:px-5"
             >
               <span className="sm:hidden">{label}</span>
               <span className="hidden sm:inline">{fullLabel}</span>

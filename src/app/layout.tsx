@@ -12,9 +12,9 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Nivesh Saathi | Voice-first FD advisor",
+  title: "Nivesh Saathi | Secure FD advisor",
   description:
-    "Voice-first fixed deposit advisor for India with plain-language compare flows, multilingual chat, and secure mobile auth.",
+    "Secure fixed deposit advisor for India with plain-language compare flows, multilingual chat and voice, and protected auth.",
   keywords: [
     "FD rates",
     "Fixed Deposit",
@@ -56,7 +56,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#08121c" />
+        <meta name="theme-color" content="#07110f" />
         <link rel="preconnect" href="https://firebaseapp.com" />
         <link rel="preconnect" href="https://generativelanguage.googleapis.com" />
       </head>

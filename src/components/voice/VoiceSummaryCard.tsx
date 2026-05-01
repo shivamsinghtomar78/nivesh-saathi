@@ -34,7 +34,7 @@ export function VoiceSummaryCard({ summary, topRates, onClose }: VoiceSummaryCar
             transition={{ type: "spring", delay: 0.2 }}
             className="mx-auto w-12 h-12 bg-accent rounded-full flex items-center justify-center mb-3"
           >
-            <CheckCircle2 className="w-6 h-6 text-on-dark" />
+            <CheckCircle2 className="w-6 h-6 text-on-accent" />
           </motion.div>
           <CardTitle className="text-xl text-on-dark">Session Summary</CardTitle>
         </CardHeader>

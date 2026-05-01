@@ -222,7 +222,7 @@ export function OnboardingWizard() {
           <Button
             onClick={step === steps.length ? handleComplete : handleNext}
             disabled={!currentStep.isValid}
-                  className="min-w-[120px] bg-accent text-white hover:bg-accent-hover"
+                  className="min-w-[120px] bg-accent text-on-accent hover:bg-accent-hover"
           >
             {step === steps.length ? (
               <>Finish <Check className="w-4 h-4 ml-2" /></>

@@ -23,7 +23,6 @@ const LOCALIZED_COPY: Record<
   AppLanguage,
   {
     compareLabel: string;
-    voiceLabel: string;
     explainLabel: string;
     officialLabel: string;
     followUp: string;
@@ -33,7 +32,6 @@ const LOCALIZED_COPY: Record<
 > = {
   en: {
     compareLabel: "Compare more rates",
-    voiceLabel: "Use the mic",
     explainLabel: "Explain a term",
     officialLabel: "Official bank page",
     followUp:
@@ -44,7 +42,6 @@ const LOCALIZED_COPY: Record<
   },
   hi: {
     compareLabel: "Aur rates compare kijiye",
-    voiceLabel: "Mic se poochhiye",
     explainLabel: "Koi term samjhaiye",
     officialLabel: "Bank ki official site",
     followUp:
@@ -55,7 +52,6 @@ const LOCALIZED_COPY: Record<
   },
   ta: {
     compareLabel: "Innum rates compare pannunga",
-    voiceLabel: "Mic use pannunga",
     explainLabel: "Oru term-ai vilakkunga",
     officialLabel: "Bank official page",
     followUp:
@@ -66,7 +62,6 @@ const LOCALIZED_COPY: Record<
   },
   bn: {
     compareLabel: "Aro rate tulona korun",
-    voiceLabel: "Mic diye jiggesh korun",
     explainLabel: "Ekta term bujhiye din",
     officialLabel: "Banker official page",
     followUp:
@@ -279,13 +274,6 @@ export function buildAdvisorActions(params: {
       action: "open_compare",
       icon: "shield",
       url: ROUTES.COMPARE,
-    },
-    {
-      label: copy.voiceLabel,
-      type: "secondary",
-      action: "open_voice",
-      icon: "mic",
-      url: ROUTES.CHAT,
     },
     {
       label: copy.explainLabel,

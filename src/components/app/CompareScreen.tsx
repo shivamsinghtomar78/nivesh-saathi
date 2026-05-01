@@ -172,7 +172,7 @@ export default function CompareScreen() {
                     <Calculator className="w-3 h-3" /> Principal
                   </span>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted font-medium">₹</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted font-medium">Rs</span>
                     <input
                       type="number"
                       min={1000}

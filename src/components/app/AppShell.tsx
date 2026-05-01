@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Landmark, UserRound, Settings, ChevronDown, Home, BarChart3, MessageCircleMore, Mic } from "lucide-react";
+import { LogOut, Landmark, UserRound, Settings, ChevronDown, Home, BarChart3, MessageCircleMore } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ReactNode } from "react";
@@ -22,7 +22,6 @@ const NAV_ITEMS = [
   { href: ROUTES.HOME, key: "home" as const, icon: Home },
   { href: ROUTES.COMPARE, key: "compare" as const, icon: BarChart3 },
   { href: ROUTES.CHAT, key: "chat" as const, icon: MessageCircleMore },
-  { href: ROUTES.VOICE, key: "voice" as const, icon: Mic },
 ];
 
 type AppShellProps = {
@@ -103,14 +102,14 @@ export default function AppShell({
                 >
                   <span className={cn(
                     "relative z-10 transition-colors duration-300",
-                    active ? "text-white" : "text-text-muted group-hover:text-text-strong"
+                    active ? "text-on-accent" : "text-text-muted group-hover:text-text-strong"
                   )}>
                     {copy.nav[item.key]}
                   </span>
                   {active && (
                     <motion.div
                       layoutId="activeNavBackground"
-                      className="absolute inset-0 rounded-full bg-accent shadow-[0_10px_24px_rgba(10,127,100,0.22)] dark:shadow-[0_0_30px_rgba(0,102,255,0.34)]"
+                      className="absolute inset-0 rounded-full bg-accent shadow-[0_10px_24px_rgba(10,127,100,0.22)] dark:shadow-[0_18px_42px_rgba(89,221,185,0.18)]"
                       initial={false}
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
@@ -130,7 +129,7 @@ export default function AppShell({
                   className={cn(
                     "rounded-full px-3 py-1.5 text-xs font-medium transition",
                     language === code
-                      ? "bg-accent text-white shadow-sm dark:shadow-[0_0_22px_rgba(0,102,255,0.28)]"
+                      ? "bg-accent text-on-accent shadow-sm dark:shadow-[0_12px_30px_rgba(89,221,185,0.18)]"
                       : "text-text-muted hover:bg-inner-panel hover:text-text-strong"
                   )}
                 >
@@ -201,14 +200,20 @@ export default function AppShell({
         </div>
       </header>
 
-      <main className={cn("min-h-screen pb-24 lg:pb-12", workspace ? "pt-20" : "pt-24")}>
+      <main
+        className={cn(
+          workspace
+            ? "h-screen overflow-hidden pb-0 pt-16"
+            : "min-h-screen pb-24 pt-24 lg:pb-12"
+        )}
+      >
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
           className={cn(
             "mx-auto flex max-w-7xl flex-col px-4 md:px-6 lg:px-8",
-            workspace ? "gap-4 py-3" : "gap-8 py-6"
+            workspace ? "h-[calc(100vh-4rem)] gap-3 py-3" : "gap-8 py-6"
           )}
         >
           {!workspace ? (
@@ -243,39 +248,40 @@ export default function AppShell({
         </motion.div>
       </main>
 
-      {/* Bottom nav with Lucide icons */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/92 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(20,32,40,0.06)] backdrop-blur-xl lg:hidden">
-        <div className="mx-auto grid max-w-3xl grid-cols-4 gap-1 px-2 py-2">
-          {NAV_ITEMS.map((item) => {
-            const active =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const Icon = item.icon;
+      {!workspace ? (
+        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/92 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(20,32,40,0.06)] backdrop-blur-xl lg:hidden">
+          <div className="mx-auto grid max-w-3xl grid-cols-3 gap-1 px-2 py-2">
+            {NAV_ITEMS.map((item) => {
+              const active =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const Icon = item.icon;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "relative rounded-2xl px-2 py-2.5 text-center text-[11px] font-medium transition flex flex-col items-center justify-center gap-1",
-                  active
-                    ? "text-text-strong"
-                    : "text-text-muted hover:bg-input-bg"
-                )}
-              >
-                {active && (
-                  <motion.div
-                    layoutId="activeBottomNav"
-                    className="absolute inset-0 -z-10 rounded-[var(--radius-panel)] bg-accent-soft"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <Icon className={cn("h-5 w-5 mb-0.5", active && "text-accent")} />
-                <span className={cn(active && "font-semibold")}>{copy.nav[item.key]}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "relative rounded-2xl px-2 py-2.5 text-center text-[11px] font-medium transition flex flex-col items-center justify-center gap-1",
+                    active
+                      ? "text-text-strong"
+                      : "text-text-muted hover:bg-input-bg"
+                  )}
+                >
+                  {active && (
+                    <motion.div
+                      layoutId="activeBottomNav"
+                      className="absolute inset-0 -z-10 rounded-[var(--radius-panel)] bg-accent-soft"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <Icon className={cn("h-5 w-5 mb-0.5", active && "text-accent")} />
+                  <span className={cn(active && "font-semibold")}>{copy.nav[item.key]}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      ) : null}
       <OnboardingWizard />
     </div>
   );

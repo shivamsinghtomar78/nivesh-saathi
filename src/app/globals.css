@@ -21,6 +21,7 @@
   --color-outline: rgba(20, 32, 40, 0.12);
   --color-danger: #c2414b;
   --color-success: #0a7f64;
+  --color-on-accent: #ffffff;
 
   --radius-card: 8px;
   --radius-panel: 8px;
@@ -67,42 +68,43 @@ body {
 }
 
 .dark {
-  --color-app: #0d0d1a;
-  --color-panel: rgba(17, 24, 39, 0.9);
-  --color-panel-strong: #111827;
-  --color-panel-glass: rgba(17, 24, 39, 0.72);
-  --color-highlight: #f59e0b;
-  --color-highlight-hover: #fbbf24;
-  --color-highlight-soft: rgba(245, 158, 11, 0.14);
-  --color-accent: #0066ff;
-  --color-accent-hover: #1f7aff;
-  --color-accent-soft: rgba(0, 102, 255, 0.14);
-  --color-accent-warm: #8b5cf6;
-  --color-accent-warm-soft: rgba(139, 92, 246, 0.16);
-  --color-secondary: #a5b4fc;
-  --color-secondary-soft: rgba(165, 180, 252, 0.12);
-  --color-text-strong: #f1f1ee;
-  --color-text: #d9dce5;
-  --color-text-muted: #a4a8b6;
-  --color-outline: rgba(255, 255, 255, 0.08);
-  --color-danger: #ff858d;
-  --color-success: #0066ff;
-  --color-surface-dark: #0066ff;
-  --color-surface-dark-hover: #0057d9;
-  --color-on-dark: #ffffff;
-  --color-inner-panel: rgba(255, 255, 255, 0.045);
-  --color-input-bg: rgba(255, 255, 255, 0.07);
-  --shadow-card: 0 22px 70px rgba(0, 0, 0, 0.34);
-  --shadow-card-hover: 0 30px 86px rgba(0, 0, 0, 0.44);
-  --shadow-soft-layer: 0 16px 44px rgba(0, 0, 0, 0.32);
-  --ring-accent: 0 0 0 3px rgba(0, 102, 255, 0.24);
+  --color-app: #07110f;
+  --color-panel: rgba(12, 24, 21, 0.94);
+  --color-panel-strong: #101f1b;
+  --color-panel-glass: rgba(12, 24, 21, 0.78);
+  --color-highlight: #f1bc59;
+  --color-highlight-hover: #ffd98a;
+  --color-highlight-soft: rgba(241, 188, 89, 0.14);
+  --color-accent: #59ddb9;
+  --color-accent-hover: #7be7ca;
+  --color-accent-soft: rgba(89, 221, 185, 0.13);
+  --color-accent-warm: #f1bc59;
+  --color-accent-warm-soft: rgba(241, 188, 89, 0.14);
+  --color-secondary: #9bb6aa;
+  --color-secondary-soft: rgba(155, 182, 170, 0.12);
+  --color-text-strong: #f6fbf7;
+  --color-text: #d9e5df;
+  --color-text-muted: #aab9b2;
+  --color-outline: rgba(225, 244, 235, 0.12);
+  --color-danger: #ff8b95;
+  --color-success: #59ddb9;
+  --color-surface-dark: #59ddb9;
+  --color-surface-dark-hover: #7be7ca;
+  --color-on-dark: #06110e;
+  --color-on-accent: #06110e;
+  --color-inner-panel: rgba(255, 255, 255, 0.055);
+  --color-input-bg: rgba(255, 255, 255, 0.085);
+  --shadow-card: 0 22px 70px rgba(0, 0, 0, 0.38);
+  --shadow-card-hover: 0 30px 86px rgba(0, 0, 0, 0.5);
+  --shadow-soft-layer: 0 16px 44px rgba(0, 0, 0, 0.34);
+  --ring-accent: 0 0 0 3px rgba(89, 221, 185, 0.24);
 }
 
 .dark body {
   background:
-    radial-gradient(circle at 50% 2%, rgba(139, 92, 246, 0.2), transparent 34rem),
-    radial-gradient(circle at 78% 12%, rgba(0, 102, 255, 0.14), transparent 28rem),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 18rem),
+    radial-gradient(circle at 52% 0%, rgba(89, 221, 185, 0.11), transparent 32rem),
+    radial-gradient(circle at 82% 12%, rgba(241, 188, 89, 0.08), transparent 26rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 18rem),
     var(--color-app);
   color: var(--color-text);
 }
@@ -332,24 +334,25 @@ select:focus-visible {
 }
 
 .dark-context {
-  --color-text-strong: #f1f1ee;
-  --color-text: #d9dce5;
-  --color-text-muted: #a4a8b6;
-  --color-outline: rgba(255, 255, 255, 0.08);
-  --color-panel: rgba(17, 24, 39, 0.82);
-  --color-panel-strong: #111827;
-  --color-inner-panel: rgba(255, 255, 255, 0.045);
-  --color-panel-glass: rgba(17, 24, 39, 0.58);
-  --color-input-bg: rgba(255, 255, 255, 0.07);
-  --color-app: #0d0d1a;
-  --color-accent: #0066ff;
-  --color-accent-hover: #1f7aff;
-  --color-accent-soft: rgba(0, 102, 255, 0.14);
-  --color-surface-dark: #0066ff;
-  --color-surface-dark-hover: #0057d9;
-  --color-on-dark: #ffffff;
-  --shadow-card: 0 22px 70px rgba(0, 0, 0, 0.36);
-  --shadow-card-hover: 0 30px 86px rgba(0, 0, 0, 0.46);
+  --color-text-strong: #f6fbf7;
+  --color-text: #d9e5df;
+  --color-text-muted: #aab9b2;
+  --color-outline: rgba(225, 244, 235, 0.12);
+  --color-panel: rgba(12, 24, 21, 0.84);
+  --color-panel-strong: #101f1b;
+  --color-inner-panel: rgba(255, 255, 255, 0.055);
+  --color-panel-glass: rgba(12, 24, 21, 0.62);
+  --color-input-bg: rgba(255, 255, 255, 0.085);
+  --color-app: #07110f;
+  --color-accent: #59ddb9;
+  --color-accent-hover: #7be7ca;
+  --color-accent-soft: rgba(89, 221, 185, 0.13);
+  --color-surface-dark: #59ddb9;
+  --color-surface-dark-hover: #7be7ca;
+  --color-on-dark: #06110e;
+  --color-on-accent: #06110e;
+  --shadow-card: 0 22px 70px rgba(0, 0, 0, 0.38);
+  --shadow-card-hover: 0 30px 86px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes ack-pulse {

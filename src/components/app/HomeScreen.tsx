@@ -6,7 +6,6 @@ import {
   ArrowRight,
   BarChart3,
   MessageCircleMore,
-  Mic,
   TrendingUp,
 } from "lucide-react";
 
@@ -35,12 +34,6 @@ const quickActions = [
     title: "Compare Rates",
     body: "Analyze and shortlist rates across public, private, and small finance banks.",
     icon: BarChart3,
-  },
-  {
-    href: ROUTES.VOICE,
-    title: "Ask by Voice",
-    body: "Use a calm voice flow for FD questions in your preferred language.",
-    icon: Mic,
   },
 ];
 
@@ -153,7 +146,7 @@ export default function HomeScreen() {
               </Card>
             </motion.div>
 
-            <motion.div variants={containerVariants} className="grid gap-4 sm:grid-cols-3">
+            <motion.div variants={containerVariants} className="grid gap-4 sm:grid-cols-2">
               {quickActions.map((action) => {
                 const Icon = action.icon;
                 return (

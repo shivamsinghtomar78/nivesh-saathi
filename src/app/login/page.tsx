@@ -48,7 +48,7 @@ export default async function LoginPage({
 
             <MotionStaggerItem>
               <div className="mt-10 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-panel)] bg-accent text-white">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-panel)] bg-accent text-on-accent">
                   <Sparkles className="h-6 w-6" />
                 </div>
                 <div>

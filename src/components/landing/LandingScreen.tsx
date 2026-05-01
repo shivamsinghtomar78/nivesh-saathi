@@ -41,21 +41,21 @@ export default function LandingScreen() {
     <main className="dark-context min-h-screen overflow-hidden bg-app text-text">
       <PublicHeader />
 
-      <section className="safe-grid relative border-b border-outline bg-[#0D0D1A]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(139,92,246,0.20),transparent_36%),radial-gradient(circle_at_72%_18%,rgba(0,102,255,0.16),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_42%)]" />
+      <section className="safe-grid relative border-b border-outline bg-[#07110f]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(89,221,185,0.14),transparent_36%),radial-gradient(circle_at_72%_18%,rgba(241,188,89,0.10),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_42%)]" />
         <div className="relative mx-auto grid min-h-[92vh] max-w-7xl items-center gap-10 px-4 pb-16 pt-32 md:px-6 lg:grid-cols-[1fr_0.88fr] lg:px-8">
           <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.09 } } }}>
             <motion.div variants={fadeUp} className="mb-5 inline-flex items-center gap-2 rounded-full border border-outline bg-panel-glass px-3 py-2 text-xs font-semibold text-text">
-              <span className="font-heading text-base text-accent">निवेश साथी</span>
+              <span className="font-heading text-base text-accent">Secure FD advisor</span>
               <span>Nivesh Saathi</span>
             </motion.div>
 
             <motion.h1 variants={fadeUp} className="clamp-title max-w-4xl font-semibold tracking-tight text-text-strong">
-              Find India&apos;s Best Fixed Deposits in 30 Seconds
+              Nivesh Saathi
             </motion.h1>
 
             <motion.p variants={fadeUp} className="mt-5 max-w-2xl text-lg leading-8 text-text-muted md:text-xl">
-              Compare banks, calculate maturity, and ask Saathi in your language by text or voice.
+              Sign in to compare banks, calculate maturity, and ask Saathi in one secure text-plus-voice workspace.
             </motion.p>
 
             <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -63,11 +63,6 @@ export default function LandingScreen() {
                 <Button size="lg" className="min-h-14 px-7">
                   Sign in securely
                   <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href={ROUTES.COMPARE}>
-                <Button size="lg" variant="outline" className="min-h-14 border-white/14 bg-white/8 px-7 text-text-strong hover:bg-white/12">
-                  Compare rates
                 </Button>
               </Link>
             </motion.div>

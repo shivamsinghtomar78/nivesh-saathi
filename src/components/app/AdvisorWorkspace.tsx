@@ -25,9 +25,11 @@ import AppShell from "@/components/app/AppShell";
 import ConversationTimeline from "@/components/app/ConversationTimeline";
 import AuthGate from "@/components/auth/AuthGate";
 import { HistoryDrawer } from "@/components/chat/HistoryDrawer";
+import { VoiceSummaryCard } from "@/components/voice/VoiceSummaryCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LANGUAGE_LABELS } from "@/lib/copy";
+import { withCsrfHeaders } from "@/lib/csrf";
 import { LANGUAGE_META } from "@/lib/languages";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -197,6 +199,10 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const [streamingMessage, setStreamingMessage] = useState<ConversationMessage | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [spokenSummary, setSpokenSummary] = useState<string | null>(null);
+  const [voiceSummary, setVoiceSummary] = useState<{
+    summary: string;
+    topRates: { bankName: string; rate: string }[];
+  } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const latestStreamMeta = useRef<StreamMeta | null>(null);
@@ -276,7 +282,33 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
 
       addMessage(botMessage);
       if (botMessage.rateCards?.[0]) setSelectedRateCard(botMessage.rateCards[0]);
-      if (source === "voice") speakReply(botMessage.content, botMessage.tone);
+      if (source === "voice") {
+        speakReply(botMessage.content, botMessage.tone);
+        void fetch("/api/voice/summary", {
+          method: "POST",
+          headers: withCsrfHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({
+            messages: [...messages, botMessage].slice(-12).map((message) => ({
+              role: message.role,
+              content: message.content,
+              rateCards: message.rateCards?.map((card) => ({
+                bankName: card.bankName,
+                rate: card.rate,
+              })),
+            })),
+          }),
+        })
+          .then((response) => response.json())
+          .then((payload) => {
+            if (payload?.ok) {
+              setVoiceSummary({
+                summary: payload.summary,
+                topRates: payload.topRates ?? [],
+              });
+            }
+          })
+          .catch(() => undefined);
+      }
 
       setTyping(false);
       setStreamingMessage(null);
@@ -515,7 +547,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       >
         <HistoryDrawer open={showHistory} onClose={() => setShowHistory(false)} />
 
-        <div className="grid h-[calc(100vh-7rem)] min-h-0 items-stretch gap-5 overflow-hidden xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid h-full min-h-0 items-stretch gap-5 overflow-hidden xl:grid-cols-[minmax(0,1fr)_360px]">
           <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-outline bg-panel shadow-sm">
             <header className="border-b border-outline/60 bg-panel/95 p-4 backdrop-blur-xl">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -635,7 +667,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                       disabled={voice.isProcessing || isStreaming || isTyping}
                       className={cn(
                         "relative mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-outline bg-panel text-accent shadow-[var(--shadow-card)] transition hover:-translate-y-1 hover:border-accent/35 md:mx-0",
-                        voiceState === "listening" && "animate-mic-pulse bg-accent text-white",
+                        voiceState === "listening" && "animate-mic-pulse bg-accent text-on-accent",
                         voiceState === "speaking" && "bg-surface-dark text-on-dark",
                         voiceState === "error" && "text-danger"
                       )}
@@ -755,6 +787,16 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
             onSelectRateCard={setSelectedRateCard}
           />
         </div>
+
+        <AnimatePresence>
+          {voiceSummary ? (
+            <VoiceSummaryCard
+              summary={voiceSummary.summary}
+              topRates={voiceSummary.topRates}
+              onClose={() => setVoiceSummary(null)}
+            />
+          ) : null}
+        </AnimatePresence>
 
         <AnimatePresence>
           {showMobileInsights ? (
