@@ -6,8 +6,8 @@ import {
   ArrowRight,
   BarChart3,
   MessageCircleMore,
+  Mic,
   TrendingUp,
-  UserRound,
 } from "lucide-react";
 
 import AuthGate from "@/components/auth/AuthGate";
@@ -37,10 +37,10 @@ const quickActions = [
     icon: BarChart3,
   },
   {
-    href: ROUTES.PROFILE,
-    title: "Profile & History",
-    body: "Review your secure account, saved context, and advisor activity.",
-    icon: UserRound,
+    href: ROUTES.VOICE,
+    title: "Ask by Voice",
+    body: "Use a calm voice flow for FD questions in your preferred language.",
+    icon: Mic,
   },
 ];
 
@@ -116,7 +116,7 @@ export default function HomeScreen() {
                     Here&apos;s a quick summary of your current session.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="relative z-10 grid gap-4 sm:grid-cols-3">
+                <CardContent className="relative z-10 grid gap-4 sm:grid-cols-4">
                   <div className="rounded-2xl border border-outline bg-panel p-5 transition-shadow hover:shadow-soft">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                       Saved Shortlist
@@ -139,6 +139,14 @@ export default function HomeScreen() {
                     </p>
                     <p className="mt-2 text-3xl font-semibold text-text-strong">
                       {LANGUAGE_LABELS[language]}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-outline bg-panel p-5 transition-shadow hover:shadow-soft">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                      Top Market Rate
+                    </p>
+                    <p className="financial-value mt-2 text-3xl font-semibold text-accent">
+                      {topRates[0]?.regularRate ? `${topRates[0].regularRate.toFixed(2)}%` : "--"}
                     </p>
                   </div>
                 </CardContent>

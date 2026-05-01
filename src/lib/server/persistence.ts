@@ -1,6 +1,11 @@
 import type { AppLanguage } from "@/lib/server/advisor-schemas";
 import { getFirebaseAdminDb } from "@/lib/server/firebase-admin";
 import { logServerError } from "@/lib/server/telemetry";
+import {
+  buildCompactMemorySummary,
+  sanitizeMemoryForFirestore,
+  type UserMemory,
+} from "@/lib/server/user-memory";
 
 type StoredChatSession = {
   id: string;
@@ -64,19 +69,25 @@ export async function persistUserProfile(input: {
   const now = new Date().toISOString();
 
   try {
-    await db.collection("userProfiles").doc(input.uid).set(
-      {
-        uid: input.uid,
-        email: input.email ?? null,
-        phoneNumber: input.phoneNumber ?? null,
-        name: input.name ?? null,
-        picture: input.picture ?? null,
-        provider: input.provider ?? null,
-        updatedAt: now,
-        createdAt: now,
-      },
-      { merge: true }
-    );
+    const profilePayload = {
+      uid: input.uid,
+      email: input.email ?? null,
+      phoneNumber: input.phoneNumber ?? null,
+      name: input.name ?? null,
+      picture: input.picture ?? null,
+      provider: input.provider ?? null,
+      updatedAt: now,
+      createdAt: now,
+    };
+
+    await Promise.all([
+      db.collection("userProfiles").doc(input.uid).set(profilePayload, {
+        merge: true,
+      }),
+      db.collection("user_profiles").doc(input.uid).set(profilePayload, {
+        merge: true,
+      }),
+    ]);
   } catch (error) {
     logServerError("user_profile_persist_failed", {
       userId: input.uid,
@@ -257,26 +268,34 @@ export async function persistFlaggedMessage(input: {
   }
 }
 
-export type UserMemory = {
-  uid: string;
-  investmentGoals?: string;
-  preferredTenorMonths?: number;
-  riskTolerance?: string;
-  pastBanksConsidered?: string[];
-  seniorCitizen?: boolean;
-  amount?: number;
-  themePreference?: "light" | "dark" | "system";
-  updatedAt: string;
-};
-
 export async function getUserMemory(uid: string): Promise<UserMemory | null> {
+  if (!uid) return null;
+
   const db = getFirebaseAdminDb();
   if (!db) return null;
   try {
-    const doc = await db.collection("user_profiles").doc(uid).collection("memory").doc("context").get();
+    const doc = await db
+      .collection("user_profiles")
+      .doc(uid)
+      .collection("memory")
+      .doc("context")
+      .get();
     if (doc.exists) {
       return doc.data() as UserMemory;
     }
+
+    const parentDoc = await db.collection("user_profiles").doc(uid).get();
+    const parentMemory = parentDoc.data()?.memory;
+    if (parentMemory && typeof parentMemory === "object") {
+      return parentMemory as UserMemory;
+    }
+
+    const legacyDoc = await db.collection("userProfiles").doc(uid).get();
+    const legacyMemory = legacyDoc.data()?.memory;
+    if (legacyMemory && typeof legacyMemory === "object") {
+      return legacyMemory as UserMemory;
+    }
+
     return null;
   } catch {
     return null;
@@ -284,11 +303,40 @@ export async function getUserMemory(uid: string): Promise<UserMemory | null> {
 }
 
 export async function updateUserMemory(uid: string, updates: Partial<UserMemory>) {
+  if (!uid) return;
+
   const db = getFirebaseAdminDb();
   if (!db) return;
   try {
-    const memoryRef = db.collection("user_profiles").doc(uid).collection("memory").doc("context");
-    await memoryRef.set({ ...updates, uid, updatedAt: new Date().toISOString() }, { merge: true });
+    const now = new Date().toISOString();
+    const shouldRebuildSummary = !updates.compactSummary;
+    const existingMemory = shouldRebuildSummary ? await getUserMemory(uid) : null;
+    const mergedMemory = sanitizeMemoryForFirestore({
+      ...(existingMemory ?? {}),
+      ...updates,
+      uid,
+      updatedAt: updates.updatedAt ?? now,
+    } as Record<string, unknown>);
+    const payload = sanitizeMemoryForFirestore({
+      ...mergedMemory,
+      compactSummary:
+        updates.compactSummary ??
+        buildCompactMemorySummary(mergedMemory as Partial<UserMemory>),
+    });
+    const profileRef = db.collection("user_profiles").doc(uid);
+    const memoryRef = profileRef.collection("memory").doc("context");
+
+    await Promise.all([
+      memoryRef.set(payload, { merge: true }),
+      profileRef.set(
+        {
+          uid,
+          memory: payload,
+          updatedAt: now,
+        },
+        { merge: true }
+      ),
+    ]);
   } catch (error) {
     logServerError("update_user_memory_failed", { uid, error: error instanceof Error ? error.message : "unknown" });
   }

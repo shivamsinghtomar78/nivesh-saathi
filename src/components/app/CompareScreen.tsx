@@ -290,7 +290,7 @@ export default function CompareScreen() {
                                 <div>
                                   <div className="flex items-center gap-3">
                                     <h3 className="text-xl font-semibold text-text-strong">{rate.bankName}</h3>
-                                    {index === 0 && <Badge variant="accent" className="bg-accent/10 text-accent">Top Yield</Badge>}
+                                    {index === 0 && <Badge variant="outline" className="border-highlight/30 bg-highlight-soft text-highlight">Top Yield</Badge>}
                                   </div>
                                   <p className="mt-1 text-sm text-text-muted capitalize">
                                     {rate.bankType.replace("-", " ")} Bank
@@ -299,14 +299,22 @@ export default function CompareScreen() {
                                 {rate.badge && <Badge variant="outline" className="bg-panel">{rate.badge}</Badge>}
                               </div>
                               
-                              <div className="grid grid-cols-2 gap-4 mb-4">
+                              <div className="grid grid-cols-2 gap-3 mb-4 md:grid-cols-4">
                                 <div className="bg-inner-panel rounded-xl p-3">
-                                  <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Interest Rate</p>
-                                  <p className="text-2xl font-bold text-accent mt-1">{appliedRate.toFixed(2)}%</p>
+                                  <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Regular Rate</p>
+                                  <p className="financial-value text-2xl font-bold text-accent mt-1">{rate.regularRate.toFixed(2)}%</p>
                                 </div>
                                 <div className="bg-inner-panel rounded-xl p-3">
-                                  <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Returns</p>
-                                  <p className="text-xl font-semibold text-text-strong mt-1">{formatCurrency(maturity.maturityAmount)}</p>
+                                  <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Senior Rate</p>
+                                  <p className="financial-value text-2xl font-bold text-highlight mt-1">{rate.seniorRate.toFixed(2)}%</p>
+                                </div>
+                                <div className="bg-inner-panel rounded-xl p-3">
+                                  <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Tenure</p>
+                                  <p className="financial-value text-lg font-semibold text-text-strong mt-1">{rate.tenorLabel}</p>
+                                </div>
+                                <div className="bg-inner-panel rounded-xl p-3">
+                                  <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Maturity</p>
+                                  <p className="financial-value text-lg font-semibold text-text-strong mt-1">{formatCurrency(maturity.maturityAmount)}</p>
                                 </div>
                               </div>
                             </div>
@@ -319,7 +327,11 @@ export default function CompareScreen() {
                                 </p>
                                 <p className="flex justify-between border-b border-outline pb-1">
                                   <span>Insurance:</span> 
-                                  <span className="font-medium text-text-strong">{rate.dicgcInsured ? "DICGC" : "N/A"}</span>
+                                  <span className={cn("font-medium", rate.dicgcInsured ? "text-success" : "text-danger")}>{rate.dicgcInsured ? "DICGC insured" : "Not insured"}</span>
+                                </p>
+                                <p className="flex justify-between border-b border-outline pb-1">
+                                  <span>Applied:</span> 
+                                  <span className="financial-value font-medium text-text-strong">{appliedRate.toFixed(2)}%</span>
                                 </p>
                               </div>
                               

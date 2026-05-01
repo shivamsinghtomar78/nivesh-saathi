@@ -7,9 +7,16 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const updateMemorySchema = z.object({
-  investmentGoals: z.string().optional(),
-  amount: z.number().optional(),
-  preferredTenorMonths: z.number().optional(),
+  investmentGoals: z.string().trim().min(1).max(80).optional(),
+  amount: z.number().int().positive().max(100000000).optional(),
+  preferredTenorMonths: z.number().int().positive().max(120).optional(),
+  riskTolerance: z
+    .enum(["safety_first", "balanced", "yield_first"])
+    .optional(),
+  bankTypePreference: z
+    .enum(["all", "public", "private", "small-finance"])
+    .optional(),
+  pastBanksConsidered: z.array(z.string().trim().min(1)).max(10).optional(),
   seniorCitizen: z.boolean().optional(),
   themePreference: z.enum(["light", "dark", "system"]).optional(),
 });

@@ -21,6 +21,13 @@ import { buildDeterministicAdvisorResponse } from "@/lib/server/fd-service";
 import { hasLlmConfig } from "@/lib/server/env";
 import { invokeLlm, type LlmMessage } from "@/lib/server/llm-client";
 import { getUserMemory, updateUserMemory } from "@/lib/server/persistence";
+import {
+  buildMemoryPromptContext,
+  buildMemoryRecallLine,
+  buildMemoryUpdateFromTurn,
+  shouldSurfaceMemoryRecall,
+  type UserMemory,
+} from "@/lib/server/user-memory";
 
 const DEFAULT_AMOUNT = 50000;
 const DEFAULT_TENOR_MONTHS = 12;
@@ -426,14 +433,42 @@ function getClarificationPrompt(language: AppLanguage) {
   return "Choose a direction: highest return, safest bank, or a recommendation based on your amount and tenure.";
 }
 
+function applyMemoryRecall(params: {
+  text: string;
+  language: AppLanguage;
+  messageText: string;
+  intent?: z.infer<typeof detectedIntentSchema>;
+  userMemory?: UserMemory | null;
+}) {
+  const { intent, language, messageText, text, userMemory } = params;
+  if (
+    !userMemory ||
+    !shouldSurfaceMemoryRecall({
+      message: messageText,
+      memory: userMemory,
+      explicitAmount: intent?.amount,
+      explicitTenorMonths: intent?.tenorMonths,
+    })
+  ) {
+    return text;
+  }
+
+  if (/welcome back|i remember|mujhe yaad/i.test(text)) {
+    return text;
+  }
+
+  return `${buildMemoryRecallLine(userMemory, language)}\n\n${text}`;
+}
+
 function enrichResponse(params: {
   response: AdvisorResponse;
   language: AppLanguage;
   mode: ConversationMode;
   messageText: string;
   intent?: z.infer<typeof detectedIntentSchema>;
+  userMemory?: UserMemory | null;
 }) {
-  const { response, language, mode, messageText, intent } = params;
+  const { response, language, mode, messageText, intent, userMemory } = params;
   const clarificationChips =
     intent?.needsClarification && intent.clarificationChips.length > 0
       ? intent.clarificationChips
@@ -441,6 +476,13 @@ function enrichResponse(params: {
 
   return {
     ...response,
+    text: applyMemoryRecall({
+      text: response.text,
+      language,
+      messageText,
+      intent,
+      userMemory,
+    }),
     followUpPrompt: intent?.needsClarification
       ? getClarificationPrompt(language)
       : response.followUpPrompt,
@@ -500,6 +542,7 @@ async function narrateNode(state: typeof agentState.State) {
   const mode = (state.mode ?? "chat") as ConversationMode;
   const latestMessage = state.messages.at(-1);
   const messageText = getMessageText(latestMessage?.content);
+  const userMemory = (state.userMemory ?? null) as UserMemory | null;
 
   if (!response) {
     const fallback = await buildDeterministicAdvisorResponse({
@@ -516,6 +559,7 @@ async function narrateNode(state: typeof agentState.State) {
       mode,
       messageText,
       intent: state.intent,
+      userMemory,
     });
 
     return {
@@ -531,6 +575,7 @@ async function narrateNode(state: typeof agentState.State) {
       mode,
       messageText,
       intent: state.intent,
+      userMemory,
     });
 
     return {
@@ -554,17 +599,13 @@ async function narrateNode(state: typeof agentState.State) {
     ? "IMPORTANT: This response will be SPOKEN ALOUD. Keep it under 3 sentences maximum. Use simple, conversational phrasing. Do NOT use bullet points, headings, or structured formatting. Speak as if talking to a friend. If there are multiple rate cards, mention only the top 1-2."
     : "Structure text with short labelled sections and hyphen bullets. You may be detailed.";
 
-  let memoryContext = "";
-  if (state.userMemory) {
-    const mem = state.userMemory;
-    memoryContext = `User Profile Context: Investment Goal: ${mem.investmentGoals || "Unknown"}, Preferred Tenor: ${mem.preferredTenorMonths || "Unknown"} months, Risk: ${mem.riskTolerance || "Unknown"}, Amount: ${mem.amount || "Unknown"}. Keep this in mind when responding to make the user feel known. `;
-  }
+  const memoryContext = buildMemoryPromptContext(userMemory);
 
   const prompt: LlmMessage[] = [
     {
       role: "system",
       content:
-        `You are Nivesh Saathi, a warm fixed deposit guide for India. ${memoryContext}Keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings, showCalculator, showTimeMachine, tone. Use plain text only: no markdown bold markers, no asterisks, and no tables. ${modeInstruction} ${languagePrompt}\nSet showCalculator=true if the user asks to calculate returns, maturity, or uses words like 'calculator' or 'calculate'. Set showTimeMachine=true if the user asks for historical rate trends, past rates, or 'time machine'. Tone must be one of informative, celebratory, cautionary.`,
+        `You are Nivesh Saathi, a warm fixed deposit guide for India. ${memoryContext ? `${memoryContext} ` : ""}Keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings, showCalculator, showTimeMachine, tone. Use plain text only: no markdown bold markers, no asterisks, and no tables. ${modeInstruction} ${languagePrompt}\nSet showCalculator=true if the user asks to calculate returns, maturity, or uses words like 'calculator' or 'calculate'. Set showTimeMachine=true if the user asks for historical rate trends, past rates, or 'time machine'. Tone must be one of informative, celebratory, cautionary.`,
     },
     {
       role: "user",
@@ -595,6 +636,7 @@ async function narrateNode(state: typeof agentState.State) {
         mode,
         messageText,
         intent: state.intent,
+        userMemory,
       });
       return {
         response: enrichedResponse,
@@ -614,6 +656,7 @@ async function narrateNode(state: typeof agentState.State) {
           mode,
           messageText,
           intent: state.intent,
+          userMemory,
         });
         return {
           response: enrichedResponse,
@@ -636,6 +679,7 @@ async function narrateNode(state: typeof agentState.State) {
       mode,
       messageText,
       intent: state.intent,
+      userMemory,
     });
 
     return {
@@ -649,6 +693,7 @@ async function narrateNode(state: typeof agentState.State) {
       mode,
       messageText,
       intent: state.intent,
+      userMemory,
     });
     return {
       response: enrichedResponse,
@@ -682,7 +727,7 @@ export async function invokeFdAdvisor(input: ChatRequest) {
   const [rawHistory, cachedPrefs, userMemory] = await Promise.all([
     cacheGet<Array<{ role: string; content: string }>>(historyKey),
     cacheGet<ThreadPreferences>(prefsKey),
-    getUserMemory(input.userId ?? ""),
+    input.userId ? getUserMemory(input.userId) : Promise.resolve(null),
   ]);
   
   const prefs = cachedPrefs || {};
@@ -710,7 +755,7 @@ export async function invokeFdAdvisor(input: ChatRequest) {
       requestedAmount: input.amount ?? prefs.amount ?? userMemory?.amount,
       requestedTenorMonths: input.tenorMonths ?? prefs.tenorMonths ?? userMemory?.preferredTenorMonths,
       seniorCitizen: input.seniorCitizen ?? prefs.seniorCitizen ?? userMemory?.seniorCitizen,
-      bankType: input.bankType ?? prefs.bankType,
+      bankType: input.bankType ?? prefs.bankType ?? userMemory?.bankTypePreference,
       shortlistBankIds: input.shortlistBankIds ?? userMemory?.pastBanksConsidered,
       userMemory,
     },
@@ -727,23 +772,40 @@ export async function invokeFdAdvisor(input: ChatRequest) {
   }));
   await cacheSet(historyKey, newHistory, 86400 * 5); // 5 days persistence
   
-  if (result.intent) {
-    const newPrefs = {
-      amount: result.intent.amount ?? prefs.amount,
-      tenorMonths: result.intent.tenorMonths ?? prefs.tenorMonths,
-      seniorCitizen: result.intent.seniorCitizen ?? prefs.seniorCitizen,
-      bankType: result.intent.bankType ?? prefs.bankType,
-    };
-    await cacheSet(prefsKey, newPrefs, 86400 * 5);
+  const newPrefs = result.intent
+    ? {
+        amount: result.intent.amount ?? prefs.amount,
+        tenorMonths: result.intent.tenorMonths ?? prefs.tenorMonths,
+        seniorCitizen: result.intent.seniorCitizen ?? prefs.seniorCitizen,
+        bankType: result.intent.bankType ?? prefs.bankType,
+      }
+    : prefs;
 
-    if (input.userId) {
-      await updateUserMemory(input.userId, {
-        amount: newPrefs.amount,
-        preferredTenorMonths: newPrefs.tenorMonths,
-        seniorCitizen: newPrefs.seniorCitizen,
-        pastBanksConsidered: result.response?.rateCards.map((card) => card.bankId),
-      });
-    }
+  if (result.intent) {
+    await cacheSet(prefsKey, newPrefs, 86400 * 5);
+  }
+
+  if (input.userId && result.response) {
+    await updateUserMemory(
+      input.userId,
+      buildMemoryUpdateFromTurn({
+        existingMemory: userMemory,
+        userId: input.userId,
+        threadId,
+        language: input.language,
+        userMessage: input.message,
+        assistantMessage: result.response.text,
+        response: result.response,
+        amount: input.amount ?? newPrefs.amount ?? userMemory?.amount,
+        tenorMonths:
+          input.tenorMonths ??
+          newPrefs.tenorMonths ??
+          userMemory?.preferredTenorMonths,
+        seniorCitizen:
+          input.seniorCitizen ?? newPrefs.seniorCitizen ?? userMemory?.seniorCitizen,
+        bankType: input.bankType ?? newPrefs.bankType ?? userMemory?.bankTypePreference,
+      })
+    );
   }
 
   return {
@@ -752,10 +814,15 @@ export async function invokeFdAdvisor(input: ChatRequest) {
       result.response ??
       (await buildDeterministicAdvisorResponse({
         language: input.language,
-        amount: input.amount ?? prefs.amount ?? userMemory?.amount ?? DEFAULT_AMOUNT,
-        tenorMonths: input.tenorMonths ?? prefs.tenorMonths ?? userMemory?.preferredTenorMonths ?? DEFAULT_TENOR_MONTHS,
-        seniorCitizen: input.seniorCitizen ?? prefs.seniorCitizen ?? userMemory?.seniorCitizen,
-        bankType: input.bankType ?? prefs.bankType,
+        amount: input.amount ?? newPrefs.amount ?? userMemory?.amount ?? DEFAULT_AMOUNT,
+        tenorMonths:
+          input.tenorMonths ??
+          newPrefs.tenorMonths ??
+          userMemory?.preferredTenorMonths ??
+          DEFAULT_TENOR_MONTHS,
+        seniorCitizen:
+          input.seniorCitizen ?? newPrefs.seniorCitizen ?? userMemory?.seniorCitizen,
+        bankType: input.bankType ?? newPrefs.bankType ?? userMemory?.bankTypePreference,
         preferredBankIds: input.shortlistBankIds ?? userMemory?.pastBanksConsidered,
         glossaryTermIds: ["pa", "tenor", "dicgc"],
       })),

@@ -8,10 +8,14 @@ import {
   ChevronDown,
   History,
   ListChecks,
+  MessageCircleMore,
+  Mic,
   MoreHorizontal,
   PanelRightOpen,
   RotateCcw,
   Sparkles,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { LANGUAGE_LABELS } from "@/lib/copy";
 import { LANGUAGE_META } from "@/lib/languages";
 import { ROUTES } from "@/lib/routes";
+import { cn } from "@/lib/utils";
 import type { AppLanguage, ConversationMode } from "@/lib/server/advisor-schemas";
 import { useStreamingChat, type StreamMeta } from "@/hooks/useStreamingChat";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
@@ -510,8 +515,8 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       >
         <HistoryDrawer open={showHistory} onClose={() => setShowHistory(false)} />
 
-        <div className="grid min-h-[calc(100vh-7rem)] gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-outline bg-panel shadow-sm">
+        <div className="grid h-[calc(100vh-7rem)] min-h-0 items-stretch gap-5 overflow-hidden xl:grid-cols-[minmax(0,1fr)_360px]">
+          <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-outline bg-panel shadow-sm">
             <header className="border-b border-outline/60 bg-panel/95 p-4 backdrop-blur-xl">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
@@ -616,6 +621,65 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
             </header>
 
             <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-5 custom-scrollbar md:px-6">
+              {initialMode === "voice" ? (
+                <motion.section
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                  className="mb-5 rounded-[var(--radius-card)] border border-outline bg-inner-panel p-5"
+                >
+                  <div className="grid items-center gap-5 md:grid-cols-[auto_1fr_auto]">
+                    <button
+                      type="button"
+                      onClick={handleMicPress}
+                      disabled={voice.isProcessing || isStreaming || isTyping}
+                      className={cn(
+                        "relative mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-outline bg-panel text-accent shadow-[var(--shadow-card)] transition hover:-translate-y-1 hover:border-accent/35 md:mx-0",
+                        voiceState === "listening" && "animate-mic-pulse bg-accent text-white",
+                        voiceState === "speaking" && "bg-surface-dark text-on-dark",
+                        voiceState === "error" && "text-danger"
+                      )}
+                      aria-label={voiceStatusLabel}
+                    >
+                      {voiceState === "listening" ? <Mic className="h-9 w-9" /> : voiceState === "speaking" ? <VolumeX className="h-9 w-9" /> : <Mic className="h-9 w-9" />}
+                    </button>
+
+                    <div className="min-w-0 text-center md:text-left">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Voice advisor</p>
+                      <h2 className="mt-2 text-xl font-semibold text-text-strong">{voiceStatusLabel}</h2>
+                      <p className="mt-2 text-sm leading-6 text-text-muted">
+                        {voiceState === "listening"
+                          ? voice.transcript || "Speak naturally. Saathi will convert your question into this secure advisor thread."
+                          : voiceState === "processing"
+                            ? voiceAcknowledgment || "Checking rates and preparing a concise spoken summary."
+                            : voiceState === "speaking"
+                              ? spokenSummary || "Saathi is reading the short answer aloud."
+                              : voice.error || "Tap the microphone, ask about rates, maturity, safety, or your shortlist."}
+                      </p>
+                      {voiceState === "speaking" ? (
+                        <div className="wave-bars mt-4" aria-hidden="true">
+                          <span /><span /><span /><span /><span />
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
+                      <Button variant="outline" className="bg-input-bg" onClick={cancelSpeech} disabled={!isSpeaking}>
+                        <VolumeX className="h-4 w-4" />
+                        Stop speaking
+                      </Button>
+                      <Button variant="outline" className="bg-input-bg" onClick={() => setActiveMode("chat")}>
+                        <MessageCircleMore className="h-4 w-4" />
+                        Switch to chat
+                      </Button>
+                      <div className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-input)] border border-outline bg-input-bg px-3 text-xs font-semibold text-text-muted">
+                        <span className="inline-flex items-center gap-2"><Volume2 className="h-4 w-4" /> Auto-speak</span>
+                        <span className="rounded-full bg-accent-soft px-2 py-1 text-accent">On</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.section>
+              ) : null}
               <ConversationTimeline
                 messages={visibleMessages}
                 onAction={handleAction}
@@ -683,7 +747,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
           </section>
 
           <AdvisorInsightPanel
-            className="hidden xl:flex"
+            className="hidden h-full xl:flex"
             contextPrincipal={contextPrincipal}
             latestMessage={latestInsightMessage}
             shortlistCount={shortlist.length}

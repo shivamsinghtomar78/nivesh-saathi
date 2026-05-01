@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Sparkles, UserRound, Settings, ChevronDown, Home, BarChart3, MessageCircleMore } from "lucide-react";
+import { LogOut, Landmark, UserRound, Settings, ChevronDown, Home, BarChart3, MessageCircleMore, Mic } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ReactNode } from "react";
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { href: ROUTES.HOME, key: "home" as const, icon: Home },
   { href: ROUTES.COMPARE, key: "compare" as const, icon: BarChart3 },
   { href: ROUTES.CHAT, key: "chat" as const, icon: MessageCircleMore },
+  { href: ROUTES.VOICE, key: "voice" as const, icon: Mic },
 ];
 
 type AppShellProps = {
@@ -80,7 +81,7 @@ export default function AppShell({
               whileHover={{ rotate: 5, scale: 1.05 }}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-panel)] bg-surface-dark text-on-dark shadow-[var(--shadow-soft-layer)]"
             >
-              <Sparkles className="h-5 w-5 transition-colors group-hover:text-accent" />
+              <Landmark className="h-5 w-5 transition-colors group-hover:text-accent" />
             </motion.div>
             <div className="min-w-0 hidden sm:block">
               <p className="truncate text-lg font-semibold text-text-strong">
@@ -102,14 +103,14 @@ export default function AppShell({
                 >
                   <span className={cn(
                     "relative z-10 transition-colors duration-300",
-                    active ? "text-white dark:text-[#07110f]" : "text-text-muted group-hover:text-text-strong"
+                    active ? "text-white" : "text-text-muted group-hover:text-text-strong"
                   )}>
                     {copy.nav[item.key]}
                   </span>
                   {active && (
                     <motion.div
                       layoutId="activeNavBackground"
-                      className="absolute inset-0 rounded-full bg-accent shadow-[0_10px_24px_rgba(10,127,100,0.22)]"
+                      className="absolute inset-0 rounded-full bg-accent shadow-[0_10px_24px_rgba(10,127,100,0.22)] dark:shadow-[0_0_30px_rgba(0,102,255,0.34)]"
                       initial={false}
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
@@ -129,7 +130,7 @@ export default function AppShell({
                   className={cn(
                     "rounded-full px-3 py-1.5 text-xs font-medium transition",
                     language === code
-                      ? "bg-accent text-white shadow-sm dark:text-[#07110f]"
+                      ? "bg-accent text-white shadow-sm dark:shadow-[0_0_22px_rgba(0,102,255,0.28)]"
                       : "text-text-muted hover:bg-inner-panel hover:text-text-strong"
                   )}
                 >
@@ -244,7 +245,7 @@ export default function AppShell({
 
       {/* Bottom nav with Lucide icons */}
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/92 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(20,32,40,0.06)] backdrop-blur-xl lg:hidden">
-        <div className="mx-auto grid max-w-3xl grid-cols-3 gap-1 px-2 py-2">
+        <div className="mx-auto grid max-w-3xl grid-cols-4 gap-1 px-2 py-2">
           {NAV_ITEMS.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
