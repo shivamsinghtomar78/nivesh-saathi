@@ -1,45 +1,113 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Mic, Send } from "lucide-react";
+import { LoaderCircle, Mic, MicOff, RotateCcw, Send, VolumeX } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useAutoResize } from "@/hooks/useAutoResize";
 import { LANGUAGE_LABELS } from "@/lib/copy";
 import type { AppLanguage } from "@/lib/server/advisor-schemas";
+import { cn } from "@/lib/utils";
 
 const MAX_CHARS = 800;
+
+type VoiceComposerState = "idle" | "listening" | "processing" | "speaking" | "error";
 
 type AdvisorComposerProps = {
   draft: string;
   disabled?: boolean;
   editing?: boolean;
   language: AppLanguage;
-  mode: "chat" | "voice";
   prompts: string[];
   showPrompts: boolean;
+  spokenSummary?: string | null;
+  voiceAcknowledgment?: string | null;
+  voiceDisabled?: boolean;
+  voiceError?: string | null;
+  voiceState: VoiceComposerState;
+  voiceTranscript?: string;
   onCancelEdit: () => void;
   onChange: (value: string) => void;
+  onMicPress: () => void;
   onPrompt: (prompt: string) => void;
   onSubmit: () => void;
-  onVoiceMode: () => void;
+  onVoiceRetry: () => void;
 };
+
+function voiceStatusTitle(state: VoiceComposerState) {
+  if (state === "listening") return "Listening";
+  if (state === "processing") return "Checking FD options";
+  if (state === "speaking") return "Speaking";
+  if (state === "error") return "Voice needs attention";
+  return null;
+}
+
+function voiceStatusBody({
+  acknowledgment,
+  error,
+  spokenSummary,
+  state,
+  transcript,
+}: {
+  acknowledgment?: string | null;
+  error?: string | null;
+  spokenSummary?: string | null;
+  state: VoiceComposerState;
+  transcript?: string;
+}) {
+  if (error) return error;
+  if (state === "listening") {
+    return transcript || "Speak naturally. Your question will appear in this same thread.";
+  }
+  if (state === "processing") {
+    return acknowledgment || "Preparing a concise voice reply and detailed chat answer.";
+  }
+  if (state === "speaking") {
+    return spokenSummary || "Reading the short answer. Tap the mic to interrupt.";
+  }
+  return "";
+}
+
+function micLabel(state: VoiceComposerState) {
+  if (state === "listening") return "Stop listening";
+  if (state === "processing") return "Voice is processing";
+  if (state === "speaking") return "Interrupt voice reply";
+  if (state === "error") return "Try voice input again";
+  return "Start voice input";
+}
 
 export default function AdvisorComposer({
   draft,
   disabled = false,
   editing = false,
   language,
-  mode,
   prompts,
   showPrompts,
+  spokenSummary,
+  voiceAcknowledgment,
+  voiceDisabled = false,
+  voiceError,
+  voiceState,
+  voiceTranscript,
   onCancelEdit,
   onChange,
+  onMicPress,
   onPrompt,
   onSubmit,
-  onVoiceMode,
+  onVoiceRetry,
 }: AdvisorComposerProps) {
   const handleAutoResize = useAutoResize(128);
+  const statusTitle = voiceStatusTitle(voiceState);
+  const statusBody = voiceStatusBody({
+    acknowledgment: voiceAcknowledgment,
+    error: voiceError,
+    spokenSummary,
+    state: voiceState,
+    transcript: voiceTranscript,
+  });
+  const showVoiceStatus = voiceState !== "idle" || Boolean(voiceError);
+  const micIsActive = voiceState === "listening" || voiceState === "speaking";
+  const micIsDisabled = voiceDisabled && voiceState !== "speaking" && voiceState !== "listening";
 
   return (
     <div className="border-t border-outline/60 bg-panel/90 p-3 backdrop-blur-xl md:p-4">
@@ -85,56 +153,145 @@ export default function AdvisorComposer({
         ) : null}
       </AnimatePresence>
 
-      <div className="flex items-end gap-2 rounded-[var(--radius-panel)] border border-outline bg-input-bg p-2 transition focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
-        <textarea
-          value={draft}
-          onChange={(event) => {
-            if (event.target.value.length <= MAX_CHARS) {
-              onChange(event.target.value);
-            }
-          }}
-          onInput={handleAutoResize}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              onSubmit();
-            }
-          }}
-          placeholder={
-            mode === "voice"
-              ? "Type instead, or use the mic below..."
-              : `Ask anything in ${LANGUAGE_LABELS[language]}...`
-          }
-          rows={1}
-          maxLength={MAX_CHARS}
-          className="max-h-32 min-h-[44px] w-full resize-none bg-transparent px-3 py-3 text-sm text-text-strong outline-none placeholder:text-text-muted custom-scrollbar"
-        />
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={onVoiceMode}
-          aria-label="Switch to voice mode"
-          className="hidden h-11 w-11 rounded-[var(--radius-input)] text-text-muted hover:text-text-strong sm:inline-flex"
-        >
-          <Mic className="h-4 w-4" />
-        </Button>
-        <Button
-          size="icon"
-          variant="secondary"
-          onClick={onSubmit}
-          disabled={disabled || !draft.trim()}
-          aria-label="Send message"
-          className="h-11 w-11 shrink-0 rounded-[var(--radius-input)]"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+      <div className="rounded-[var(--radius-panel)] border border-outline bg-input-bg p-2 transition focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
+        <div className="flex items-end gap-2">
+          <textarea
+            value={draft}
+            onChange={(event) => {
+              if (event.target.value.length <= MAX_CHARS) {
+                onChange(event.target.value);
+              }
+            }}
+            onInput={handleAutoResize}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                onSubmit();
+              }
+            }}
+            placeholder={`Ask or speak in ${LANGUAGE_LABELS[language]}...`}
+            rows={1}
+            maxLength={MAX_CHARS}
+            className="max-h-32 min-h-[44px] w-full resize-none bg-transparent px-3 py-3 text-sm text-text-strong outline-none placeholder:text-text-muted custom-scrollbar"
+          />
+
+          <Button
+            size="icon"
+            variant={micIsActive ? "primary" : "ghost"}
+            onClick={voiceState === "error" ? onVoiceRetry : onMicPress}
+            disabled={micIsDisabled}
+            aria-label={micLabel(voiceState)}
+            className={cn(
+              "relative h-11 w-11 shrink-0 overflow-visible rounded-[var(--radius-input)]",
+              "text-text-muted hover:text-text-strong",
+              voiceState === "listening" && "bg-danger text-white hover:bg-danger/90",
+              voiceState === "speaking" && "bg-surface-dark text-on-dark hover:bg-surface-dark-hover",
+              voiceState === "error" && "text-danger hover:text-danger",
+              micIsDisabled && "opacity-60"
+            )}
+          >
+            {micIsActive ? (
+              <span
+                className="absolute inset-0 -z-10 rounded-[var(--radius-input)] bg-accent/20 blur-md"
+                aria-hidden="true"
+              />
+            ) : null}
+            {voiceState === "processing" ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : voiceState === "listening" ? (
+              <MicOff className="h-4 w-4" />
+            ) : voiceState === "speaking" ? (
+              <VolumeX className="h-4 w-4" />
+            ) : voiceState === "error" ? (
+              <RotateCcw className="h-4 w-4" />
+            ) : (
+              <Mic className="h-4 w-4" />
+            )}
+          </Button>
+
+          <Button
+            size="icon"
+            variant="secondary"
+            onClick={onSubmit}
+            disabled={disabled || !draft.trim()}
+            aria-label="Send message"
+            className="h-11 w-11 shrink-0 rounded-[var(--radius-input)]"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <AnimatePresence>
+          {showVoiceStatus ? (
+            <motion.div
+              initial={{ opacity: 0, y: 6, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, y: 4, height: 0 }}
+              role="status"
+              aria-live="polite"
+              className="overflow-hidden"
+            >
+              <div
+                className={cn(
+                  "mt-2 flex items-start justify-between gap-3 rounded-[var(--radius-input)] border px-3 py-2",
+                  voiceState === "error"
+                    ? "border-danger/25 bg-danger/5"
+                    : "border-accent/15 bg-accent/5"
+                )}
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    {voiceState === "listening" || voiceState === "speaking" ? (
+                      <span className="wave-bars" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                    ) : voiceState === "processing" ? (
+                      <LoaderCircle className="h-3.5 w-3.5 animate-spin text-accent" />
+                    ) : null}
+                    <p
+                      className={cn(
+                        "text-xs font-semibold",
+                        voiceState === "error" ? "text-danger" : "text-text-strong"
+                      )}
+                    >
+                      {statusTitle}
+                    </p>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-text-muted">
+                    {statusBody}
+                  </p>
+                </div>
+
+                {voiceState === "error" ? (
+                  <button
+                    type="button"
+                    onClick={onVoiceRetry}
+                    className="shrink-0 rounded-full border border-outline bg-panel px-3 py-1 text-xs font-semibold text-text-strong transition hover:border-accent/30"
+                  >
+                    Retry
+                  </button>
+                ) : null}
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
 
       <div className="mt-1.5 flex items-center justify-between px-1">
         <span className="hidden text-[10px] text-text-muted sm:inline">
           Enter to send. Shift+Enter for a new line.
         </span>
-        <span className={draft.length > MAX_CHARS * 0.9 ? "text-[10px] font-medium text-danger" : "text-[10px] font-medium text-text-muted"}>
+        <span
+          className={
+            draft.length > MAX_CHARS * 0.9
+              ? "text-[10px] font-medium text-danger"
+              : "text-[10px] font-medium text-text-muted"
+          }
+        >
           {draft.length}/{MAX_CHARS}
         </span>
       </div>

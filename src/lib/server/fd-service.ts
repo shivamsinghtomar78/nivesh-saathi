@@ -33,7 +33,7 @@ const LOCALIZED_COPY: Record<
 > = {
   en: {
     compareLabel: "Compare more rates",
-    voiceLabel: "Ask by voice",
+    voiceLabel: "Use the mic",
     explainLabel: "Explain a term",
     officialLabel: "Official bank page",
     followUp:
@@ -44,7 +44,7 @@ const LOCALIZED_COPY: Record<
   },
   hi: {
     compareLabel: "Aur rates compare kijiye",
-    voiceLabel: "Aawaz se poochhiye",
+    voiceLabel: "Mic se poochhiye",
     explainLabel: "Koi term samjhaiye",
     officialLabel: "Bank ki official site",
     followUp:
@@ -55,7 +55,7 @@ const LOCALIZED_COPY: Record<
   },
   ta: {
     compareLabel: "Innum rates compare pannunga",
-    voiceLabel: "Kuralal kelunga",
+    voiceLabel: "Mic use pannunga",
     explainLabel: "Oru term-ai vilakkunga",
     officialLabel: "Bank official page",
     followUp:
@@ -66,7 +66,7 @@ const LOCALIZED_COPY: Record<
   },
   bn: {
     compareLabel: "Aro rate tulona korun",
-    voiceLabel: "Kotha bole jiggesh korun",
+    voiceLabel: "Mic diye jiggesh korun",
     explainLabel: "Ekta term bujhiye din",
     officialLabel: "Banker official page",
     followUp:
@@ -285,7 +285,7 @@ export function buildAdvisorActions(params: {
       type: "secondary",
       action: "open_voice",
       icon: "mic",
-      url: ROUTES.VOICE,
+      url: ROUTES.CHAT,
     },
     {
       label: copy.explainLabel,

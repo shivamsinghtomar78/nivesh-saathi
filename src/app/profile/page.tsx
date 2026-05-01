@@ -243,7 +243,7 @@ export default function ProfilePage() {
                   ))
                 ) : (
                   <div className="rounded-[var(--radius-panel)] border border-dashed border-outline bg-inner-panel p-5 text-sm leading-6 text-text-muted">
-                    No saved database chats yet. Open the text bot or voice bot while signed in and the next thread will appear here.
+                    No saved database chats yet. Open Saathi Advisor while signed in and the next thread will appear here.
                   </div>
                 )}
               </CardContent>

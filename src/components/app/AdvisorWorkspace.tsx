@@ -17,19 +17,16 @@ import { toast } from "sonner";
 
 import AdvisorComposer from "@/components/app/AdvisorComposer";
 import AdvisorInsightPanel, { hasAdvisorInsights } from "@/components/app/AdvisorInsightPanel";
-import AdvisorVoiceDock from "@/components/app/AdvisorVoiceDock";
 import AppShell from "@/components/app/AppShell";
 import ConversationTimeline from "@/components/app/ConversationTimeline";
 import AuthGate from "@/components/auth/AuthGate";
 import { HistoryDrawer } from "@/components/chat/HistoryDrawer";
-import ModeSwitchBanner from "@/components/shared/ModeSwitchBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LANGUAGE_LABELS } from "@/lib/copy";
 import { LANGUAGE_META } from "@/lib/languages";
 import { ROUTES } from "@/lib/routes";
 import type { AppLanguage, ConversationMode } from "@/lib/server/advisor-schemas";
-import { cn } from "@/lib/utils";
 import { useStreamingChat, type StreamMeta } from "@/hooks/useStreamingChat";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { useAuthStore } from "@/stores/authStore";
@@ -184,7 +181,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const voiceAcknowledgment = useConversationStore((state) => state.voiceAcknowledgment);
   const shortlist = useCompareStore((state) => state.shortlist);
 
-  const [mode, setMode] = useState<ConversationMode>(initialMode);
   const [pendingSource, setPendingSource] = useState<ConversationMode>(initialMode);
   const [draft, setDraft] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -193,9 +189,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const [showMobileInsights, setShowMobileInsights] = useState(false);
   const [selectedRateCard, setSelectedRateCard] = useState<RateCard | null>(null);
   const [contextPrincipal, setContextPrincipal] = useState<number | undefined>();
-  const [modeSwitchInfo, setModeSwitchInfo] = useState<{ targetMode: ConversationMode; reason: string } | null>(null);
   const [streamingMessage, setStreamingMessage] = useState<ConversationMessage | null>(null);
-  const [autoSpeak, setAutoSpeak] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [spokenSummary, setSpokenSummary] = useState<string | null>(null);
 
@@ -209,17 +203,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     setActiveMode(initialMode);
   }, [initialMode, setActiveMode]);
 
-  const switchMode = useCallback(
-    (nextMode: ConversationMode, updateRoute = true) => {
-      setMode(nextMode);
-      setActiveMode(nextMode);
-      if (updateRoute) {
-        router.push(nextMode === "voice" ? ROUTES.VOICE : ROUTES.CHAT);
-      }
-    },
-    [router, setActiveMode]
-  );
-
   const cancelSpeech = useCallback(() => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -230,7 +213,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
 
   const speakReply = useCallback(
     (text: string, tone?: ConversationMessage["tone"]) => {
-      if (typeof window === "undefined" || !window.speechSynthesis || !autoSpeak) {
+      if (typeof window === "undefined" || !window.speechSynthesis) {
         return;
       }
 
@@ -253,14 +236,13 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       utteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
     },
-    [autoSpeak, language]
+    [language]
   );
 
   const { sendStreamingMessage, isStreaming } = useStreamingChat({
     onMeta: (meta) => {
       latestStreamMeta.current = meta;
       if (meta.threadId) setThreadId(meta.threadId);
-      if (meta.modeSwitchSuggestion) setModeSwitchInfo(meta.modeSwitchSuggestion);
     },
     onToken: (_token, accumulated) => {
       const id = streamingMessageId.current ?? createMessageId();
@@ -311,11 +293,13 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const sendAdvisorMessage = useCallback(
     async (
       rawMessage: string,
-      source: ConversationMode = mode,
+      source: ConversationMode = "chat",
       context?: { amount?: number; seniorCitizen?: boolean; tenorMonths?: number }
     ) => {
       const message = rawMessage.trim();
       if (!message) return;
+
+      setActiveMode(source);
 
       if (source === "voice") {
         cancelSpeech();
@@ -363,8 +347,8 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       cancelSpeech,
       editingMessageId,
       language,
-      mode,
       sendStreamingMessage,
+      setActiveMode,
       setTyping,
       setVoiceAcknowledgment,
       shortlist,
@@ -414,6 +398,16 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     if (isSpeaking) return "speaking";
     return "idle";
   }, [isSpeaking, isTyping, pendingSource, voice.error, voice.isListening, voice.isProcessing]);
+  const voiceStatusLabel =
+    voiceState === "listening"
+      ? "Listening"
+      : voiceState === "processing"
+        ? "Processing voice"
+        : voiceState === "speaking"
+          ? "Speaking"
+          : voiceState === "error"
+            ? "Mic issue"
+            : "Text + voice";
 
   const handleRetry = () => {
     const failedMessage = retryLastMessage();
@@ -426,7 +420,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     action: NonNullable<ConversationMessage["actions"]>[number]
   ) => {
     if (!action.action && action.label) {
-      void sendAdvisorMessage(action.label, mode);
+      void sendAdvisorMessage(action.label, "chat");
       return;
     }
 
@@ -436,12 +430,13 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     }
 
     if (action.action === "open_voice" || action.action === "switch_to_voice") {
-      switchMode("voice");
+      handleMicPress();
       return;
     }
 
     if (action.action === "open_chat" || action.action === "switch_to_chat") {
-      switchMode("chat");
+      setActiveMode("chat");
+      cancelSpeech();
       return;
     }
 
@@ -470,7 +465,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
           content: `Term: ${payload.term}\nMeaning: ${payload.plain}\nExample: ${payload.example ?? ""}`.trim(),
           timestamp: getTimestamp(),
           language: LANGUAGE_LABELS[language],
-          source: mode,
+          source: "chat",
           glossary: [{ term: payload.term, plain: payload.plain, example: payload.example ?? "" }],
         });
       } catch (error) {
@@ -480,15 +475,17 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   };
 
   const handleMicPress = () => {
-    switchMode("voice", false);
+    setActiveMode("voice");
     if (isSpeaking) {
       cancelSpeech();
+      setSpokenSummary(null);
       return;
     }
     if (voice.isListening) {
       voice.stopListening();
       return;
     }
+    voice.resetTranscript();
     void voice.startListening();
   };
 
@@ -497,7 +494,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     clearMessages();
     setThreadId(null);
     setSelectedRateCard(null);
-    setModeSwitchInfo(null);
     setShowMenu(false);
   };
 
@@ -540,21 +536,19 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <div className="grid grid-cols-2 rounded-full border border-outline bg-input-bg p-1">
-                    {(["chat", "voice"] as const).map((item) => (
-                      <button
-                        key={item}
-                        type="button"
-                        onClick={() => switchMode(item)}
-                        className={cn(
-                          "rounded-full px-3 py-1.5 text-xs font-semibold capitalize transition",
-                          mode === item ? "bg-surface-dark text-on-dark shadow-sm" : "text-text-muted hover:text-text-strong"
-                        )}
-                        aria-pressed={mode === item}
-                      >
-                        {item}
-                      </button>
-                    ))}
+                  <div className="hidden items-center gap-2 rounded-full border border-outline bg-input-bg px-3 py-2 text-xs font-semibold text-text-muted sm:flex">
+                    {voiceState === "listening" || voiceState === "speaking" ? (
+                      <span className="wave-bars" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                    ) : (
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+                    )}
+                    {voiceStatusLabel}
                   </div>
 
                   <Button
@@ -630,7 +624,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                   setDraft(message.content);
                   setEditingMessageId(message.id);
                 }}
-                onChipSelect={(chip) => void sendAdvisorMessage(chip, mode)}
+                onChipSelect={(chip) => void sendAdvisorMessage(chip, "chat")}
                 showSmartChips={!isTyping && !streamingMessage}
                 isTyping={isTyping || !!streamingMessage}
                 richContent="hidden"
@@ -659,51 +653,32 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
               </AnimatePresence>
             </div>
 
-            <AnimatePresence>
-              {modeSwitchInfo ? (
-                <ModeSwitchBanner
-                  targetMode={modeSwitchInfo.targetMode}
-                  reason={modeSwitchInfo.reason}
-                  onDismiss={() => setModeSwitchInfo(null)}
-                />
-              ) : null}
-            </AnimatePresence>
-
-            <AnimatePresence>
-              {mode === "voice" ? (
-                <AdvisorVoiceDock
-                  acknowledgment={voiceAcknowledgment}
-                  autoSpeak={autoSpeak}
-                  disabled={voice.isProcessing || isStreaming}
-                  error={voice.error}
-                  isListening={voice.isListening}
-                  isSpeaking={isSpeaking}
-                  spokenSummary={spokenSummary}
-                  state={voiceState}
-                  transcript={voice.transcript}
-                  onMicPress={handleMicPress}
-                  onRetry={() => void voice.startListening()}
-                  onToggleAutoSpeak={() => setAutoSpeak((value) => !value)}
-                />
-              ) : null}
-            </AnimatePresence>
-
             <AdvisorComposer
               draft={draft}
               disabled={isTyping || isStreaming}
               editing={!!editingMessageId}
               language={language}
-              mode={mode}
               prompts={SAMPLE_PROMPTS[language]}
               showPrompts={showPromptChips}
+              spokenSummary={spokenSummary}
+              voiceAcknowledgment={voiceAcknowledgment}
+              voiceDisabled={voice.isProcessing || isStreaming || isTyping}
+              voiceError={voice.error}
+              voiceState={voiceState}
+              voiceTranscript={voice.transcript}
               onCancelEdit={() => {
                 setEditingMessageId(null);
                 setDraft("");
               }}
               onChange={setDraft}
-              onPrompt={(prompt) => void sendAdvisorMessage(prompt, mode)}
-              onSubmit={() => void sendAdvisorMessage(draft, mode)}
-              onVoiceMode={() => switchMode("voice")}
+              onMicPress={handleMicPress}
+              onPrompt={(prompt) => void sendAdvisorMessage(prompt, "chat")}
+              onSubmit={() => void sendAdvisorMessage(draft, "chat")}
+              onVoiceRetry={() => {
+                setActiveMode("voice");
+                voice.resetTranscript();
+                void voice.startListening();
+              }}
             />
           </section>
 

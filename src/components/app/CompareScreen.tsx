@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Star, Filter, Calculator, Landmark, MessageCircleMore, Mic, X, ChevronUp, Bell, BellRing, ExternalLink } from "lucide-react";
+import { ArrowUpRight, Star, Filter, Calculator, Landmark, MessageCircleMore, X, ChevronUp, Bell, BellRing, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
 import AuthGate from "@/components/auth/AuthGate";
@@ -143,20 +143,12 @@ export default function CompareScreen() {
       title="Analyze and Shortlist Fixed Deposits"
       description="Filter by your preferences, compare returns side-by-side, and build a shortlist to discuss with our AI advisors."
       actions={user ? (
-        <div className="flex gap-3">
-          <Link href={ROUTES.CHAT}>
-            <Button variant="secondary" className="rounded-full shadow-sm">
-              <MessageCircleMore className="mr-2 h-4 w-4" />
-              Ask Saathi
-            </Button>
-          </Link>
-          <Link href={ROUTES.VOICE}>
-            <Button variant="outline" className="rounded-full bg-panel-glass">
-              <Mic className="mr-2 h-4 w-4" />
-              Ask by Voice
-            </Button>
-          </Link>
-        </div>
+        <Link href={ROUTES.CHAT}>
+          <Button variant="secondary" className="rounded-full shadow-sm">
+            <MessageCircleMore className="mr-2 h-4 w-4" />
+            Ask Saathi
+          </Button>
+        </Link>
       ) : null}
     >
       <AuthGate

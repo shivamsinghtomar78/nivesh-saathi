@@ -6,8 +6,8 @@ import {
   ArrowRight,
   BarChart3,
   MessageCircleMore,
-  Mic,
   TrendingUp,
+  UserRound,
 } from "lucide-react";
 
 import AuthGate from "@/components/auth/AuthGate";
@@ -37,10 +37,10 @@ const quickActions = [
     icon: BarChart3,
   },
   {
-    href: ROUTES.VOICE,
-    title: "Ask by Voice",
-    body: "Continue the same advisor thread hands-free with concise spoken answers.",
-    icon: Mic,
+    href: ROUTES.PROFILE,
+    title: "Profile & History",
+    body: "Review your secure account, saved context, and advisor activity.",
+    icon: UserRound,
   },
 ];
 

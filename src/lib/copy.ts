@@ -77,8 +77,8 @@ export const APP_COPY: Record<
       stickyCta: "Open chat",
     },
     voice: {
-      title: "Voice bot",
-      subtitle: "Speak naturally and get a plain-language answer back.",
+      title: "Saathi Advisor",
+      subtitle: "Type or speak in the same secure conversation.",
       send: "Send",
     },
   },
@@ -113,8 +113,8 @@ export const APP_COPY: Record<
       stickyCta: "Chat kholo",
     },
     voice: {
-      title: "Voice bot",
-      subtitle: "Seedhi bhasha mein sawal poochhiye aur jawab suniye.",
+      title: "Saathi Advisor",
+      subtitle: "Ek hi secure conversation mein type ya mic se poochhiye.",
       send: "Send",
     },
   },
@@ -149,8 +149,8 @@ export const APP_COPY: Record<
       stickyCta: "Chat thirakkavum",
     },
     voice: {
-      title: "Voice bot",
-      subtitle: "Saadharanama pesaungal, Saathi badhil tharum.",
+      title: "Saathi Advisor",
+      subtitle: "Orey secure conversation-il type allathu mic use pannunga.",
       send: "Send",
     },
   },
@@ -185,8 +185,8 @@ export const APP_COPY: Record<
       stickyCta: "Chat khulun",
     },
     voice: {
-      title: "Voice bot",
-      subtitle: "Sohoj bhashay bolun, Saathi uttor debe.",
+      title: "Saathi Advisor",
+      subtitle: "Ek-i secure conversation-e type korun ba mic use korun.",
       send: "Send",
     },
   },

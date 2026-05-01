@@ -82,7 +82,7 @@ export async function GET(request: Request) {
             lineHeight: "1.2",
           }}
         >
-          Today's FD Rates
+          Today&apos;s FD Rates
         </h1>
 
         <div
