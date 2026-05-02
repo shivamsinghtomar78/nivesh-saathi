@@ -547,9 +547,9 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       >
         <HistoryDrawer open={showHistory} onClose={() => setShowHistory(false)} />
 
-        <div className="grid h-full min-h-0 items-stretch gap-5 overflow-hidden xl:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-outline bg-panel shadow-sm">
-            <header className="border-b border-outline/60 bg-panel/95 p-4 backdrop-blur-xl">
+        <div className="grid h-full min-h-0 items-stretch gap-6 overflow-hidden xl:grid-cols-[minmax(0,1fr)_400px]">
+          <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-outline bg-panel-glass shadow-[var(--shadow-card)] backdrop-blur-xl">
+            <header className="border-b border-outline/60 bg-panel-glass/95 p-5 backdrop-blur-xl">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-panel)] bg-surface-dark text-on-dark shadow-sm">
@@ -818,7 +818,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                 <div className="flex items-center justify-between border-b border-outline p-4">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">Insights</p>
-                    <p className="text-base font-semibold text-text-strong">Financial context</p>
+                    <p className="text-base font-semibold text-text-strong">Financial Context</p>
                   </div>
                   <button
                     type="button"

@@ -124,7 +124,7 @@ export function ShareButton({ messageText, rateCards }: ShareButtonProps) {
             initial={{ opacity: 0, y: 4, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.95 }}
-            className="absolute bottom-full mb-2 right-0 z-30 bg-panel border border-outline rounded-xl p-2 shadow-lg min-w-[160px]"
+            className="absolute bottom-full mb-2 right-0 z-30 bg-panel border border-outline rounded-[var(--radius-panel)] p-2 shadow-lg min-w-[160px]"
           >
             {typeof navigator !== "undefined" && 'share' in navigator && (
               <button

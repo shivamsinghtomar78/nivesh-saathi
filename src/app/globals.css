@@ -1,43 +1,43 @@
 @import "tailwindcss";
 
 @theme {
-  --color-app: #f6f8f4;
-  --color-panel: rgba(255, 255, 255, 0.88);
-  --color-panel-strong: #ffffff;
-  --color-panel-glass: rgba(255, 255, 255, 0.76);
-  --color-highlight: #d29b35;
-  --color-highlight-hover: #b7791f;
-  --color-highlight-soft: rgba(210, 155, 53, 0.14);
-  --color-accent: #0a7f64;
-  --color-accent-hover: #08735b;
-  --color-accent-soft: rgba(10, 127, 100, 0.12);
-  --color-accent-warm: #b7791f;
-  --color-accent-warm-soft: rgba(183, 121, 31, 0.13);
-  --color-secondary: #31546d;
-  --color-secondary-soft: rgba(49, 84, 109, 0.12);
-  --color-text-strong: #101418;
-  --color-text: #26323b;
-  --color-text-muted: #5c6974;
-  --color-outline: rgba(20, 32, 40, 0.12);
-  --color-danger: #c2414b;
-  --color-success: #0a7f64;
-  --color-on-accent: #ffffff;
+  --color-app: #050d0b;
+  --color-panel: rgba(12, 23, 20, 0.92);
+  --color-panel-strong: #101b18;
+  --color-panel-glass: rgba(13, 25, 22, 0.72);
+  --color-highlight: #f0bd53;
+  --color-highlight-hover: #ffd982;
+  --color-highlight-soft: rgba(240, 189, 83, 0.14);
+  --color-accent: #5be0bd;
+  --color-accent-hover: #77e9cb;
+  --color-accent-soft: rgba(91, 224, 189, 0.13);
+  --color-accent-warm: #f0bd53;
+  --color-accent-warm-soft: rgba(240, 189, 83, 0.13);
+  --color-secondary: #9ab5aa;
+  --color-secondary-soft: rgba(154, 181, 170, 0.12);
+  --color-text-strong: #f7fbf8;
+  --color-text: #dbe7e1;
+  --color-text-muted: #a7b7b0;
+  --color-outline: rgba(225, 244, 235, 0.13);
+  --color-danger: #ff8b95;
+  --color-success: #5be0bd;
+  --color-on-accent: #06110e;
 
   --radius-card: 8px;
   --radius-panel: 8px;
   --radius-input: 8px;
   --radius-pill: 9999px;
 
-  --color-surface-dark: #10231f;
-  --color-surface-dark-hover: #18342e;
-  --color-on-dark: #f8faf6;
-  --color-inner-panel: rgba(239, 244, 240, 0.82);
-  --color-input-bg: rgba(255, 255, 255, 0.9);
+  --color-surface-dark: #5be0bd;
+  --color-surface-dark-hover: #77e9cb;
+  --color-on-dark: #06110e;
+  --color-inner-panel: rgba(255, 255, 255, 0.058);
+  --color-input-bg: rgba(255, 255, 255, 0.085);
 
-  --shadow-card: 0 12px 36px rgba(20, 32, 40, 0.07);
-  --shadow-card-hover: 0 18px 48px rgba(20, 32, 40, 0.11);
-  --shadow-soft-layer: 0 8px 24px rgba(20, 32, 40, 0.08);
-  --ring-accent: 0 0 0 3px rgba(10, 127, 100, 0.2);
+  --shadow-card: 0 22px 70px rgba(0, 0, 0, 0.38);
+  --shadow-card-hover: 0 30px 86px rgba(0, 0, 0, 0.5);
+  --shadow-soft-layer: 0 16px 44px rgba(0, 0, 0, 0.34);
+  --ring-accent: 0 0 0 3px rgba(91, 224, 189, 0.22);
 
   --font-heading: var(--font-noto-serif-devanagari), var(--font-noto-serif), serif;
   --font-body: var(--font-work-sans), system-ui, sans-serif;
@@ -60,51 +60,73 @@ body {
   font-size: 16px;
   line-height: 1.55;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 260px),
-    linear-gradient(135deg, rgba(10, 127, 100, 0.055), transparent 34%),
-    linear-gradient(225deg, rgba(210, 155, 53, 0.055), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 18rem),
+    linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+    linear-gradient(125deg, rgba(91, 224, 189, 0.08), transparent 40%),
+    linear-gradient(235deg, rgba(240, 189, 83, 0.055), transparent 46%),
     var(--color-app);
+  background-size: auto, 34px 34px, 34px 34px, auto, auto, auto;
   color: var(--color-text);
 }
 
-.dark {
-  --color-app: #07110f;
-  --color-panel: rgba(12, 24, 21, 0.94);
-  --color-panel-strong: #101f1b;
-  --color-panel-glass: rgba(12, 24, 21, 0.78);
-  --color-highlight: #f1bc59;
-  --color-highlight-hover: #ffd98a;
-  --color-highlight-soft: rgba(241, 188, 89, 0.14);
-  --color-accent: #59ddb9;
-  --color-accent-hover: #7be7ca;
-  --color-accent-soft: rgba(89, 221, 185, 0.13);
-  --color-accent-warm: #f1bc59;
-  --color-accent-warm-soft: rgba(241, 188, 89, 0.14);
-  --color-secondary: #9bb6aa;
-  --color-secondary-soft: rgba(155, 182, 170, 0.12);
-  --color-text-strong: #f6fbf7;
-  --color-text: #d9e5df;
-  --color-text-muted: #aab9b2;
-  --color-outline: rgba(225, 244, 235, 0.12);
-  --color-danger: #ff8b95;
-  --color-success: #59ddb9;
-  --color-surface-dark: #59ddb9;
-  --color-surface-dark-hover: #7be7ca;
-  --color-on-dark: #06110e;
-  --color-on-accent: #06110e;
-  --color-inner-panel: rgba(255, 255, 255, 0.055);
-  --color-input-bg: rgba(255, 255, 255, 0.085);
-  --shadow-card: 0 22px 70px rgba(0, 0, 0, 0.38);
-  --shadow-card-hover: 0 30px 86px rgba(0, 0, 0, 0.5);
-  --shadow-soft-layer: 0 16px 44px rgba(0, 0, 0, 0.34);
-  --ring-accent: 0 0 0 3px rgba(89, 221, 185, 0.24);
+.dark,
+.dark-context {
+  color-scheme: dark;
 }
 
-.dark body {
+.light {
+  --color-app: #f6f8f4;
+  --color-panel: rgba(255, 255, 255, 0.9);
+  --color-panel-strong: #ffffff;
+  --color-panel-glass: rgba(255, 255, 255, 0.78);
+  --color-highlight: #d29b35;
+  --color-highlight-hover: #b7791f;
+  --color-highlight-soft: rgba(210, 155, 53, 0.14);
+  --color-accent: #0a7f64;
+  --color-accent-hover: #08735b;
+  --color-accent-soft: rgba(10, 127, 100, 0.12);
+  --color-accent-warm: #b7791f;
+  --color-accent-warm-soft: rgba(183, 121, 31, 0.13);
+  --color-secondary: #31546d;
+  --color-secondary-soft: rgba(49, 84, 109, 0.12);
+  --color-text-strong: #101418;
+  --color-text: #26323b;
+  --color-text-muted: #5c6974;
+  --color-outline: rgba(20, 32, 40, 0.12);
+  --color-danger: #c2414b;
+  --color-success: #0a7f64;
+  --color-on-accent: #ffffff;
+  --color-surface-dark: #10231f;
+  --color-surface-dark-hover: #18342e;
+  --color-on-dark: #f8faf6;
+  --color-inner-panel: rgba(239, 244, 240, 0.82);
+  --color-input-bg: rgba(255, 255, 255, 0.9);
+  --shadow-card: 0 12px 36px rgba(20, 32, 40, 0.07);
+  --shadow-card-hover: 0 18px 48px rgba(20, 32, 40, 0.11);
+  --shadow-soft-layer: 0 8px 24px rgba(20, 32, 40, 0.08);
+  --ring-accent: 0 0 0 3px rgba(10, 127, 100, 0.2);
+  color-scheme: light;
+}
+
+.dark body,
+.dark-context {
   background:
-    radial-gradient(circle at 52% 0%, rgba(89, 221, 185, 0.11), transparent 32rem),
-    radial-gradient(circle at 82% 12%, rgba(241, 188, 89, 0.08), transparent 26rem),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 18rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 18rem),
+    linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+    linear-gradient(125deg, rgba(91, 224, 189, 0.08), transparent 40%),
+    linear-gradient(235deg, rgba(240, 189, 83, 0.055), transparent 46%),
+    var(--color-app);
+  background-size: auto, 34px 34px, 34px 34px, auto, auto, auto;
+  color: var(--color-text);
+}
+
+.light body {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 260px),
+    linear-gradient(135deg, rgba(10, 127, 100, 0.055), transparent 34%),
+    linear-gradient(225deg, rgba(210, 155, 53, 0.055), transparent 38%),
     var(--color-app);
   color: var(--color-text);
 }
@@ -263,13 +285,17 @@ select:focus-visible {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(20, 32, 40, 0.22);
+  background: rgba(255, 255, 255, 0.18);
   border-radius: 999px;
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb,
 .dark-context .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.18);
+}
+
+.light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(20, 32, 40, 0.22);
 }
 
 .snap-start {
@@ -334,25 +360,8 @@ select:focus-visible {
 }
 
 .dark-context {
-  --color-text-strong: #f6fbf7;
-  --color-text: #d9e5df;
-  --color-text-muted: #aab9b2;
-  --color-outline: rgba(225, 244, 235, 0.12);
-  --color-panel: rgba(12, 24, 21, 0.84);
-  --color-panel-strong: #101f1b;
-  --color-inner-panel: rgba(255, 255, 255, 0.055);
-  --color-panel-glass: rgba(12, 24, 21, 0.62);
-  --color-input-bg: rgba(255, 255, 255, 0.085);
-  --color-app: #07110f;
-  --color-accent: #59ddb9;
-  --color-accent-hover: #7be7ca;
-  --color-accent-soft: rgba(89, 221, 185, 0.13);
-  --color-surface-dark: #59ddb9;
-  --color-surface-dark-hover: #7be7ca;
-  --color-on-dark: #06110e;
-  --color-on-accent: #06110e;
-  --shadow-card: 0 22px 70px rgba(0, 0, 0, 0.38);
-  --shadow-card-hover: 0 30px 86px rgba(0, 0, 0, 0.5);
+  --color-panel: rgba(12, 23, 20, 0.84);
+  --color-panel-glass: rgba(12, 23, 20, 0.62);
 }
 
 @keyframes ack-pulse {

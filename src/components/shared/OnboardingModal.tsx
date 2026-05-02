@@ -67,7 +67,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
             transition={{ duration: 0.25 }}
             className="text-center"
           >
-            <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-5">
+            <div className="w-16 h-16 rounded-[var(--radius-panel)] bg-accent/10 flex items-center justify-center mx-auto mb-5">
               <Icon className="w-7 h-7 text-accent" />
             </div>
             <h2 className="text-2xl font-semibold text-text-strong mb-3">{current.title}</h2>

@@ -8,7 +8,7 @@ export default function EmptyRatesState({
   body: string;
 }) {
   return (
-    <div className="rounded-2xl border border-outline bg-panel px-6 py-12 text-center">
+    <div className="rounded-[var(--radius-card)] border border-outline bg-panel px-6 py-12 text-center shadow-[var(--shadow-card)]">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-outline bg-panel-strong">
       <WalletCards className="h-7 w-7 text-accent" />
       </div>

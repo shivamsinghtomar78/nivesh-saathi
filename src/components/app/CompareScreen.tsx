@@ -240,7 +240,7 @@ export default function CompareScreen() {
                   >
                     <span>{seniorCitizen ? "Eligible" : "Not Eligible"}</span>
                     <span className={`h-5 w-9 rounded-full p-0.5 transition-colors ${seniorCitizen ? "bg-accent" : "bg-outline"}`}>
-                      <span className={`block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${seniorCitizen ? "translate-x-4" : "translate-x-0"}`} />
+                      <span className={`block h-4 w-4 rounded-full bg-on-accent shadow-sm transition-transform ${seniorCitizen ? "translate-x-4" : "translate-x-0"}`} />
                     </span>
                   </button>
                 </label>
@@ -300,19 +300,19 @@ export default function CompareScreen() {
                               </div>
                               
                               <div className="grid grid-cols-2 gap-3 mb-4 md:grid-cols-4">
-                                <div className="bg-inner-panel rounded-xl p-3">
+                                <div className="bg-inner-panel rounded-[var(--radius-panel)] p-3">
                                   <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Regular Rate</p>
                                   <p className="financial-value text-2xl font-bold text-accent mt-1">{rate.regularRate.toFixed(2)}%</p>
                                 </div>
-                                <div className="bg-inner-panel rounded-xl p-3">
+                                <div className="bg-inner-panel rounded-[var(--radius-panel)] p-3">
                                   <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Senior Rate</p>
                                   <p className="financial-value text-2xl font-bold text-highlight mt-1">{rate.seniorRate.toFixed(2)}%</p>
                                 </div>
-                                <div className="bg-inner-panel rounded-xl p-3">
+                                <div className="bg-inner-panel rounded-[var(--radius-panel)] p-3">
                                   <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Tenure</p>
                                   <p className="financial-value text-lg font-semibold text-text-strong mt-1">{rate.tenorLabel}</p>
                                 </div>
-                                <div className="bg-inner-panel rounded-xl p-3">
+                                <div className="bg-inner-panel rounded-[var(--radius-panel)] p-3">
                                   <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Maturity</p>
                                   <p className="financial-value text-lg font-semibold text-text-strong mt-1">{formatCurrency(maturity.maturityAmount)}</p>
                                 </div>
@@ -420,7 +420,7 @@ export default function CompareScreen() {
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9, height: 0, overflow: 'hidden' }}
                             key={rate.id}
-                            className="rounded-2xl border border-outline bg-inner-panel p-4"
+                            className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4"
                           >
                             <div className="flex items-start justify-between gap-3 mb-2">
                               <p className="font-semibold text-text-strong leading-tight">
@@ -449,7 +449,7 @@ export default function CompareScreen() {
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="rounded-2xl border border-dashed border-outline bg-inner-panel/50 p-6 text-center"
+                        className="rounded-[var(--radius-panel)] border border-dashed border-outline bg-inner-panel/50 p-6 text-center"
                       >
                         <p className="text-sm text-text-muted">
                           Click &quot;Shortlist Rate&quot; on any option to save it here.
@@ -533,7 +533,7 @@ export default function CompareScreen() {
                         return (
                           <div
                             key={rate.id}
-                            className="rounded-2xl border border-outline bg-inner-panel p-4"
+                            className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4"
                           >
                             <div className="flex items-start justify-between gap-3 mb-2">
                               <p className="font-semibold text-text-strong">{rate.bankName}</p>

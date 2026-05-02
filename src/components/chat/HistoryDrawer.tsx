@@ -134,7 +134,7 @@ export function HistoryDrawer({ open, onClose }: { open: boolean; onClose: () =>
               {loading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 rounded-xl bg-inner-panel animate-pulse" />
+                    <div key={i} className="h-16 rounded-[var(--radius-panel)] bg-inner-panel animate-pulse" />
                   ))}
                 </div>
               ) : threads.length === 0 ? (
@@ -156,7 +156,7 @@ export function HistoryDrawer({ open, onClose }: { open: boolean; onClose: () =>
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={() => handleSelectThread(thread.threadId)}
-                          className="w-full text-left p-3 rounded-xl border border-outline bg-inner-panel/60 hover:bg-panel hover:border-accent/20 transition-all group"
+                          className="w-full text-left p-3 rounded-[var(--radius-panel)] border border-outline bg-inner-panel/60 hover:bg-panel hover:border-accent/20 transition-all group"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">

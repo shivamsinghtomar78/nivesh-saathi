@@ -140,7 +140,7 @@ export default function StructuredAnswer({
               {block.items.map((item, itemIndex) => (
                 <li
                   key={`${item}-${itemIndex}`}
-                  className="flex gap-3 rounded-2xl border border-outline bg-app/70 px-3 py-2"
+                  className="flex gap-3 rounded-[var(--radius-panel)] border border-outline bg-app/70 px-3 py-2"
                 >
                     <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                   <span>{parseInline(item)}</span>

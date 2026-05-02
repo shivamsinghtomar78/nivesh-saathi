@@ -33,10 +33,10 @@ const HISTORICAL_DATA = [
 ];
 
 const BANK_COLORS: Record<string, string> = {
-  au: "#8B5CF6",
-  hdfc: "#2563EB",
-  sbi: "#10b981",
-  icici: "#F97316",
+  au: "#5be0bd",
+  hdfc: "#f0bd53",
+  sbi: "#9ab5aa",
+  icici: "#77e9cb",
 };
 
 const BANK_NAMES: Record<string, string> = {
@@ -98,25 +98,27 @@ export function FDTimeMachineChart() {
           <div className="h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={HISTORICAL_DATA} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(225,244,235,0.10)" />
                 <XAxis
                   dataKey="month"
-                  tick={{ fontSize: 10, fill: "#6b6f77" }}
+                  tick={{ fontSize: 10, fill: "#a7b7b0" }}
                   tickLine={false}
-                  axisLine={{ stroke: "rgba(0,0,0,0.08)" }}
+                  axisLine={{ stroke: "rgba(225,244,235,0.12)" }}
                 />
                 <YAxis
                   domain={[6.5, 8.5]}
-                  tick={{ fontSize: 10, fill: "#6b6f77" }}
+                  tick={{ fontSize: 10, fill: "#a7b7b0" }}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={(v: number) => `${v}%`}
                 />
                 <Tooltip
                   contentStyle={{
-                    borderRadius: "12px",
-                    border: "none",
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                    background: "#101b18",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(225,244,235,0.13)",
+                    boxShadow: "0 16px 44px rgba(0,0,0,0.34)",
+                    color: "#f7fbf8",
                     fontSize: "12px",
                   }}
                   formatter={(value: unknown, name: unknown) => [

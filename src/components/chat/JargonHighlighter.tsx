@@ -157,7 +157,7 @@ export function JargonHighlighter({ text, className }: JargonHighlighterProps) {
                   initial={{ opacity: 0, y: 4, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                  className="absolute left-0 top-full mt-1 z-30 w-64 bg-panel border border-outline rounded-xl p-3 shadow-lg"
+                  className="absolute left-0 top-full mt-1 z-30 w-64 bg-panel border border-outline rounded-[var(--radius-panel)] p-3 shadow-lg"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1.5">

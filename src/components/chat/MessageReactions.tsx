@@ -86,7 +86,7 @@ export function MessageReactions({ messageId, onFeedback, className }: MessageRe
             initial={{ opacity: 0, y: 4, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.95 }}
-            className="absolute bottom-full mb-2 left-0 z-20 bg-panel border border-outline rounded-xl p-2 shadow-lg min-w-[180px]"
+            className="absolute bottom-full mb-2 left-0 z-20 bg-panel border border-outline rounded-[var(--radius-panel)] p-2 shadow-lg min-w-[180px]"
           >
             <div className="flex items-center justify-between mb-2 px-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">

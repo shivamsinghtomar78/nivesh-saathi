@@ -95,7 +95,6 @@ export default function HomeScreen() {
           <div className="grid gap-6">
             <motion.div variants={itemVariants}>
               <Card className="p-6 border-outline bg-panel-glass shadow-sm backdrop-blur-sm overflow-hidden relative">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
                 <CardHeader className="relative z-10 pb-4">
                   <div className="flex items-center gap-3 mb-2">
                     <Badge variant="accent" className="bg-accent/10 text-accent hover:bg-accent/20 border-transparent shadow-none">
@@ -110,7 +109,7 @@ export default function HomeScreen() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="relative z-10 grid gap-4 sm:grid-cols-4">
-                  <div className="rounded-2xl border border-outline bg-panel p-5 transition-shadow hover:shadow-soft">
+                  <div className="rounded-[var(--radius-panel)] border border-outline bg-panel-strong/70 p-5 transition-shadow hover:shadow-soft">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                       Saved Shortlist
                     </p>
@@ -118,7 +117,7 @@ export default function HomeScreen() {
                       {shortlist.length} <span className="text-sm font-normal text-text-muted">banks</span>
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-outline bg-panel p-5 transition-shadow hover:shadow-soft">
+                  <div className="rounded-[var(--radius-panel)] border border-outline bg-panel-strong/70 p-5 transition-shadow hover:shadow-soft">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                       Chat Activity
                     </p>
@@ -126,7 +125,7 @@ export default function HomeScreen() {
                       {Math.max(messages.length - 1, 0)} <span className="text-sm font-normal text-text-muted">messages</span>
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-outline bg-panel p-5 transition-shadow hover:shadow-soft">
+                  <div className="rounded-[var(--radius-panel)] border border-outline bg-panel-strong/70 p-5 transition-shadow hover:shadow-soft">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                       Language
                     </p>
@@ -134,7 +133,7 @@ export default function HomeScreen() {
                       {LANGUAGE_LABELS[language]}
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-outline bg-panel p-5 transition-shadow hover:shadow-soft">
+                  <div className="rounded-[var(--radius-panel)] border border-outline bg-panel-strong/70 p-5 transition-shadow hover:shadow-soft">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                       Top Market Rate
                     </p>
@@ -154,7 +153,7 @@ export default function HomeScreen() {
                     <Link href={action.href} className="block h-full outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-[var(--radius-card)]">
                       <Card className="group h-full cursor-pointer border-outline bg-panel p-5 transition-all duration-300 hover:-translate-y-1 hover:border-accent/35 hover:shadow-[var(--shadow-card-hover)]">
                         <CardHeader className="p-0">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-dark text-on-dark transition-transform duration-300 group-hover:scale-110 group-hover:shadow-soft">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-panel)] bg-surface-dark text-on-dark transition-transform duration-300 group-hover:scale-105 group-hover:shadow-soft">
                             <Icon className="h-5 w-5" />
                           </div>
                           <CardTitle className="mt-4 text-lg group-hover:text-accent transition-colors">{action.title}</CardTitle>
@@ -187,7 +186,7 @@ export default function HomeScreen() {
                     initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 + index * 0.1 }}
-                    className="group rounded-2xl border border-outline bg-inner-panel p-4 transition-colors hover:bg-panel hover:border-accent/30"
+                    className="group rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4 transition-colors hover:bg-panel hover:border-accent/30"
                   >
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div>
@@ -216,7 +215,7 @@ export default function HomeScreen() {
                 ))}
                 
                 <Link href={ROUTES.COMPARE} className="mt-2 block w-full">
-                  <Button variant="outline" className="w-full rounded-xl text-sm font-medium">
+                  <Button variant="outline" className="w-full rounded-[var(--radius-input)] text-sm font-medium">
                     View Full Table
                   </Button>
                 </Link>

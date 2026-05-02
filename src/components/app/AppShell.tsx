@@ -73,8 +73,8 @@ export default function AppShell({
 
   return (
     <div className="bg-app min-h-screen">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-outline bg-panel-glass/90 shadow-[0_8px_30px_rgba(20,32,40,0.06)] backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 md:px-6 lg:px-8">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-outline bg-panel-glass/90 shadow-[0_12px_42px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-[95rem] items-center gap-4 px-4 md:px-6 lg:px-8">
           <Link href={ROUTES.HOME} className="flex min-w-0 items-center gap-3 group">
             <motion.div 
               whileHover={{ rotate: 5, scale: 1.05 }}
@@ -109,7 +109,7 @@ export default function AppShell({
                   {active && (
                     <motion.div
                       layoutId="activeNavBackground"
-                      className="absolute inset-0 rounded-full bg-accent shadow-[0_10px_24px_rgba(10,127,100,0.22)] dark:shadow-[0_18px_42px_rgba(89,221,185,0.18)]"
+                      className="absolute inset-0 rounded-full bg-accent shadow-[0_18px_42px_rgba(91,224,189,0.18)]"
                       initial={false}
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
@@ -120,7 +120,7 @@ export default function AppShell({
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
-            <div className="hidden rounded-full bg-input-bg border border-outline p-1 shadow-sm md:flex">
+            <div className="hidden rounded-full bg-input-bg border border-outline p-1 shadow-[var(--shadow-soft-layer)] md:flex">
               {Object.entries(LANGUAGE_LABELS).map(([code, label]) => (
                 <button
                   key={code}
@@ -212,8 +212,8 @@ export default function AppShell({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
           className={cn(
-            "mx-auto flex max-w-7xl flex-col px-4 md:px-6 lg:px-8",
-            workspace ? "h-[calc(100vh-4rem)] gap-3 py-3" : "gap-8 py-6"
+            "mx-auto flex max-w-[95rem] flex-col px-4 md:px-6 lg:px-8",
+            workspace ? "h-[calc(100vh-4rem)] gap-4 py-4" : "gap-8 py-6"
           )}
         >
           {!workspace ? (
@@ -242,14 +242,14 @@ export default function AppShell({
             </div>
           ) : null}
 
-          <div className="relative">
+          <div className={cn("relative", workspace && "h-full min-h-0")}>
             {children}
           </div>
         </motion.div>
       </main>
 
       {!workspace ? (
-        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/92 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(20,32,40,0.06)] backdrop-blur-xl lg:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/92 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_42px_rgba(0,0,0,0.24)] backdrop-blur-xl lg:hidden">
           <div className="mx-auto grid max-w-3xl grid-cols-3 gap-1 px-2 py-2">
             {NAV_ITEMS.map((item) => {
               const active =
@@ -261,7 +261,7 @@ export default function AppShell({
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "relative rounded-2xl px-2 py-2.5 text-center text-[11px] font-medium transition flex flex-col items-center justify-center gap-1",
+                    "relative rounded-[var(--radius-panel)] px-2 py-2.5 text-center text-[11px] font-medium transition flex flex-col items-center justify-center gap-1",
                     active
                       ? "text-text-strong"
                       : "text-text-muted hover:bg-input-bg"

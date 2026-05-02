@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { LoaderCircle, Mic, MicOff, RotateCcw, Send, VolumeX } from "lucide-react";
 
@@ -97,7 +98,8 @@ export default function AdvisorComposer({
   onVoiceRetry,
 }: AdvisorComposerProps) {
   const handleAutoResize = useAutoResize(128);
-  const statusTitle = voiceStatusTitle(voiceState);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const statusTitle = voiceError ? "Voice needs attention" : voiceStatusTitle(voiceState);
   const statusBody = voiceStatusBody({
     acknowledgment: voiceAcknowledgment,
     error: voiceError,
@@ -108,9 +110,15 @@ export default function AdvisorComposer({
   const showVoiceStatus = voiceState !== "idle" || Boolean(voiceError);
   const micIsActive = voiceState === "listening" || voiceState === "speaking";
   const micIsDisabled = voiceDisabled && voiceState !== "speaking" && voiceState !== "listening";
+  const canSend = !disabled && draft.trim().length > 0;
+
+  useEffect(() => {
+    if (!textareaRef.current || draft.length > 0) return;
+    textareaRef.current.style.height = "44px";
+  }, [draft]);
 
   return (
-    <div className="border-t border-outline/60 bg-panel/90 p-3 backdrop-blur-xl md:p-4">
+    <div className="sticky bottom-0 z-20 shrink-0 border-t border-outline/70 bg-panel-glass/95 px-3 py-3 backdrop-blur-2xl md:px-4">
       <AnimatePresence>
         {showPrompts ? (
           <motion.div
@@ -124,7 +132,7 @@ export default function AdvisorComposer({
                 key={prompt}
                 type="button"
                 onClick={() => onPrompt(prompt)}
-                className="rounded-full border border-outline bg-input-bg px-3 py-1.5 text-xs font-medium text-text-muted transition hover:border-accent/30 hover:bg-panel hover:text-text-strong"
+                className="rounded-full border border-outline bg-input-bg px-3 py-1.5 text-xs font-medium text-text-muted shadow-sm transition hover:border-accent/35 hover:bg-panel-strong hover:text-text-strong"
               >
                 {prompt}
               </button>
@@ -153,28 +161,8 @@ export default function AdvisorComposer({
         ) : null}
       </AnimatePresence>
 
-      <div className="rounded-[var(--radius-panel)] border border-outline bg-input-bg p-2 transition focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
-        <div className="flex items-end gap-2">
-          <textarea
-            value={draft}
-            onChange={(event) => {
-              if (event.target.value.length <= MAX_CHARS) {
-                onChange(event.target.value);
-              }
-            }}
-            onInput={handleAutoResize}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                onSubmit();
-              }
-            }}
-            placeholder={`Ask or speak in ${LANGUAGE_LABELS[language]}...`}
-            rows={1}
-            maxLength={MAX_CHARS}
-            className="max-h-32 min-h-[44px] w-full resize-none bg-transparent px-3 py-3 text-sm text-text-strong outline-none placeholder:text-text-muted custom-scrollbar"
-          />
-
+      <div className="rounded-[var(--radius-panel)] border border-outline bg-panel-strong/90 p-2 shadow-[var(--shadow-soft-layer)] transition focus-within:border-accent/55 focus-within:ring-2 focus-within:ring-accent/20">
+        <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-end gap-2">
           <Button
             size="icon"
             variant={micIsActive ? "primary" : "ghost"}
@@ -183,9 +171,9 @@ export default function AdvisorComposer({
             aria-label={micLabel(voiceState)}
             className={cn(
               "relative h-11 w-11 shrink-0 overflow-visible rounded-[var(--radius-input)]",
-              "text-text-muted hover:text-text-strong",
-              voiceState === "listening" && "bg-danger text-white hover:bg-danger/90",
-              voiceState === "speaking" && "bg-surface-dark text-on-dark hover:bg-surface-dark-hover",
+              "border border-outline bg-input-bg text-text-muted hover:border-accent/35 hover:bg-inner-panel hover:text-text-strong",
+              voiceState === "listening" && "border-danger/40 bg-danger text-white hover:bg-danger/90",
+              voiceState === "speaking" && "border-accent/40 bg-surface-dark text-on-dark hover:bg-surface-dark-hover",
               voiceState === "error" && "text-danger hover:text-danger",
               micIsDisabled && "opacity-60"
             )}
@@ -209,77 +197,98 @@ export default function AdvisorComposer({
             )}
           </Button>
 
+          <textarea
+            ref={textareaRef}
+            value={draft}
+            onChange={(event) => {
+              if (event.target.value.length <= MAX_CHARS) {
+                onChange(event.target.value);
+              }
+            }}
+            onInput={handleAutoResize}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                if (canSend) onSubmit();
+              }
+            }}
+            placeholder={`Ask or speak in ${LANGUAGE_LABELS[language]}...`}
+            rows={1}
+            maxLength={MAX_CHARS}
+            className="max-h-32 min-h-[44px] w-full resize-none bg-transparent px-2 py-3 text-sm leading-5 text-text-strong outline-none placeholder:text-text-muted custom-scrollbar"
+          />
+
           <Button
             size="icon"
-            variant="secondary"
+            variant="primary"
             onClick={onSubmit}
-            disabled={disabled || !draft.trim()}
+            disabled={!canSend}
             aria-label="Send message"
-            className="h-11 w-11 shrink-0 rounded-[var(--radius-input)]"
+            className="h-11 w-11 shrink-0 rounded-[var(--radius-input)] shadow-[0_14px_30px_rgba(91,224,189,0.2)]"
           >
             <Send className="h-4 w-4" />
           </Button>
         </div>
+      </div>
 
-        <AnimatePresence>
-          {showVoiceStatus ? (
-            <motion.div
-              initial={{ opacity: 0, y: 6, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: "auto" }}
-              exit={{ opacity: 0, y: 4, height: 0 }}
-              role="status"
-              aria-live="polite"
-              className="overflow-hidden"
+      <AnimatePresence>
+        {showVoiceStatus ? (
+          <motion.div
+            initial={{ opacity: 0, y: 6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: 4, height: 0 }}
+            role="status"
+            aria-live="polite"
+            className="overflow-hidden"
+          >
+            <div
+              className={cn(
+                "mt-3 flex items-start justify-between gap-3 rounded-[var(--radius-input)] border px-3 py-2",
+                voiceState === "error"
+                  ? "border-danger/25 bg-danger/10"
+                  : "border-accent/20 bg-accent/10"
+              )}
             >
-              <div
-                className={cn(
-                  "mt-2 flex items-start justify-between gap-3 rounded-[var(--radius-input)] border px-3 py-2",
-                  voiceState === "error"
-                    ? "border-danger/25 bg-danger/5"
-                    : "border-accent/15 bg-accent/5"
-                )}
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    {voiceState === "listening" || voiceState === "speaking" ? (
-                      <span className="wave-bars" aria-hidden="true">
-                        <span />
-                        <span />
-                        <span />
-                        <span />
-                        <span />
-                      </span>
-                    ) : voiceState === "processing" ? (
-                      <LoaderCircle className="h-3.5 w-3.5 animate-spin text-accent" />
-                    ) : null}
-                    <p
-                      className={cn(
-                        "text-xs font-semibold",
-                        voiceState === "error" ? "text-danger" : "text-text-strong"
-                      )}
-                    >
-                      {statusTitle}
-                    </p>
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-text-muted">
-                    {statusBody}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  {voiceState === "listening" || voiceState === "speaking" ? (
+                    <span className="wave-bars" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  ) : voiceState === "processing" ? (
+                    <LoaderCircle className="h-3.5 w-3.5 animate-spin text-accent" />
+                  ) : null}
+                  <p
+                    className={cn(
+                      "text-xs font-semibold",
+                      voiceState === "error" ? "text-danger" : "text-text-strong"
+                    )}
+                  >
+                    {statusTitle}
                   </p>
                 </div>
-
-                {voiceState === "error" ? (
-                  <button
-                    type="button"
-                    onClick={onVoiceRetry}
-                    className="shrink-0 rounded-full border border-outline bg-panel px-3 py-1 text-xs font-semibold text-text-strong transition hover:border-accent/30"
-                  >
-                    Retry
-                  </button>
-                ) : null}
+                <p className="mt-1 line-clamp-2 text-xs leading-5 text-text-muted">
+                  {statusBody}
+                </p>
               </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-      </div>
+
+              {voiceState === "error" ? (
+                <button
+                  type="button"
+                  onClick={onVoiceRetry}
+                  className="shrink-0 rounded-full border border-outline bg-panel px-3 py-1 text-xs font-semibold text-text-strong transition hover:border-accent/30"
+                >
+                  Retry
+                </button>
+              ) : null}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <div className="mt-1.5 flex items-center justify-between px-1">
         <span className="hidden text-[10px] text-text-muted sm:inline">

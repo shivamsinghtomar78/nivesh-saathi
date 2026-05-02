@@ -26,7 +26,7 @@ export default function VoiceCompanionCard({ message }: VoiceCompanionCardProps)
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="rounded-2xl border border-outline bg-panel-glass p-4 shadow-sm backdrop-blur-sm"
+        className="rounded-[var(--radius-card)] border border-outline bg-panel-glass p-4 shadow-[var(--shadow-card)] backdrop-blur-sm"
       >
         <div className="flex items-center gap-2 mb-3">
           <TrendingUp className="h-4 w-4 text-accent" />
@@ -46,7 +46,7 @@ export default function VoiceCompanionCard({ message }: VoiceCompanionCardProps)
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.15 * i }}
-              className="flex items-center justify-between rounded-xl border border-outline bg-inner-panel px-3 py-2.5 transition hover:border-accent/20"
+              className="flex items-center justify-between rounded-[var(--radius-panel)] border border-outline bg-inner-panel px-3 py-2.5 transition hover:border-accent/20"
             >
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-text-strong truncate">
@@ -74,7 +74,7 @@ export default function VoiceCompanionCard({ message }: VoiceCompanionCardProps)
         </div>
 
         {message.rateCards.some((c) => c.safetyNote) && (
-          <div className="mt-3 flex items-start gap-2 rounded-xl bg-accent/5 px-3 py-2">
+          <div className="mt-3 flex items-start gap-2 rounded-[var(--radius-panel)] bg-accent/5 px-3 py-2">
             <Shield className="h-3.5 w-3.5 text-accent mt-0.5 shrink-0" />
             <p className="text-[11px] text-text-muted leading-relaxed">
               {message.rateCards.find((c) => c.safetyNote)?.safetyNote}

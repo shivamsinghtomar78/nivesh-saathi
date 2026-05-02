@@ -61,14 +61,14 @@ export default function AdvisorInsightPanel({
   const hasInsights = hasAdvisorInsights(latestMessage);
 
   return (
-    <aside className={cn("flex h-full min-h-0 flex-col rounded-[var(--radius-card)] border border-outline bg-panel shadow-sm", className)}>
-      <div className="border-b border-outline/60 p-4">
+    <aside className={cn("flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-outline bg-panel-glass shadow-[var(--shadow-card)] backdrop-blur-xl", className)}>
+      <div className="border-b border-outline/60 p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
               Insights
             </p>
-            <h2 className="mt-1 text-lg font-semibold text-text-strong">Financial context</h2>
+            <h2 className="mt-1 text-xl font-semibold text-text-strong">Financial Context</h2>
           </div>
           {shortlistCount > 0 ? (
             <Badge variant="outline" className="bg-accent/10 text-accent">
@@ -78,9 +78,9 @@ export default function AdvisorInsightPanel({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 custom-scrollbar">
+      <div className="min-h-0 flex-1 overflow-y-auto p-5 custom-scrollbar">
         {!hasInsights ? (
-          <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[var(--radius-panel)] border border-dashed border-outline bg-inner-panel/60 p-6 text-center">
+          <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[var(--radius-panel)] border border-dashed border-outline bg-inner-panel/70 p-6 text-center">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-accent/10 text-accent">
               <Sparkles className="h-5 w-5" />
             </div>
@@ -90,12 +90,17 @@ export default function AdvisorInsightPanel({
             </p>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-5">
             {latestMessage?.rateCards && latestMessage.rateCards.length > 0 ? (
               <section className="grid gap-3">
-                <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4 text-accent" />
-                  <h3 className="text-sm font-semibold text-text-strong">Recommended options</h3>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Star className="h-4 w-4 text-accent" />
+                    <h3 className="text-sm font-semibold text-text-strong">Recommended Options</h3>
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
+                    Context
+                  </span>
                 </div>
                 {latestMessage.rateCards.map((card) => {
                   const selected = (selectedRateCard?.bankId ?? selectedRateCard?.bankName) === (card.bankId ?? card.bankName);
@@ -106,8 +111,8 @@ export default function AdvisorInsightPanel({
                       type="button"
                       onClick={() => onSelectRateCard?.(card)}
                       className={cn(
-                        "rounded-[var(--radius-panel)] border p-4 text-left transition hover:border-accent/30",
-                        selected ? "border-accent bg-accent/5" : "border-outline bg-inner-panel"
+                        "rounded-[var(--radius-panel)] border p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-accent/35",
+                        selected ? "border-accent/60 bg-accent/10" : "border-outline bg-panel-strong/70"
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -121,7 +126,7 @@ export default function AdvisorInsightPanel({
                           </Badge>
                         ) : null}
                       </div>
-                      <p className="mt-3 text-2xl font-semibold text-accent">{card.rate}</p>
+                      <p className="financial-value mt-3 text-3xl font-semibold text-accent">{card.rate}</p>
                       {card.maturityPreview ? (
                         <p className="mt-1 text-xs font-medium text-text-strong">{card.maturityPreview}</p>
                       ) : null}
@@ -150,9 +155,14 @@ export default function AdvisorInsightPanel({
 
             {showCalculator ? (
               <section className="grid gap-3">
-                <div className="flex items-center gap-2">
-                  <Calculator className="h-4 w-4 text-accent" />
-                  <h3 className="text-sm font-semibold text-text-strong">Maturity calculator</h3>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Calculator className="h-4 w-4 text-accent" />
+                    <h3 className="text-sm font-semibold text-text-strong">Maturity Calculator</h3>
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-text-muted">
+                    Result + Controls
+                  </span>
                 </div>
                 <FDCalculatorCard
                   bankName={calculatorCard?.bankName}
@@ -169,10 +179,10 @@ export default function AdvisorInsightPanel({
             ) : null}
 
             {latestMessage?.glossary && latestMessage.glossary.length > 0 ? (
-              <section className="grid gap-3 rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
+              <section className="grid gap-3 rounded-[var(--radius-panel)] border border-outline bg-panel-strong/70 p-4">
                 <div className="flex items-center gap-2">
                   <Info className="h-4 w-4 text-accent" />
-                  <h3 className="text-sm font-semibold text-text-strong">Plain-language glossary</h3>
+                  <h3 className="text-sm font-semibold text-text-strong">Plain-Language Glossary</h3>
                 </div>
                 {latestMessage.glossary.map((item) => (
                   <div key={item.term} className="border-t border-outline/60 pt-3 first:border-t-0 first:pt-0">
@@ -183,10 +193,10 @@ export default function AdvisorInsightPanel({
               </section>
             ) : null}
 
-            <section className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
+            <section className="rounded-[var(--radius-panel)] border border-outline bg-panel-strong/70 p-4">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-accent" />
-                <h3 className="text-sm font-semibold text-text-strong">Safety reminder</h3>
+                <h3 className="text-sm font-semibold text-text-strong">Safety Reminder</h3>
               </div>
               <p className="mt-2 text-sm leading-6 text-text-muted">
                 FD rates can change. Always confirm the final rate and terms on the bank site before booking.
@@ -198,7 +208,7 @@ export default function AdvisorInsightPanel({
         )}
       </div>
 
-      <div className="border-t border-outline/60 p-4">
+      <div className="border-t border-outline/60 p-5">
         <Button variant="outline" className="w-full rounded-[var(--radius-input)] bg-input-bg" disabled={!hasInsights}>
           Use this context in next question
         </Button>

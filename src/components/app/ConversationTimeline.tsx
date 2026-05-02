@@ -89,7 +89,7 @@ export default function ConversationTimeline({
                 className={cn(
                   "max-w-[94%] rounded-[var(--radius-panel)] px-4 py-3 md:max-w-[84%]",
                   isUser
-                    ? "rounded-tr-md bg-surface-dark text-on-dark shadow-sm"
+                    ? "rounded-tr-md border border-accent/20 bg-panel-strong text-text-strong shadow-sm"
                     : "text-text-strong",
                   message.failed && "border border-danger/40 bg-danger/5"
                 )}
@@ -107,7 +107,7 @@ export default function ConversationTimeline({
                     <span
                       className={cn(
                         "text-[10px] font-semibold uppercase tracking-wider",
-                        isUser ? "text-on-dark/60" : "text-text-muted/70"
+                        isUser ? "text-text-muted" : "text-text-muted/70"
                       )}
                     >
                       {message.timestamp}
@@ -118,15 +118,15 @@ export default function ConversationTimeline({
                     <button
                       type="button"
                       onClick={() => onEdit(message)}
-                      className="rounded-md p-1 opacity-0 transition hover:bg-white/10 hover:opacity-100 focus:opacity-100 group-hover:opacity-100"
+                      className="rounded-md p-1 opacity-0 transition hover:bg-inner-panel hover:opacity-100 focus:opacity-100 group-hover:opacity-100"
                       aria-label="Edit message"
                       title="Edit message"
                     >
-                      <Pencil className="h-3 w-3 text-on-dark/60" />
+                      <Pencil className="h-3 w-3 text-text-muted" />
                     </button>
                   ) : null}
                   {message.edited ? (
-                    <span className={cn("text-[9px] italic", isUser ? "text-on-dark/40" : "text-text-muted/50")}>
+                    <span className={cn("text-[9px] italic", isUser ? "text-text-muted" : "text-text-muted/50")}>
                       edited
                     </span>
                   ) : null}
