@@ -101,6 +101,44 @@ export const advisorResponseSchema = z.object({
 });
 export type AdvisorResponse = z.infer<typeof advisorResponseSchema>;
 
+const chatLadderBlockSchema = z.object({
+  label: z.string(),
+  amount: z.number(),
+  tenureMonths: z.number().int().positive(),
+  ratePercent: z.number(),
+  maturityAmount: z.number(),
+  maturityDate: z.string(),
+  sequence: z.number().int().positive(),
+});
+
+const chatLadderPlanSchema = z.object({
+  totalAmount: z.number(),
+  goalLabel: z.string(),
+  assumedRatePercent: z.number(),
+  totalMaturity: z.number(),
+  totalInterest: z.number(),
+  blocks: z.array(chatLadderBlockSchema).max(6),
+});
+
+const chatCompareSnapshotSchema = z.object({
+  amount: z.number(),
+  tenorMonths: z.number().int().positive(),
+  bankType: bankTypeFilterSchema,
+  seniorCitizen: z.boolean(),
+  topBanks: z.array(
+    z.object({
+      bankId: z.string(),
+      bankName: z.string(),
+      ratePercent: z.number(),
+      maturityAmount: z.number().optional(),
+    })
+  ).max(5),
+  updatedAt: z.string(),
+});
+
+export type ChatLadderPlanContext = z.infer<typeof chatLadderPlanSchema>;
+export type ChatCompareSnapshotContext = z.infer<typeof chatCompareSnapshotSchema>;
+
 export const chatRequestSchema = z.object({
   message: z.string().trim().min(1).max(800),
   language: appLanguageSchema.default("en"),
@@ -111,6 +149,8 @@ export const chatRequestSchema = z.object({
   seniorCitizen: z.boolean().optional(),
   bankType: bankTypeFilterSchema.optional(),
   shortlistBankIds: z.array(z.string().trim().min(1)).max(10).optional(),
+  ladderPlan: chatLadderPlanSchema.optional(),
+  compareSnapshot: chatCompareSnapshotSchema.optional(),
   /** Current interaction mode — voice responses are shortened automatically */
   mode: conversationModeSchema.default("chat"),
 });

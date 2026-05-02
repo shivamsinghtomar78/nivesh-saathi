@@ -98,7 +98,7 @@ export function FDCalculatorCard({
             <CardDescription className="mt-1 text-xs">
               {bankName
                 ? `Pre-filled from ${bankName}. Adjust any assumption live.`
-                : "Adjust amount, rate, tenure, and compounding without leaving chat."}
+                : "Adjust amount, rate, tenure, and compounding live."}
             </CardDescription>
           </div>
           <div className="rounded-full border border-accent/25 bg-accent/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-accent">

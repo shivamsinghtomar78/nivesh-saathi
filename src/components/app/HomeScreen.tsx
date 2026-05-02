@@ -5,6 +5,7 @@ import { motion, type Variants } from "framer-motion";
 import {
   ArrowRight,
   BarChart3,
+  Lightbulb,
   MessageCircleMore,
   TrendingUp,
   WalletCards,
@@ -25,12 +26,6 @@ import { useCompareStore } from "@/stores/compareStore";
 
 const quickActions = [
   {
-    href: ROUTES.CHAT,
-    title: "Ask Saathi",
-    body: "Chat with the AI advisor for recommendations, calculations, and safety notes.",
-    icon: MessageCircleMore,
-  },
-  {
     href: ROUTES.COMPARE,
     title: "Compare Rates",
     body: "Analyze and shortlist rates across public, private, and small finance banks.",
@@ -38,9 +33,21 @@ const quickActions = [
   },
   {
     href: ROUTES.FDS,
-    title: "Track FDs",
+    title: "Dashboard",
     body: "Add deposits, see maturity cash flow, and switch on smart alerts.",
     icon: WalletCards,
+  },
+  {
+    href: ROUTES.INSIGHTS,
+    title: "Insights",
+    body: "Plan ladders, visualize maturity flow, and test calculator assumptions.",
+    icon: Lightbulb,
+  },
+  {
+    href: ROUTES.CHAT,
+    title: "Ask Saathi",
+    body: "Chat with the AI advisor for recommendations, calculations, and safety notes.",
+    icon: MessageCircleMore,
   },
 ];
 
@@ -152,7 +159,7 @@ export default function HomeScreen() {
               </Card>
             </motion.div>
 
-            <motion.div variants={containerVariants} className="grid gap-4 md:grid-cols-3">
+            <motion.div variants={containerVariants} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {quickActions.map((action) => {
                 const Icon = action.icon;
                 return (

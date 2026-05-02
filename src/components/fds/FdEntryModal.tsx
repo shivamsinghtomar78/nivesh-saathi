@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CalendarDays,
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 
 type FdEntryModalProps = {
   isOpen: boolean;
+  draft?: FdEntryDraft | null;
   onClose: () => void;
   onSaved: (record: FdRecordDto) => void;
 };
@@ -35,6 +36,11 @@ type FormState = {
   notes: string;
   payoutFrequency: FdPayoutFrequency;
   startDate: string;
+};
+
+export type FdEntryDraft = Partial<FormState> & {
+  draftKey?: string;
+  sourceLabel?: string;
 };
 
 const payoutOptions: Array<{ label: string; value: FdPayoutFrequency }> = [
@@ -80,7 +86,7 @@ function isDateKey(value?: string | null) {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
 }
 
-export function FdEntryModal({ isOpen, onClose, onSaved }: FdEntryModalProps) {
+export function FdEntryModal({ draft, isOpen, onClose, onSaved }: FdEntryModalProps) {
   const [form, setForm] = useState<FormState>(() => getInitialForm());
   const [showOptional, setShowOptional] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -99,6 +105,33 @@ export function FdEntryModal({ isOpen, onClose, onSaved }: FdEntryModalProps) {
       Boolean(form.maturityDate),
     [form]
   );
+
+  useEffect(() => {
+    if (!isOpen || !draft) return;
+
+    const timer = window.setTimeout(() => {
+      const initialForm = getInitialForm();
+      setForm({
+        ...initialForm,
+        ...draft,
+        amount: draft.amount ?? "",
+        bankName: draft.bankName ?? "",
+        fdType: draft.fdType ?? "",
+        interestRate: draft.interestRate ?? "",
+        maturityDate: draft.maturityDate ?? initialForm.maturityDate,
+        nominee: draft.nominee ?? "",
+        notes: draft.notes ?? "",
+        payoutFrequency: draft.payoutFrequency ?? "cumulative",
+        startDate: draft.startDate ?? initialForm.startDate,
+      });
+      setSourceType("manual");
+      setOcrConfidence(null);
+      setOcrRawData(null);
+      setShowOptional(Boolean(draft.fdType || draft.nominee || draft.notes));
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [draft, isOpen]);
 
   function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((current) => ({
@@ -258,7 +291,9 @@ export function FdEntryModal({ isOpen, onClose, onSaved }: FdEntryModalProps) {
                     Add a fixed deposit
                   </h2>
                   <p className="mt-1 text-sm text-text-muted">
-                    Start with essentials. Scan only if it saves time.
+                    {draft?.sourceLabel
+                      ? `Review the ${draft.sourceLabel} draft before saving.`
+                      : "Start with essentials. Scan only if it saves time."}
                   </p>
                 </div>
                 <button

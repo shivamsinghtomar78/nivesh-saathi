@@ -14,8 +14,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { FdCharts } from "@/components/fds/FdCharts";
-import { FdInsights } from "@/components/fds/FdInsights";
 import { FdMaturityPanel } from "@/components/fds/FdMaturityPanel";
 import { FdNotificationPrompt } from "@/components/fds/FdNotificationPrompt";
 import { Button } from "@/components/ui/button";
@@ -294,11 +292,9 @@ export function FdDashboard({ dashboard, onAdd, onRefresh }: FdDashboardProps) {
 
       <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
         <div className="grid gap-5">
-          <FdCharts dashboard={dashboard} />
           <FdRecordsTable records={dashboard.records} onRefresh={onRefresh} />
         </div>
         <div className="grid gap-5 content-start">
-          <FdInsights insights={dashboard.insights} />
           <FdMaturityPanel items={dashboard.upcomingMaturities} />
         </div>
       </div>

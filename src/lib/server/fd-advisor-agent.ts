@@ -19,6 +19,8 @@ import {
 } from "@/lib/server/advisor-schemas";
 import { buildDeterministicAdvisorResponse } from "@/lib/server/fd-service";
 import { hasLlmConfig } from "@/lib/server/env";
+import { buildAdvisorAppContext } from "@/lib/server/advisor-context";
+import { getFdDashboard } from "@/lib/server/fd-tracker-service";
 import { invokeLlm, type LlmMessage } from "@/lib/server/llm-client";
 import { getUserMemory, updateUserMemory } from "@/lib/server/persistence";
 import {
@@ -66,6 +68,7 @@ const agentState = new StateSchema({
   seniorCitizen: z.boolean().optional(),
   bankType: z.enum(["all", "public", "private", "small-finance"]).optional(),
   shortlistBankIds: z.array(z.string()).optional(),
+  appContext: z.string().optional(),
   intent: detectedIntentSchema.optional(),
   response: advisorResponseSchema.optional(),
   userMemory: z.any().optional(),
@@ -600,12 +603,15 @@ async function narrateNode(state: typeof agentState.State) {
     : "Structure text with short labelled sections and hyphen bullets. You may be detailed.";
 
   const memoryContext = buildMemoryPromptContext(userMemory);
+  const appContext = state.appContext
+    ? `Read-only app context for this user: ${state.appContext} Use this when the user asks about their own saved FDs, dashboard, maturity timeline, ladder plan, shortlist, or recent comparisons. Do not expose this context as a dump; answer naturally and concisely.`
+    : "";
 
   const prompt: LlmMessage[] = [
     {
       role: "system",
       content:
-        `You are Nivesh Saathi, a warm fixed deposit guide for India. ${memoryContext ? `${memoryContext} ` : ""}Keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings, showCalculator, showTimeMachine, tone. Use plain text only: no markdown bold markers, no asterisks, and no tables. ${modeInstruction} ${languagePrompt}\nSet showCalculator=true if the user asks to calculate returns, maturity, or uses words like 'calculator' or 'calculate'. Set showTimeMachine=true if the user asks for historical rate trends, past rates, or 'time machine'. Tone must be one of informative, celebratory, cautionary.`,
+        `You are Nivesh Saathi, a warm fixed deposit guide for India. ${memoryContext ? `${memoryContext} ` : ""}${appContext ? `${appContext} ` : ""}Keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings, showCalculator, showTimeMachine, tone. Use plain text only: no markdown bold markers, no asterisks, and no tables. ${modeInstruction} ${languagePrompt}\nSet showCalculator=true if the user asks to calculate returns, maturity, or uses words like 'calculator' or 'calculate'. Set showTimeMachine=true if the user asks for historical rate trends, past rates, or 'time machine'. Tone must be one of informative, celebratory, cautionary.`,
     },
     {
       role: "user",
@@ -719,15 +725,26 @@ type ThreadPreferences = {
   bankType?: BankTypeFilter;
 };
 
+async function getSafeFdDashboard(userId?: string) {
+  if (!userId) return null;
+
+  try {
+    return await getFdDashboard(userId);
+  } catch {
+    return null;
+  }
+}
+
 export async function invokeFdAdvisor(input: ChatRequest) {
   const threadId = input.threadId || crypto.randomUUID();
   const historyKey = `chat_history:${threadId}`;
   const prefsKey = `chat_prefs:${threadId}`;
   
-  const [rawHistory, cachedPrefs, userMemory] = await Promise.all([
+  const [rawHistory, cachedPrefs, userMemory, dashboard] = await Promise.all([
     cacheGet<Array<{ role: string; content: string }>>(historyKey),
     cacheGet<ThreadPreferences>(prefsKey),
     input.userId ? getUserMemory(input.userId) : Promise.resolve(null),
+    getSafeFdDashboard(input.userId),
   ]);
   
   const prefs = cachedPrefs || {};
@@ -747,6 +764,12 @@ export async function invokeFdAdvisor(input: ChatRequest) {
     msg.role === "user" ? new HumanMessage(msg.content) : new AIMessage(msg.content)
   );
 
+  const appContext = buildAdvisorAppContext({
+    dashboard,
+    ladderPlan: input.ladderPlan,
+    compareSnapshot: input.compareSnapshot,
+  });
+
   const result = await advisorGraph.invoke(
     {
       messages: [...history, new HumanMessage(input.message)],
@@ -757,6 +780,7 @@ export async function invokeFdAdvisor(input: ChatRequest) {
       seniorCitizen: input.seniorCitizen ?? prefs.seniorCitizen ?? userMemory?.seniorCitizen,
       bankType: input.bankType ?? prefs.bankType ?? userMemory?.bankTypePreference,
       shortlistBankIds: input.shortlistBankIds ?? userMemory?.pastBanksConsidered,
+      appContext,
       userMemory,
     },
     {

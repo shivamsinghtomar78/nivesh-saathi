@@ -5,13 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ChevronDown,
   History,
   ListChecks,
   MessageCircleMore,
   Mic,
   MoreHorizontal,
-  PanelRightOpen,
   RotateCcw,
   Sparkles,
   Volume2,
@@ -20,7 +18,6 @@ import {
 import { toast } from "sonner";
 
 import AdvisorComposer from "@/components/app/AdvisorComposer";
-import AdvisorInsightPanel, { hasAdvisorInsights } from "@/components/app/AdvisorInsightPanel";
 import AppShell from "@/components/app/AppShell";
 import ConversationTimeline from "@/components/app/ConversationTimeline";
 import AuthGate from "@/components/auth/AuthGate";
@@ -39,8 +36,8 @@ import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { useAuthStore } from "@/stores/authStore";
 import { type ConversationMessage, useConversationStore } from "@/stores/conversationStore";
 import { useCompareStore } from "@/stores/compareStore";
+import { useLadderStore } from "@/stores/ladderStore";
 
-type RateCard = NonNullable<ConversationMessage["rateCards"]>[number];
 type VoiceVisualState = "idle" | "listening" | "processing" | "speaking" | "error";
 
 const SAMPLE_PROMPTS: Record<AppLanguage, string[]> = {
@@ -163,12 +160,6 @@ function extractAmount(text: string) {
   return plain ? Number(plain[1]) : undefined;
 }
 
-function latestBotWithInsights(messages: ConversationMessage[]) {
-  return [...messages]
-    .reverse()
-    .find((message) => message.role === "bot" && hasAdvisorInsights(message));
-}
-
 export default function AdvisorWorkspace({ initialMode }: { initialMode: ConversationMode }) {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
@@ -186,16 +177,15 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const setVoiceAcknowledgment = useConversationStore((state) => state.setVoiceAcknowledgment);
   const updateMessage = useConversationStore((state) => state.updateMessage);
   const voiceAcknowledgment = useConversationStore((state) => state.voiceAcknowledgment);
+  const latestLadderPlan = useLadderStore((state) => state.latestPlan);
   const shortlist = useCompareStore((state) => state.shortlist);
+  const lastCompareSnapshot = useCompareStore((state) => state.lastCompareSnapshot);
 
   const [pendingSource, setPendingSource] = useState<ConversationMode>(initialMode);
   const [draft, setDraft] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [showMobileInsights, setShowMobileInsights] = useState(false);
-  const [selectedRateCard, setSelectedRateCard] = useState<RateCard | null>(null);
-  const [contextPrincipal, setContextPrincipal] = useState<number | undefined>();
   const [streamingMessage, setStreamingMessage] = useState<ConversationMessage | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [spokenSummary, setSpokenSummary] = useState<string | null>(null);
@@ -209,6 +199,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const streamingMessageId = useRef<string | null>(null);
   const pendingSourceRef = useRef<ConversationMode>(initialMode);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const handledPromptRef = useRef<string | null>(null);
 
   useEffect(() => {
     setActiveMode(initialMode);
@@ -281,7 +272,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       );
 
       addMessage(botMessage);
-      if (botMessage.rateCards?.[0]) setSelectedRateCard(botMessage.rateCards[0]);
       if (source === "voice") {
         speakReply(botMessage.content, botMessage.tone);
         void fetch("/api/voice/summary", {
@@ -344,7 +334,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       }
 
       const detectedAmount = context?.amount ?? extractAmount(message);
-      if (detectedAmount) setContextPrincipal(detectedAmount);
 
       if (editingMessageId) {
         updateMessage(editingMessageId, { edited: true, content: message });
@@ -373,6 +362,8 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
         language,
         threadId: user ? threadId ?? undefined : undefined,
         shortlistBankIds: shortlist,
+        ladderPlan: latestLadderPlan ?? undefined,
+        compareSnapshot: lastCompareSnapshot ?? undefined,
         mode: source,
         amount: detectedAmount,
         tenorMonths: context?.tenorMonths,
@@ -384,6 +375,8 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       cancelSpeech,
       editingMessageId,
       language,
+      lastCompareSnapshot,
+      latestLadderPlan,
       sendStreamingMessage,
       setActiveMode,
       setTyping,
@@ -401,6 +394,18 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       void sendAdvisorMessage(transcript, "voice");
     },
   });
+
+  useEffect(() => {
+    if (!user) return;
+    if (typeof window === "undefined") return;
+
+    const prompt = new URLSearchParams(window.location.search).get("prompt")?.trim();
+    if (!prompt || handledPromptRef.current === prompt) return;
+
+    handledPromptRef.current = prompt;
+    router.replace(ROUTES.CHAT);
+    void sendAdvisorMessage(prompt, "chat");
+  }, [router, sendAdvisorMessage, user]);
 
   useEffect(() => {
     if (voice.isListening) {
@@ -422,8 +427,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
 
   const visibleMessages = streamingMessage ? [...messages, streamingMessage] : messages;
   const meaningfulMessages = messages.filter((message) => message.id !== "welcome");
-  const latestInsightMessage = latestBotWithInsights(visibleMessages) ?? null;
-  const hasInsights = hasAdvisorInsights(latestInsightMessage);
   const showPromptChips =
     meaningfulMessages.length === 0 ||
     (messages.at(-1)?.role === "bot" && !isTyping && !streamingMessage);
@@ -530,7 +533,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     cancelSpeech();
     clearMessages();
     setThreadId(null);
-    setSelectedRateCard(null);
     setShowMenu(false);
   };
 
@@ -547,7 +549,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       >
         <HistoryDrawer open={showHistory} onClose={() => setShowHistory(false)} />
 
-        <div className="grid h-full min-h-0 items-stretch gap-6 overflow-hidden xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="mx-auto h-full min-h-0 w-full max-w-5xl overflow-hidden">
           <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-outline bg-panel-glass shadow-[var(--shadow-card)] backdrop-blur-xl">
             <header className="border-b border-outline/60 bg-panel-glass/95 p-5 backdrop-blur-xl">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -587,17 +589,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                     )}
                     {voiceStatusLabel}
                   </div>
-
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-9 w-9 rounded-full bg-input-bg xl:hidden"
-                    onClick={() => setShowMobileInsights(true)}
-                    disabled={!hasInsights}
-                    aria-label="Open insights"
-                  >
-                    <PanelRightOpen className="h-4 w-4" />
-                  </Button>
 
                   <div className="relative">
                     <Button
@@ -778,14 +769,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
             />
           </section>
 
-          <AdvisorInsightPanel
-            className="hidden h-full xl:flex"
-            contextPrincipal={contextPrincipal}
-            latestMessage={latestInsightMessage}
-            shortlistCount={shortlist.length}
-            selectedRateCard={selectedRateCard}
-            onSelectRateCard={setSelectedRateCard}
-          />
         </div>
 
         <AnimatePresence>
@@ -798,49 +781,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
           ) : null}
         </AnimatePresence>
 
-        <AnimatePresence>
-          {showMobileInsights ? (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowMobileInsights(false)}
-                className="fixed inset-0 z-50 bg-black/35 backdrop-blur-sm xl:hidden"
-              />
-              <motion.div
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", stiffness: 300, damping: 32 }}
-                className="fixed inset-x-0 bottom-0 z-50 max-h-[82vh] overflow-hidden rounded-t-[var(--radius-card)] border-t border-outline bg-panel shadow-lg xl:hidden"
-              >
-                <div className="flex items-center justify-between border-b border-outline p-4">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">Insights</p>
-                    <p className="text-base font-semibold text-text-strong">Financial Context</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowMobileInsights(false)}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-input-bg text-text-muted"
-                    aria-label="Close insights"
-                  >
-                    <ChevronDown className="h-5 w-5" />
-                  </button>
-                </div>
-                <AdvisorInsightPanel
-                  className="max-h-[calc(82vh-72px)] rounded-none border-0"
-                  contextPrincipal={contextPrincipal}
-                  latestMessage={latestInsightMessage}
-                  shortlistCount={shortlist.length}
-                  selectedRateCard={selectedRateCard}
-                  onSelectRateCard={setSelectedRateCard}
-                />
-              </motion.div>
-            </>
-          ) : null}
-        </AnimatePresence>
       </AuthGate>
     </AppShell>
   );

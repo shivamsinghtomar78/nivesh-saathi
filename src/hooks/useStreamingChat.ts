@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AdvisorResponse } from "@/lib/server/advisor-schemas";
+import type {
+  AdvisorResponse,
+  ChatCompareSnapshotContext,
+  ChatLadderPlanContext,
+} from "@/lib/server/advisor-schemas";
 import { withCsrfHeaders } from "@/lib/csrf";
 
 export type StreamMeta = {
@@ -66,6 +70,8 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
       tenorMonths?: number;
       seniorCitizen?: boolean;
       shortlistBankIds?: string[];
+      ladderPlan?: ChatLadderPlanContext;
+      compareSnapshot?: ChatCompareSnapshotContext;
       mode?: "chat" | "voice";
     }) => {
       // Cancel any existing stream

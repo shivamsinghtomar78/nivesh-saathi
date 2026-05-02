@@ -15,6 +15,7 @@ export const APP_COPY: Record<
       home: string;
       fds: string;
       compare: string;
+      insights: string;
       chat: string;
       voice: string;
       login: string;
@@ -51,8 +52,9 @@ export const APP_COPY: Record<
     tagline: "Your trusted FD guide",
     nav: {
       home: "Home",
-      fds: "Track FDs",
       compare: "Compare",
+      fds: "Dashboard",
+      insights: "Insights",
       chat: "Chat",
       voice: "Voice",
       login: "Sign in",
@@ -88,8 +90,9 @@ export const APP_COPY: Record<
     tagline: "Aapka bharosemand FD guide",
     nav: {
       home: "Home",
-      fds: "Track FDs",
       compare: "Compare",
+      fds: "Dashboard",
+      insights: "Insights",
       chat: "Chat",
       voice: "Voice",
       login: "Sign in",
@@ -125,8 +128,9 @@ export const APP_COPY: Record<
     tagline: "Ungal nambikkaiyana FD guide",
     nav: {
       home: "Home",
-      fds: "Track FDs",
       compare: "Compare",
+      fds: "Dashboard",
+      insights: "Insights",
       chat: "Chat",
       voice: "Voice",
       login: "Sign in",
@@ -162,8 +166,9 @@ export const APP_COPY: Record<
     tagline: "Apnar bharoshar FD guide",
     nav: {
       home: "Home",
-      fds: "Track FDs",
       compare: "Compare",
+      fds: "Dashboard",
+      insights: "Insights",
       chat: "Chat",
       voice: "Voice",
       login: "Sign in",

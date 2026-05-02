@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, Plus, RefreshCcw, WalletCards } from "lucide-react";
 
 import AppShell from "@/components/app/AppShell";
@@ -11,9 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { FdDashboardDto } from "@/lib/fd-tracker/types";
 import { useAuthStore } from "@/stores/authStore";
+import { useLadderStore } from "@/stores/ladderStore";
 
 export default function FdTrackerScreen() {
   const user = useAuthStore((state) => state.user);
+  const dashboardDraft = useLadderStore((state) => state.dashboardDraft);
+  const advanceDashboardDraft = useLadderStore((state) => state.advanceDashboardDraft);
   const [dashboard, setDashboard] = useState<FdDashboardDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,10 +61,37 @@ export default function FdTrackerScreen() {
     return () => window.clearTimeout(timer);
   }, [loadDashboard]);
 
+  useEffect(() => {
+    if (dashboardDraft) {
+      const timer = window.setTimeout(() => setIsModalOpen(true), 0);
+      return () => window.clearTimeout(timer);
+    }
+  }, [dashboardDraft]);
+
+  const draftBlock = dashboardDraft?.blocks[dashboardDraft.nextIndex] ?? null;
+  const entryDraft = useMemo(
+    () =>
+      draftBlock && dashboardDraft
+        ? {
+            draftKey: draftBlock.id,
+            sourceLabel: `${dashboardDraft.planLabel} ladder block ${draftBlock.sequence} of ${dashboardDraft.blocks.length}`,
+            amount: String(draftBlock.amount),
+            bankName: "",
+            fdType: "Ladder FD",
+            interestRate: draftBlock.ratePercent.toFixed(2),
+            maturityDate: draftBlock.maturityDate,
+            notes: `${dashboardDraft.planLabel} ladder - ${draftBlock.label}, ${draftBlock.tenureMonths} month block.`,
+            payoutFrequency: "cumulative" as const,
+            startDate: new Date().toISOString().slice(0, 10),
+          }
+        : null,
+    [dashboardDraft, draftBlock]
+  );
+
   return (
     <AppShell
       eyebrow="FD Tracker"
-      title="Track FDs and Maturity Alerts"
+      title="Dashboard"
       description="Capture deposits fast, understand upcoming cash flow, and get smart reminders before maturity."
       actions={
         user ? (
@@ -130,9 +160,20 @@ export default function FdTrackerScreen() {
         )}
 
         <FdEntryModal
+          draft={entryDraft}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onSaved={() => void loadDashboard()}
+          onSaved={() => {
+            void loadDashboard();
+            if (!dashboardDraft) return;
+
+            const hasNextBlock =
+              dashboardDraft.nextIndex + 1 < dashboardDraft.blocks.length;
+            advanceDashboardDraft();
+            if (hasNextBlock) {
+              window.setTimeout(() => setIsModalOpen(true), 240);
+            }
+          }}
         />
       </AuthGate>
     </AppShell>

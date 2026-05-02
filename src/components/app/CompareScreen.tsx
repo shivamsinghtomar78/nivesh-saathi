@@ -23,6 +23,12 @@ import { useCompareStore } from "@/stores/compareStore";
 
 const TENOR_OPTIONS = [6, 12, 18, 24, 36, 60];
 
+function getInitialQueryNumber(key: string, fallback: number) {
+  if (typeof window === "undefined") return fallback;
+  const value = Number(new URLSearchParams(window.location.search).get(key));
+  return value > 0 ? value : fallback;
+}
+
 function getDisplayRate(rate: FDRate, seniorCitizen: boolean) {
   return seniorCitizen ? rate.seniorRate : rate.regularRate;
 }
@@ -41,9 +47,15 @@ const itemVariants: Variants = {
 export default function CompareScreen() {
   const user = useAuthStore((state) => state.user);
   const shortlist = useCompareStore((state) => state.shortlist);
+  const setLastCompareSnapshot = useCompareStore((state) => state.setLastCompareSnapshot);
   const toggleShortlist = useCompareStore((state) => state.toggleShortlist);
-  const [amount, setAmount] = useState(100000);
-  const [tenorMonths, setTenorMonths] = useState(12);
+  const [amount, setAmount] = useState(() => getInitialQueryNumber("amount", 100000));
+  const [tenorMonths, setTenorMonths] = useState(
+    () => {
+      const tenor = getInitialQueryNumber("tenorMonths", 12);
+      return TENOR_OPTIONS.includes(tenor) ? tenor : 12;
+    }
+  );
   const [bankType, setBankType] = useState<BankTypeFilter>("all");
   const [seniorCitizen, setSeniorCitizen] = useState(false);
   const [rates, setRates] = useState<FDRate[]>([]);
@@ -85,6 +97,42 @@ export default function CompareScreen() {
 
     return () => controller.abort();
   }, [amount, bankType, seniorCitizen, tenorMonths, user]);
+
+  useEffect(() => {
+    if (!user || loading || rates.length === 0) return;
+
+    setLastCompareSnapshot({
+      amount,
+      tenorMonths,
+      bankType,
+      seniorCitizen,
+      topBanks: rates.slice(0, 3).map((rate) => {
+        const maturity = calculateMaturity({
+          principal: amount,
+          ratePercent: getDisplayRate(rate, seniorCitizen),
+          tenorMonths,
+          compounding: rate.compounding,
+        });
+
+        return {
+          bankId: rate.id,
+          bankName: rate.bankName,
+          ratePercent: getDisplayRate(rate, seniorCitizen),
+          maturityAmount: maturity.maturityAmount,
+        };
+      }),
+      updatedAt: new Date().toISOString(),
+    });
+  }, [
+    amount,
+    bankType,
+    loading,
+    rates,
+    seniorCitizen,
+    setLastCompareSnapshot,
+    tenorMonths,
+    user,
+  ]);
 
   const [shortlistedBanks, setShortlistedBanks] = useState<FDRate[]>([]);
 
