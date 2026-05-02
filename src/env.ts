@@ -13,6 +13,11 @@ export const env = createEnv({
     FIREBASE_ADMIN_PROJECT_ID: z.string().min(1).optional(),
     FIREBASE_ADMIN_CLIENT_EMAIL: z.string().email().optional(),
     FIREBASE_ADMIN_PRIVATE_KEY: z.string().min(1).optional(),
+    FIREBASE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
+    FIREBASE_VAPID_KEY: z.string().min(1).optional(),
+    MONGODB_URI: z.string().url().optional(),
+    FD_ALERT_CRON_SECRET: z.string().min(1).optional(),
+    CRON_SECRET: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),

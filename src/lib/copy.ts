@@ -13,6 +13,7 @@ export const APP_COPY: Record<
     tagline: string;
     nav: {
       home: string;
+      fds: string;
       compare: string;
       chat: string;
       voice: string;
@@ -50,6 +51,7 @@ export const APP_COPY: Record<
     tagline: "Your trusted FD guide",
     nav: {
       home: "Home",
+      fds: "Track FDs",
       compare: "Compare",
       chat: "Chat",
       voice: "Voice",
@@ -86,6 +88,7 @@ export const APP_COPY: Record<
     tagline: "Aapka bharosemand FD guide",
     nav: {
       home: "Home",
+      fds: "Track FDs",
       compare: "Compare",
       chat: "Chat",
       voice: "Voice",
@@ -122,6 +125,7 @@ export const APP_COPY: Record<
     tagline: "Ungal nambikkaiyana FD guide",
     nav: {
       home: "Home",
+      fds: "Track FDs",
       compare: "Compare",
       chat: "Chat",
       voice: "Voice",
@@ -158,6 +162,7 @@ export const APP_COPY: Record<
     tagline: "Apnar bharoshar FD guide",
     nav: {
       home: "Home",
+      fds: "Track FDs",
       compare: "Compare",
       chat: "Chat",
       voice: "Voice",

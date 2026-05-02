@@ -10,7 +10,13 @@ export const hasUpstashConfig = Boolean(
   serverEnv.UPSTASH_REDIS_REST_URL && serverEnv.UPSTASH_REDIS_REST_TOKEN
 );
 export const hasFirebaseAdminConfig = Boolean(
-  serverEnv.FIREBASE_ADMIN_PROJECT_ID &&
-    serverEnv.FIREBASE_ADMIN_CLIENT_EMAIL &&
-    serverEnv.FIREBASE_ADMIN_PRIVATE_KEY
+  serverEnv.FIREBASE_SERVICE_ACCOUNT_JSON ||
+    (serverEnv.FIREBASE_ADMIN_PROJECT_ID &&
+      serverEnv.FIREBASE_ADMIN_CLIENT_EMAIL &&
+      serverEnv.FIREBASE_ADMIN_PRIVATE_KEY)
+);
+export const hasMongoConfig = Boolean(serverEnv.MONGODB_URI);
+export const hasFirebaseVapidConfig = Boolean(serverEnv.FIREBASE_VAPID_KEY);
+export const hasFdAlertCronSecret = Boolean(
+  serverEnv.FD_ALERT_CRON_SECRET || serverEnv.CRON_SECRET
 );

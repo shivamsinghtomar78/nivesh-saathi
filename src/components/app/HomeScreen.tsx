@@ -7,6 +7,7 @@ import {
   BarChart3,
   MessageCircleMore,
   TrendingUp,
+  WalletCards,
 } from "lucide-react";
 
 import AuthGate from "@/components/auth/AuthGate";
@@ -34,6 +35,12 @@ const quickActions = [
     title: "Compare Rates",
     body: "Analyze and shortlist rates across public, private, and small finance banks.",
     icon: BarChart3,
+  },
+  {
+    href: ROUTES.FDS,
+    title: "Track FDs",
+    body: "Add deposits, see maturity cash flow, and switch on smart alerts.",
+    icon: WalletCards,
   },
 ];
 
@@ -145,7 +152,7 @@ export default function HomeScreen() {
               </Card>
             </motion.div>
 
-            <motion.div variants={containerVariants} className="grid gap-4 sm:grid-cols-2">
+            <motion.div variants={containerVariants} className="grid gap-4 md:grid-cols-3">
               {quickActions.map((action) => {
                 const Icon = action.icon;
                 return (

@@ -1,6 +1,7 @@
 export const ROUTES = {
   LANDING: "/",
   HOME: "/home",
+  FDS: "/fds",
   LOGIN: "/login",
   COMPARE: "/compare",
   CHAT: "/chat",

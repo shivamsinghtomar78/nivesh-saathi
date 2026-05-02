@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/fds/alerts/run",
+      "schedule": "30 3 * * *"
+    }
+  ]
+}

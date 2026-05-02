@@ -1,6 +1,6 @@
 const CACHE_NAME = "nivesh-saathi-v3";
 const API_CACHE_NAME = "nivesh-saathi-api-v3";
-const APP_SHELL = ["/", "/compare", "/chat", "/voice", "/login", "/icon.svg"];
+const APP_SHELL = ["/", "/compare", "/fds", "/chat", "/voice", "/login", "/icon.svg"];
 const OFFLINE_DATA_URLS = ["/api/fd-rates?limit=8"];
 const STATIC_EXTENSIONS = [
   ".css",
@@ -136,20 +136,46 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
+function normalizePushPayload(rawPayload) {
+  const payload = rawPayload || {};
+  const data = payload.data || payload;
+  const notification = payload.notification || {};
+  const isFdAlert = data.type === "fd_maturity_alert";
+
+  return {
+    title:
+      data.title ||
+      notification.title ||
+      (isFdAlert ? "FD maturity reminder" : "Nivesh Saathi rate alert"),
+    body:
+      data.body ||
+      notification.body ||
+      (isFdAlert
+        ? "A tracked fixed deposit is near maturity."
+        : "A watched FD rate has changed."),
+    url: data.url || payload.fcmOptions?.link || (isFdAlert ? "/fds" : "/compare"),
+    type: data.type || "rate_alert",
+    fdId: data.fdId,
+    alertId: data.alertId,
+    milestone: data.milestone,
+  };
+}
+
 self.addEventListener("push", (event) => {
-  const data = event.data
-    ? event.data.json()
-    : {
-        title: "Nivesh Saathi rate alert",
-        body: "A watched FD rate has changed.",
-      };
+  let rawPayload = null;
+  try {
+    rawPayload = event.data ? event.data.json() : null;
+  } catch {
+    rawPayload = null;
+  }
+  const data = normalizePushPayload(rawPayload);
 
   event.waitUntil(
     self.registration.showNotification(data.title || "Nivesh Saathi", {
       body: data.body || "A watched FD rate has changed.",
       icon: "/icon.svg",
       badge: "/icon.svg",
-      data: { url: data.url || "/compare" },
+      data,
     })
   );
 });
@@ -157,5 +183,13 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || "/compare";
-  event.waitUntil(clients.openWindow(targetUrl));
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      const existing = windows.find((client) => client.url.includes(targetUrl));
+      if (existing) {
+        return existing.focus();
+      }
+      return clients.openWindow(targetUrl);
+    })
+  );
 });

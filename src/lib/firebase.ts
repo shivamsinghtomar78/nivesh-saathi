@@ -30,3 +30,12 @@ export async function getFirebaseAnalytics() {
   const { getAnalytics, isSupported } = await import("firebase/analytics");
   return (await isSupported()) ? getAnalytics(firebaseApp) : null;
 }
+
+export async function getFirebaseMessagingClient() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const { getMessaging, isSupported } = await import("firebase/messaging");
+  return (await isSupported()) ? getMessaging(firebaseApp) : null;
+}
