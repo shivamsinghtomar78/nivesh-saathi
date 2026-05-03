@@ -33,10 +33,10 @@ const HISTORICAL_DATA = [
 ];
 
 const BANK_COLORS: Record<string, string> = {
-  au: "#5be0bd",
-  hdfc: "#f0bd53",
-  sbi: "#9ab5aa",
-  icici: "#77e9cb",
+  au: "#d7b66d",
+  hdfc: "#e4c87e",
+  sbi: "#a7aaa7",
+  icici: "#6dbba1",
 };
 
 const BANK_NAMES: Record<string, string> = {
@@ -81,7 +81,7 @@ export function FDTimeMachineChart() {
                 onClick={() => setActiveBank(activeBank === bank ? null : bank)}
                 className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
                   activeBank === bank || !activeBank
-                    ? "border-transparent text-white shadow-sm"
+                    ? "border-transparent text-[#080806] shadow-sm"
                     : "border-outline bg-inner-panel text-text-muted opacity-50"
                 }`}
                 style={
@@ -114,11 +114,11 @@ export function FDTimeMachineChart() {
                 />
                 <Tooltip
                   contentStyle={{
-                    background: "#101b18",
+                    background: "#151513",
                     borderRadius: "8px",
-                    border: "1px solid rgba(225,244,235,0.13)",
-                    boxShadow: "0 16px 44px rgba(0,0,0,0.34)",
-                    color: "#f7fbf8",
+                    border: "1px solid rgba(246,240,228,0.12)",
+                    boxShadow: "0 18px 46px rgba(0,0,0,0.42)",
+                    color: "#f6f0e4",
                     fontSize: "12px",
                   }}
                   formatter={(value: unknown, name: unknown) => [

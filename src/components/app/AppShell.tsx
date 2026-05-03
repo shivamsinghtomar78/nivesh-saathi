@@ -74,15 +74,35 @@ export default function AppShell({
   };
 
   return (
-    <div className="bg-app min-h-screen">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-outline bg-panel-glass/90 shadow-[0_12px_42px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[95rem] items-center gap-4 px-4 md:px-6 lg:px-8">
+    <div
+      className={cn(
+        "min-h-screen bg-app text-text",
+        workspace && "h-[100svh] overflow-hidden bg-[#0A0A0A] text-[#EAEAEA]"
+      )}
+    >
+      <header
+        className={cn(
+          "fixed inset-x-0 top-0 z-50 border-b backdrop-blur-2xl",
+          workspace
+            ? "border-[#1F1F1F]/85 bg-[#0A0A0A]/94 shadow-none"
+            : "border-outline bg-panel-glass/94 shadow-[0_16px_52px_rgba(0,0,0,0.42)]"
+        )}
+      >
+        <div
+          className={cn(
+            "mx-auto flex items-center gap-4 px-4 md:px-6 lg:px-8",
+            workspace ? "h-14 max-w-none" : "h-16 max-w-[95rem]"
+          )}
+        >
           <Link href={ROUTES.HOME} className="flex min-w-0 items-center gap-3 group">
             <motion.div 
               whileHover={{ rotate: 5, scale: 1.05 }}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-panel)] bg-surface-dark text-on-dark shadow-[var(--shadow-soft-layer)]"
+              className={cn(
+                "flex shrink-0 items-center justify-center rounded-[var(--radius-panel)] border border-accent/20 bg-accent-soft text-accent",
+                workspace ? "h-9 w-9 shadow-none" : "h-10 w-10 shadow-[var(--shadow-soft-layer)]"
+              )}
             >
-              <Landmark className="h-5 w-5 transition-colors group-hover:text-accent" />
+              <Landmark className="h-5 w-5 transition-colors" />
             </motion.div>
             <div className="min-w-0 hidden sm:block">
               <p className="truncate text-lg font-semibold text-text-strong">
@@ -91,7 +111,7 @@ export default function AppShell({
             </div>
           </Link>
 
-          <nav className="hidden flex-1 items-center justify-center gap-2 lg:flex">
+          <nav className="hidden flex-1 items-center justify-center gap-1 xl:flex">
             {NAV_ITEMS.map((item) => {
               const active =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -100,18 +120,18 @@ export default function AppShell({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="relative px-4 py-2 text-sm font-medium transition group"
+                  className="group relative px-3 py-2 text-sm font-medium transition"
                 >
                   <span className={cn(
                     "relative z-10 transition-colors duration-300",
-                    active ? "text-on-accent" : "text-text-muted group-hover:text-text-strong"
+                    active ? "text-accent" : "text-[#9CA3AF] group-hover:text-[#EAEAEA]"
                   )}>
                     {copy.nav[item.key]}
                   </span>
                   {active && (
                     <motion.div
                       layoutId="activeNavBackground"
-                      className="absolute inset-0 rounded-full bg-accent shadow-[0_18px_42px_rgba(91,224,189,0.18)]"
+                      className="absolute inset-x-2 bottom-1 h-px rounded-full bg-accent/75 shadow-[0_0_18px_rgba(215,182,109,0.2)]"
                       initial={false}
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
@@ -121,8 +141,8 @@ export default function AppShell({
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-3">
-            <div className="hidden rounded-full bg-input-bg border border-outline p-1 shadow-[var(--shadow-soft-layer)] md:flex">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <div className="hidden rounded-full border border-[#1F1F1F] bg-[#121212]/88 p-1 shadow-none md:flex">
               {Object.entries(LANGUAGE_LABELS).map(([code, label]) => (
                 <button
                   key={code}
@@ -131,8 +151,8 @@ export default function AppShell({
                   className={cn(
                     "rounded-full px-3 py-1.5 text-xs font-medium transition",
                     language === code
-                      ? "bg-accent text-on-accent shadow-sm dark:shadow-[0_12px_30px_rgba(89,221,185,0.18)]"
-                      : "text-text-muted hover:bg-inner-panel hover:text-text-strong"
+                      ? "bg-accent-soft text-accent shadow-none"
+                      : "text-[#9CA3AF] hover:bg-white/[0.055] hover:text-[#EAEAEA]"
                   )}
                 >
                   {label}
@@ -146,7 +166,10 @@ export default function AppShell({
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex h-10 items-center gap-2 rounded-full border border-outline bg-input-bg pl-3 pr-2 text-text-strong transition hover:border-accent/40 hover:shadow-[var(--shadow-soft-layer)]"
+                  className={cn(
+                    "flex items-center gap-2 rounded-full border border-[#1F1F1F] bg-[#121212]/88 pl-3 pr-2 text-[#EAEAEA] transition hover:border-accent/35 hover:bg-[#161616]",
+                    workspace ? "h-9" : "h-10"
+                  )}
                 >
                   <UserRound className="h-4 w-4" />
                   <span className="text-sm font-medium max-w-[80px] truncate hidden sm:inline-block">
@@ -193,7 +216,7 @@ export default function AppShell({
             ) : (
               <Link
                 href={ROUTES.LOGIN}
-                className="rounded-full bg-surface-dark px-5 py-2 text-sm font-medium text-on-dark transition hover:bg-surface-dark-hover"
+                className="rounded-full border border-accent/20 bg-accent-soft px-5 py-2 text-sm font-semibold text-accent shadow-none transition hover:border-accent/35 hover:bg-accent/15"
               >
                 {copy.nav.login}
               </Link>
@@ -205,8 +228,8 @@ export default function AppShell({
       <main
         className={cn(
           workspace
-            ? "h-screen overflow-hidden pb-0 pt-16"
-            : "min-h-screen pb-24 pt-24 lg:pb-12"
+            ? "h-[100svh] overflow-hidden bg-[#0A0A0A] pb-0 pt-14"
+            : "min-h-screen pb-24 pt-24 xl:pb-12"
         )}
       >
         <motion.div
@@ -214,16 +237,18 @@ export default function AppShell({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
           className={cn(
-            "mx-auto flex max-w-[95rem] flex-col px-4 md:px-6 lg:px-8",
-            workspace ? "h-[calc(100vh-4rem)] gap-4 py-4" : "gap-8 py-6"
+            "mx-auto flex flex-col",
+            workspace
+              ? "h-[calc(100svh-3.5rem)] w-full max-w-none gap-0 px-0 py-0"
+              : "max-w-[95rem] gap-8 px-4 py-6 md:px-6 lg:px-8"
           )}
         >
           {!workspace ? (
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b border-outline pb-6">
+            <div className="flex flex-col gap-4 border-b border-outline pb-6 md:flex-row md:items-end md:justify-between">
               <div className="max-w-2xl">
                 <motion.p
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-                  className="text-xs font-semibold uppercase tracking-[0.2em] text-accent mb-2"
+                  className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent"
                 >
                   {eyebrow}
                 </motion.p>
@@ -244,14 +269,14 @@ export default function AppShell({
             </div>
           ) : null}
 
-          <div className={cn("relative", workspace && "h-full min-h-0")}>
+          <div className={cn("relative", workspace && "h-full min-h-0 w-full")}>
             {children}
           </div>
         </motion.div>
       </main>
 
       {!workspace ? (
-        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/92 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_42px_rgba(0,0,0,0.24)] backdrop-blur-xl lg:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/94 pb-[env(safe-area-inset-bottom)] shadow-[0_-16px_48px_rgba(0,0,0,0.42)] backdrop-blur-2xl xl:hidden">
           <div className="mx-auto grid max-w-3xl grid-cols-5 gap-1 px-2 py-2">
             {NAV_ITEMS.map((item) => {
               const active =
@@ -272,7 +297,7 @@ export default function AppShell({
                   {active && (
                     <motion.div
                       layoutId="activeBottomNav"
-                      className="absolute inset-0 -z-10 rounded-[var(--radius-panel)] bg-accent-soft"
+                      className="absolute inset-0 -z-10 rounded-[var(--radius-panel)] border border-accent/20 bg-accent-soft"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}

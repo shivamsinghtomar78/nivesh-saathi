@@ -163,7 +163,7 @@ export default function FirebaseAuthCard({
           <motion.button
             type="button"
             onClick={() => router.push(nextPath)}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-input)] bg-accent px-4 text-sm font-semibold text-on-accent shadow-[0_18px_42px_rgba(91,224,189,0.18)] transition hover:bg-accent-hover"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[var(--radius-input)] bg-accent px-4 text-sm font-semibold text-on-accent shadow-[0_18px_42px_rgba(215,182,109,0.2)] transition hover:bg-accent-hover"
             whileHover={reduceMotion ? undefined : { y: -2 }}
             whileTap={reduceMotion ? undefined : { scale: 0.97 }}
           >
@@ -278,7 +278,7 @@ export default function FirebaseAuthCard({
         <motion.button
           type="submit"
           disabled={busyAction !== null}
-          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] bg-accent px-5 text-sm font-bold uppercase tracking-[0.08em] text-on-accent shadow-[0_18px_42px_rgba(91,224,189,0.18)] transition hover:bg-accent-hover disabled:opacity-60"
+          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] bg-accent px-5 text-sm font-bold uppercase tracking-[0.08em] text-on-accent shadow-[0_18px_42px_rgba(215,182,109,0.2)] transition hover:bg-accent-hover disabled:opacity-60"
           variants={{
             hidden: { opacity: 0, y: 12 },
             show: { opacity: 1, y: 0 },

@@ -427,9 +427,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
 
   const visibleMessages = streamingMessage ? [...messages, streamingMessage] : messages;
   const meaningfulMessages = messages.filter((message) => message.id !== "welcome");
-  const showPromptChips =
-    meaningfulMessages.length === 0 ||
-    (messages.at(-1)?.role === "bot" && !isTyping && !streamingMessage);
+  const showPromptChips = meaningfulMessages.length === 0;
 
   const voiceState: VoiceVisualState = useMemo(() => {
     if (voice.error) return "error";
@@ -549,226 +547,255 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       >
         <HistoryDrawer open={showHistory} onClose={() => setShowHistory(false)} />
 
-        <div className="mx-auto h-full min-h-0 w-full max-w-5xl overflow-hidden">
-          <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-outline bg-panel-glass shadow-[var(--shadow-card)] backdrop-blur-xl">
-            <header className="border-b border-outline/60 bg-panel-glass/95 p-5 backdrop-blur-xl">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-panel)] bg-surface-dark text-on-dark shadow-sm">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h1 className="truncate text-lg font-semibold text-text-strong">
-                        Saathi Advisor
-                      </h1>
-                      <Badge variant="outline" className="hidden bg-input-bg text-[10px] uppercase tracking-wider sm:inline-flex">
-                        {LANGUAGE_LABELS[language]}
-                      </Badge>
-                    </div>
-                    <p className="truncate text-xs text-text-muted">
-                      {user
-                        ? `${shortlist.length} shortlisted banks in context`
-                        : "Sign in to access your advisor."}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="hidden items-center gap-2 rounded-full border border-outline bg-input-bg px-3 py-2 text-xs font-semibold text-text-muted sm:flex">
-                    {voiceState === "listening" || voiceState === "speaking" ? (
-                      <span className="wave-bars" aria-hidden="true">
-                        <span />
-                        <span />
-                        <span />
-                        <span />
-                        <span />
-                      </span>
-                    ) : (
-                      <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
-                    )}
-                    {voiceStatusLabel}
-                  </div>
-
-                  <div className="relative">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-9 w-9 rounded-full bg-input-bg"
-                      onClick={() => setShowMenu((value) => !value)}
-                      aria-label="Open advisor menu"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                    <AnimatePresence>
-                      {showMenu ? (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                          className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-[var(--radius-panel)] border border-outline bg-panel shadow-lg"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowHistory(true);
-                              setShowMenu(false);
-                            }}
-                            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-text-muted transition hover:bg-inner-panel hover:text-text-strong"
+        <div className="relative h-full min-h-0 w-full overflow-hidden bg-[#0A0A0A] text-[#EAEAEA]">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_50%_0%,rgba(215,182,109,0.07),transparent_34rem)]"
+            aria-hidden="true"
+          />
+          <div className="relative flex h-full min-h-0">
+            <aside
+              aria-hidden="true"
+              className="hidden w-0 shrink-0 border-r border-[#1F1F1F]/70 lg:block"
+            />
+            <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
+                <div className="mx-auto flex min-h-full w-full max-w-[860px] flex-col px-4 pb-8 pt-7 sm:px-6 lg:px-8">
+                  <header className="sticky top-0 z-20 -mx-4 mb-7 flex flex-wrap items-center justify-between gap-4 bg-[#0A0A0A]/95 px-4 pb-4 pt-3 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#1F1F1F] bg-[#121212] text-accent">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h1 className="truncate text-base font-semibold tracking-normal text-[#EAEAEA]">
+                            Saathi Advisor
+                          </h1>
+                          <Badge
+                            variant="outline"
+                            className="hidden rounded-full border-[#1F1F1F] bg-[#161616] px-2 py-0.5 text-[10px] uppercase tracking-wider text-[#9CA3AF] sm:inline-flex"
                           >
-                            <History className="h-4 w-4" />
-                            History
-                          </button>
-                          <Link
-                            href={ROUTES.COMPARE}
-                            onClick={() => setShowMenu(false)}
-                            className="flex items-center gap-2 px-4 py-3 text-sm text-text-muted transition hover:bg-inner-panel hover:text-text-strong"
-                          >
-                            <ListChecks className="h-4 w-4" />
-                            Shortlist and compare
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={resetConversation}
-                            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-text-muted transition hover:bg-inner-panel hover:text-text-strong"
-                          >
-                            <RotateCcw className="h-4 w-4" />
-                            New conversation
-                          </button>
-                        </motion.div>
-                      ) : null}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-            </header>
-
-            <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-5 custom-scrollbar md:px-6">
-              {initialMode === "voice" ? (
-                <motion.section
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                  className="mb-5 rounded-[var(--radius-card)] border border-outline bg-inner-panel p-5"
-                >
-                  <div className="grid items-center gap-5 md:grid-cols-[auto_1fr_auto]">
-                    <button
-                      type="button"
-                      onClick={handleMicPress}
-                      disabled={voice.isProcessing || isStreaming || isTyping}
-                      className={cn(
-                        "relative mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-outline bg-panel text-accent shadow-[var(--shadow-card)] transition hover:-translate-y-1 hover:border-accent/35 md:mx-0",
-                        voiceState === "listening" && "animate-mic-pulse bg-accent text-on-accent",
-                        voiceState === "speaking" && "bg-surface-dark text-on-dark",
-                        voiceState === "error" && "text-danger"
-                      )}
-                      aria-label={voiceStatusLabel}
-                    >
-                      {voiceState === "listening" ? <Mic className="h-9 w-9" /> : voiceState === "speaking" ? <VolumeX className="h-9 w-9" /> : <Mic className="h-9 w-9" />}
-                    </button>
-
-                    <div className="min-w-0 text-center md:text-left">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Voice advisor</p>
-                      <h2 className="mt-2 text-xl font-semibold text-text-strong">{voiceStatusLabel}</h2>
-                      <p className="mt-2 text-sm leading-6 text-text-muted">
-                        {voiceState === "listening"
-                          ? voice.transcript || "Speak naturally. Saathi will convert your question into this secure advisor thread."
-                          : voiceState === "processing"
-                            ? voiceAcknowledgment || "Checking rates and preparing a concise spoken summary."
-                            : voiceState === "speaking"
-                              ? spokenSummary || "Saathi is reading the short answer aloud."
-                              : voice.error || "Tap the microphone, ask about rates, maturity, safety, or your shortlist."}
-                      </p>
-                      {voiceState === "speaking" ? (
-                        <div className="wave-bars mt-4" aria-hidden="true">
-                          <span /><span /><span /><span /><span />
+                            {LANGUAGE_LABELS[language]}
+                          </Badge>
                         </div>
-                      ) : null}
-                    </div>
-
-                    <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
-                      <Button variant="outline" className="bg-input-bg" onClick={cancelSpeech} disabled={!isSpeaking}>
-                        <VolumeX className="h-4 w-4" />
-                        Stop speaking
-                      </Button>
-                      <Button variant="outline" className="bg-input-bg" onClick={() => setActiveMode("chat")}>
-                        <MessageCircleMore className="h-4 w-4" />
-                        Switch to chat
-                      </Button>
-                      <div className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-input)] border border-outline bg-input-bg px-3 text-xs font-semibold text-text-muted">
-                        <span className="inline-flex items-center gap-2"><Volume2 className="h-4 w-4" /> Auto-speak</span>
-                        <span className="rounded-full bg-accent-soft px-2 py-1 text-accent">On</span>
+                        <p className="truncate text-xs text-[#9CA3AF]">
+                          {user
+                            ? `${shortlist.length} shortlisted banks in context`
+                            : "Sign in to access your advisor."}
+                        </p>
                       </div>
                     </div>
-                  </div>
-                </motion.section>
-              ) : null}
-              <ConversationTimeline
-                messages={visibleMessages}
-                onAction={handleAction}
-                onRetry={handleRetry}
-                onEdit={(message) => {
-                  setDraft(message.content);
-                  setEditingMessageId(message.id);
-                }}
-                onChipSelect={(chip) => void sendAdvisorMessage(chip, "chat")}
-                showSmartChips={!isTyping && !streamingMessage}
-                isTyping={isTyping || !!streamingMessage}
-                richContent="hidden"
-              />
 
-              <AnimatePresence>
-                {isTyping && !streamingMessage ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.97 }}
-                    className="mt-4 flex justify-start"
-                  >
-                    <div className="inline-flex items-center gap-3 rounded-[var(--radius-panel)] border border-outline bg-panel px-4 py-3 text-sm text-text-muted shadow-sm">
-                      <span className="wave-bars" aria-hidden="true">
-                        <span />
-                        <span />
-                        <span />
-                        <span />
-                        <span />
-                      </span>
-                      Saathi is thinking
+                    <div className="flex items-center gap-2">
+                      <div className="hidden min-h-9 items-center gap-2 rounded-full border border-[#1F1F1F] bg-[#121212]/80 px-3 py-1.5 text-xs font-medium text-[#9CA3AF] sm:flex">
+                        {voiceState === "listening" || voiceState === "speaking" ? (
+                          <span className="wave-bars" aria-hidden="true">
+                            <span />
+                            <span />
+                            <span />
+                            <span />
+                            <span />
+                          </span>
+                        ) : (
+                          <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
+                        )}
+                        {voiceStatusLabel}
+                      </div>
+
+                      <div className="relative">
+                        <button
+                          type="button"
+                          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#1F1F1F] bg-[#121212]/80 text-[#9CA3AF] transition hover:border-accent/30 hover:bg-[#161616] hover:text-[#EAEAEA]"
+                          onClick={() => setShowMenu((value) => !value)}
+                          aria-label="Open advisor menu"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </button>
+                        <AnimatePresence>
+                          {showMenu ? (
+                            <motion.div
+                              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                              className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-[14px] border border-[#1F1F1F] bg-[#121212] shadow-[0_24px_70px_rgba(0,0,0,0.55)]"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowHistory(true);
+                                  setShowMenu(false);
+                                }}
+                                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-[#9CA3AF] transition hover:bg-white/[0.055] hover:text-[#EAEAEA]"
+                              >
+                                <History className="h-4 w-4" />
+                                History
+                              </button>
+                              <Link
+                                href={ROUTES.COMPARE}
+                                onClick={() => setShowMenu(false)}
+                                className="flex items-center gap-2 px-4 py-3 text-sm text-[#9CA3AF] transition hover:bg-white/[0.055] hover:text-[#EAEAEA]"
+                              >
+                                <ListChecks className="h-4 w-4" />
+                                Shortlist and compare
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={resetConversation}
+                                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-[#9CA3AF] transition hover:bg-white/[0.055] hover:text-[#EAEAEA]"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                                New conversation
+                              </button>
+                            </motion.div>
+                          ) : null}
+                        </AnimatePresence>
+                      </div>
                     </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            </div>
+                  </header>
 
-            <AdvisorComposer
-              draft={draft}
-              disabled={isTyping || isStreaming}
-              editing={!!editingMessageId}
-              language={language}
-              prompts={SAMPLE_PROMPTS[language]}
-              showPrompts={showPromptChips}
-              spokenSummary={spokenSummary}
-              voiceAcknowledgment={voiceAcknowledgment}
-              voiceDisabled={voice.isProcessing || isStreaming || isTyping}
-              voiceError={voice.error}
-              voiceState={voiceState}
-              voiceTranscript={voice.transcript}
-              onCancelEdit={() => {
-                setEditingMessageId(null);
-                setDraft("");
-              }}
-              onChange={setDraft}
-              onMicPress={handleMicPress}
-              onPrompt={(prompt) => void sendAdvisorMessage(prompt, "chat")}
-              onSubmit={() => void sendAdvisorMessage(draft, "chat")}
-              onVoiceRetry={() => {
-                setActiveMode("voice");
-                voice.resetTranscript();
-                void voice.startListening();
-              }}
-            />
-          </section>
+                  {initialMode === "voice" ? (
+                    <motion.section
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                      className="mb-8 rounded-[24px] border border-[#1F1F1F] bg-[#121212]/78 px-4 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.26)] backdrop-blur-xl sm:px-5"
+                    >
+                      <div className="grid items-center gap-5 md:grid-cols-[auto_1fr_auto]">
+                        <button
+                          type="button"
+                          onClick={handleMicPress}
+                          disabled={voice.isProcessing || isStreaming || isTyping}
+                          className={cn(
+                            "relative mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-[#1F1F1F] bg-[#0F0F0F] text-accent transition hover:-translate-y-0.5 hover:border-accent/35 md:mx-0",
+                            voiceState === "listening" && "animate-mic-pulse border-accent/35 bg-accent text-on-accent",
+                            voiceState === "speaking" && "border-accent/25 bg-[#1A1A1A] text-[#EAEAEA]",
+                            voiceState === "error" && "text-danger"
+                          )}
+                          aria-label={voiceStatusLabel}
+                        >
+                          {voiceState === "listening" ? (
+                            <Mic className="h-8 w-8" />
+                          ) : voiceState === "speaking" ? (
+                            <VolumeX className="h-8 w-8" />
+                          ) : (
+                            <Mic className="h-8 w-8" />
+                          )}
+                        </button>
 
+                        <div className="min-w-0 text-center md:text-left">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+                            Voice advisor
+                          </p>
+                          <h2 className="mt-2 text-xl font-semibold text-[#EAEAEA]">
+                            {voiceStatusLabel}
+                          </h2>
+                          <p className="mt-2 text-sm leading-6 text-[#9CA3AF]">
+                            {voiceState === "listening"
+                              ? voice.transcript || "Speak naturally. Saathi will convert your question into this secure advisor thread."
+                              : voiceState === "processing"
+                                ? voiceAcknowledgment || "Checking rates and preparing a concise spoken summary."
+                                : voiceState === "speaking"
+                                  ? spokenSummary || "Saathi is reading the short answer aloud."
+                                  : voice.error || "Tap the microphone, ask about rates, maturity, safety, or your shortlist."}
+                          </p>
+                          {voiceState === "speaking" ? (
+                            <div className="wave-bars mt-4" aria-hidden="true">
+                              <span /><span /><span /><span /><span />
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
+                          <Button
+                            variant="outline"
+                            className="border-[#1F1F1F] bg-[#161616] text-[#EAEAEA]"
+                            onClick={cancelSpeech}
+                            disabled={!isSpeaking}
+                          >
+                            <VolumeX className="h-4 w-4" />
+                            Stop speaking
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="border-[#1F1F1F] bg-[#161616] text-[#EAEAEA]"
+                            onClick={() => setActiveMode("chat")}
+                          >
+                            <MessageCircleMore className="h-4 w-4" />
+                            Switch to chat
+                          </Button>
+                          <div className="flex min-h-11 items-center justify-between gap-3 rounded-full border border-[#1F1F1F] bg-[#161616] px-3 text-xs font-medium text-[#9CA3AF]">
+                            <span className="inline-flex items-center gap-2"><Volume2 className="h-4 w-4" /> Auto-speak</span>
+                            <span className="rounded-full bg-accent-soft px-2 py-1 text-accent">On</span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.section>
+                  ) : null}
+
+                  <ConversationTimeline
+                    messages={visibleMessages}
+                    onAction={handleAction}
+                    onRetry={handleRetry}
+                    onEdit={(message) => {
+                      setDraft(message.content);
+                      setEditingMessageId(message.id);
+                    }}
+                    onChipSelect={(chip) => void sendAdvisorMessage(chip, "chat")}
+                    showSmartChips={!isTyping && !streamingMessage}
+                    isTyping={isTyping || !!streamingMessage}
+                    richContent="hidden"
+                  />
+
+                  <AnimatePresence>
+                    {isTyping && !streamingMessage ? (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.97 }}
+                        className="mt-6 flex items-center gap-3 pl-1 text-sm text-[#9CA3AF]"
+                      >
+                        <span className="wave-bars" aria-hidden="true">
+                          <span />
+                          <span />
+                          <span />
+                          <span />
+                          <span />
+                        </span>
+                        Saathi is thinking
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              <AdvisorComposer
+                draft={draft}
+                disabled={isTyping || isStreaming}
+                editing={!!editingMessageId}
+                language={language}
+                prompts={SAMPLE_PROMPTS[language]}
+                showPrompts={showPromptChips}
+                spokenSummary={spokenSummary}
+                voiceAcknowledgment={voiceAcknowledgment}
+                voiceDisabled={voice.isProcessing || isStreaming || isTyping}
+                voiceError={voice.error}
+                voiceState={voiceState}
+                voiceTranscript={voice.transcript}
+                onCancelEdit={() => {
+                  setEditingMessageId(null);
+                  setDraft("");
+                }}
+                onChange={setDraft}
+                onMicPress={handleMicPress}
+                onPrompt={(prompt) => void sendAdvisorMessage(prompt, "chat")}
+                onSubmit={() => void sendAdvisorMessage(draft, "chat")}
+                onVoiceRetry={() => {
+                  setActiveMode("voice");
+                  voice.resetTranscript();
+                  void voice.startListening();
+                }}
+              />
+            </section>
+          </div>
         </div>
 
         <AnimatePresence>

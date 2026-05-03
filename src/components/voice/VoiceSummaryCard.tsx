@@ -57,7 +57,7 @@ export function VoiceSummaryCard({ summary, topRates, onClose }: VoiceSummaryCar
                     className="flex justify-between items-center p-3 rounded-lg bg-input-bg border border-outline"
                   >
                     <span className="font-medium text-text-strong">{rate.bankName}</span>
-                    <span className="font-bold text-emerald-500">{rate.rate}</span>
+                    <span className="font-bold text-highlight">{rate.rate}</span>
                   </motion.div>
                 ))}
               </div>

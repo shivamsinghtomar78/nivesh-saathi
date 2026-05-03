@@ -83,9 +83,9 @@ export default async function LoginPage({
             sizes="50vw"
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/18 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/38 to-black/18" />
           <MotionFloat className="absolute bottom-10 left-10 right-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/45 px-4 py-2 text-xs uppercase tracking-[0.2em] text-accent backdrop-blur">
+            <div className="inline-flex items-center gap-2 rounded-full border border-accent/25 bg-black/55 px-4 py-2 text-xs uppercase tracking-[0.2em] text-accent backdrop-blur">
               <ShieldCheck className="h-4 w-4" />
               Bank-grade encryption
             </div>

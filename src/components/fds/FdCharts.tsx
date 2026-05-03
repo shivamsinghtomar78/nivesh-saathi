@@ -26,14 +26,14 @@ import {
 import type { FdDashboardDto } from "@/lib/fd-tracker/types";
 import { formatCurrency } from "@/lib/utils";
 
-const chartColors = ["#5be0bd", "#f0bd53", "#9ab5aa", "#77e9cb", "#d29b35"];
+const chartColors = ["#d7b66d", "#e4c87e", "#a7aaa7", "#6dbba1", "#8d7a58"];
 
 const tooltipStyle = {
-  background: "#101b18",
-  border: "1px solid rgba(225,244,235,0.13)",
+  background: "#151513",
+  border: "1px solid rgba(246,240,228,0.12)",
   borderRadius: "8px",
-  boxShadow: "0 16px 44px rgba(0,0,0,0.34)",
-  color: "#f7fbf8",
+  boxShadow: "0 18px 46px rgba(0,0,0,0.42)",
+  color: "#f6f0e4",
   fontSize: "12px",
 };
 
@@ -79,15 +79,15 @@ export function FdCharts({ dashboard }: FdChartsProps) {
                 <Tooltip
                   contentStyle={tooltipStyle}
                   formatter={(value) => [formatCurrency(Number(value ?? 0)), "Value"]}
-                  labelStyle={{ color: "#f7fbf8" }}
+                  labelStyle={{ color: "#f6f0e4" }}
                 />
                 <Line
                   type="monotone"
                   dataKey="value"
-                  stroke="#5be0bd"
+                  stroke="#d7b66d"
                   strokeWidth={3}
                   dot={false}
-                  activeDot={{ r: 5, fill: "#5be0bd" }}
+                  activeDot={{ r: 5, fill: "#d7b66d" }}
                 />
               </LineChart>
             </ResponsiveContainer>

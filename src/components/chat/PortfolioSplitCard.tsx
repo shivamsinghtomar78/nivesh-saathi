@@ -11,7 +11,7 @@ interface PortfolioSplitCardProps {
   split: PortfolioSplit;
 }
 
-const COLORS = ["#10b981", "#6366f1", "#f59e0b", "#ec4899", "#8b5cf6"];
+const COLORS = ["#d7b66d", "#a7aaa7", "#6dbba1", "#8d7a58", "#caa15f"];
 
 export function PortfolioSplitCard({ split }: PortfolioSplitCardProps) {
   const chartData = split.allocations.map((alloc, i) => ({
@@ -32,7 +32,7 @@ export function PortfolioSplitCard({ split }: PortfolioSplitCardProps) {
               Optimized for DICGC Safety Limit
             </CardDescription>
           </div>
-          <ShieldAlert className="w-5 h-5 text-emerald-500" />
+          <ShieldAlert className="w-5 h-5 text-success" />
         </div>
       </CardHeader>
       
@@ -82,7 +82,7 @@ export function PortfolioSplitCard({ split }: PortfolioSplitCardProps) {
               </div>
               <div className="text-right shrink-0">
                 <div className="font-semibold text-text-strong">Rs {alloc.allocationAmount.toLocaleString("en-IN")}</div>
-                <div className="text-[10px] text-emerald-500 font-medium">@{alloc.rate.toFixed(2)}%</div>
+                <div className="text-[10px] text-highlight font-medium">@{alloc.rate.toFixed(2)}%</div>
               </div>
             </motion.div>
           ))}

@@ -20,7 +20,6 @@ import { ShareButton } from "@/components/chat/ShareButton";
 import SmartChips from "@/components/shared/SmartChips";
 import StructuredAnswer from "@/components/shared/StructuredAnswer";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { withCsrfHeaders } from "@/lib/csrf";
 import { cn } from "@/lib/utils";
 import type { ConversationMessage } from "@/stores/conversationStore";
@@ -71,7 +70,7 @@ export default function ConversationTimeline({
   const showInlineRichContent = richContent === "inline";
 
   return (
-    <div className="space-y-5" role="log" aria-live="polite" aria-relevant="additions text">
+    <div className="space-y-8 pb-2" role="log" aria-live="polite" aria-relevant="additions text">
       <AnimatePresence initial={false}>
         {messages.map((message, messageIndex) => {
           const isUser = message.role === "user";
@@ -83,69 +82,67 @@ export default function ConversationTimeline({
               initial={{ opacity: 0, y: 10, scale: 0.985 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.24, ease: "easeOut" }}
-              className={cn("group flex w-full", isUser ? "justify-end" : "justify-start")}
+              className={cn("group/msg flex w-full", isUser ? "justify-end" : "justify-start")}
             >
               <div
                 className={cn(
-                  "max-w-[94%] rounded-[var(--radius-panel)] px-4 py-3 md:max-w-[84%]",
+                  "min-w-0",
                   isUser
-                    ? "rounded-tr-md border border-accent/20 bg-panel-strong text-text-strong shadow-sm"
-                    : "text-text-strong",
-                  message.failed && "border border-danger/40 bg-danger/5"
+                    ? "ml-auto max-w-[82%] rounded-[22px] rounded-br-md border border-[#1F1F1F] bg-[#161616] px-4 py-3 text-[#EAEAEA] shadow-[0_14px_40px_rgba(0,0,0,0.22)] sm:max-w-[75%]"
+                    : "mr-auto w-full max-w-full text-[#EAEAEA]",
+                  message.failed && "border-danger/35 bg-danger/10"
                 )}
               >
-                <div className={cn("flex items-center justify-between gap-3", isUser ? "mb-2" : "mb-1")}>
-                  <div className="inline-flex items-center gap-2">
-                    {!isUser ? (
-                      <div className="flex items-center gap-1.5 text-accent">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        <span className="text-[11px] font-bold uppercase tracking-wider">
-                          Saathi
-                        </span>
-                      </div>
-                    ) : null}
+                {isUser ? (
+                  <div className="mb-1 flex items-center justify-end gap-2">
                     <span
-                      className={cn(
-                        "text-[10px] font-semibold uppercase tracking-wider",
-                        isUser ? "text-text-muted" : "text-text-muted/70"
-                      )}
+                      className="text-[10px] font-medium uppercase tracking-wider text-[#7B8490]"
                     >
                       {message.timestamp}
                     </span>
+                    {!message.failed && onEdit ? (
+                      <button
+                        type="button"
+                        onClick={() => onEdit(message)}
+                        className="rounded-md p-1 opacity-0 transition hover:bg-white/[0.055] hover:opacity-100 focus:opacity-100 group-hover/msg:opacity-100"
+                        aria-label="Edit message"
+                        title="Edit message"
+                      >
+                        <Pencil className="h-3 w-3 text-[#9CA3AF]" />
+                      </button>
+                    ) : null}
+                    {message.edited ? (
+                      <span className="text-[9px] italic text-[#7B8490]">edited</span>
+                    ) : null}
                   </div>
-
-                  {isUser && !message.failed && onEdit ? (
-                    <button
-                      type="button"
-                      onClick={() => onEdit(message)}
-                      className="rounded-md p-1 opacity-0 transition hover:bg-inner-panel hover:opacity-100 focus:opacity-100 group-hover:opacity-100"
-                      aria-label="Edit message"
-                      title="Edit message"
-                    >
-                      <Pencil className="h-3 w-3 text-text-muted" />
-                    </button>
-                  ) : null}
-                  {message.edited ? (
-                    <span className={cn("text-[9px] italic", isUser ? "text-text-muted" : "text-text-muted/50")}>
-                      edited
-                    </span>
-                  ) : null}
-                </div>
+                ) : (
+                  <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
+                    <Sparkles className="h-3.5 w-3.5 text-accent" />
+                    <span className="text-accent">Saathi</span>
+                    <span className="h-1 w-1 rounded-full bg-[#3A3A3A]" aria-hidden="true" />
+                    <span className="font-medium text-[#7B8490]">{message.timestamp}</span>
+                    {message.edited ? (
+                      <span className="text-[9px] italic normal-case tracking-normal text-[#7B8490]">
+                        edited
+                      </span>
+                    ) : null}
+                  </div>
+                )}
 
                 <div className="mt-1">
                   {isUser ? (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-inherit md:text-[15px]">
+                    <p className="whitespace-pre-wrap text-[15px] leading-6 text-inherit">
                       {message.content}
                     </p>
                   ) : (
-                    <div className="text-[15px] leading-relaxed">
+                    <div className="text-[15.5px] leading-7 text-[#EAEAEA] md:text-base [&_a]:text-accent [&_strong]:text-[#F4F4F5]">
                       <StructuredAnswer text={message.content} />
                     </div>
                   )}
                 </div>
 
                 {message.failed && onRetry ? (
-                  <div className="mt-3 border-t border-danger/20 pt-2">
+                  <div className="mt-3">
                     <button
                       type="button"
                       onClick={() => onRetry(message)}
@@ -162,7 +159,7 @@ export default function ConversationTimeline({
                     {message.rateCards.map((card) => (
                       <div
                         key={`${message.id}-${card.bankId ?? card.bankName}`}
-                        className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4 transition-colors hover:border-accent/30"
+                        className="rounded-[18px] border border-[#1F1F1F] bg-[#121212] p-4 transition-colors hover:border-accent/25"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -178,7 +175,7 @@ export default function ConversationTimeline({
                           ) : null}
                         </div>
                         <div className="mt-3">
-                          <p className="text-xl font-bold text-accent">{card.rate}</p>
+                          <p className="text-xl font-bold text-highlight">{card.rate}</p>
                           {card.maturityPreview ? (
                             <p className="mt-0.5 text-xs font-medium text-text-strong">
                               {card.maturityPreview}
@@ -186,7 +183,7 @@ export default function ConversationTimeline({
                           ) : null}
                         </div>
                         {card.safetyNote ? (
-                          <p className="mt-3 border-t border-outline/50 pt-3 text-xs leading-relaxed text-text-muted">
+                          <p className="mt-3 border-t border-[#1F1F1F] pt-3 text-xs leading-relaxed text-[#9CA3AF]">
                             {card.safetyNote}
                           </p>
                         ) : null}
@@ -195,7 +192,7 @@ export default function ConversationTimeline({
                             href={card.officialUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="mt-3 inline-flex w-full items-center gap-1.5 border-t border-outline/50 pt-2 text-xs font-semibold text-accent transition hover:text-accent/70"
+                            className="mt-3 inline-flex w-full items-center gap-1.5 border-t border-[#1F1F1F] pt-2 text-xs font-semibold text-accent transition hover:text-accent/70"
                           >
                             <ExternalLink className="h-3 w-3" />
                             Visit Bank
@@ -217,7 +214,7 @@ export default function ConversationTimeline({
                     {message.glossary.map((item) => (
                       <div
                         key={`${message.id}-${item.term}`}
-                        className="rounded-[var(--radius-panel)] border border-outline bg-accent/5 p-4"
+                        className="rounded-[18px] border border-[#1F1F1F] bg-[#121212] p-4"
                       >
                         <div className="mb-2 flex items-center gap-2">
                           <BookOpen className="h-4 w-4 text-accent" />
@@ -230,21 +227,25 @@ export default function ConversationTimeline({
                 ) : null}
 
                 {message.actions && message.actions.length > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-2 border-t border-outline/50 pt-3">
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {message.actions.slice(0, 2).map((action) => {
                       const Icon = getActionIcon(action);
 
                       return (
-                        <Button
+                        <button
+                          type="button"
                           key={`${message.id}-${action.label}`}
-                          variant={action.type === "primary" ? "secondary" : "outline"}
-                          size="sm"
                           onClick={() => onAction(action)}
-                          className={cn("rounded-full", action.type !== "primary" && "bg-input-bg")}
+                          className={cn(
+                            "inline-flex min-h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition hover:-translate-y-px",
+                            action.type === "primary"
+                              ? "border-accent/25 bg-accent-soft text-accent hover:bg-accent/15"
+                              : "border-[#1F1F1F] bg-[#121212] text-[#9CA3AF] hover:border-accent/25 hover:text-[#EAEAEA]"
+                          )}
                         >
-                          <Icon className="mr-1.5 h-3.5 w-3.5" />
+                          <Icon className="h-3.5 w-3.5" />
                           {action.label}
-                        </Button>
+                        </button>
                       );
                     })}
                   </div>
@@ -263,7 +264,7 @@ export default function ConversationTimeline({
                 ) : null}
 
                 {message.followUpPrompt ? (
-                  <div className="mt-4 border-t border-outline/50 pt-3">
+                  <div className="mt-4">
                     <button
                       type="button"
                       onClick={() =>
@@ -273,15 +274,15 @@ export default function ConversationTimeline({
                           action: undefined,
                         })
                       }
-                      className="rounded-[var(--radius-input)] border border-accent/20 bg-accent/5 px-3 py-2 text-left text-xs font-medium text-accent transition hover:border-accent/30 hover:bg-accent/10"
+                      className="rounded-full border border-accent/20 bg-accent/[0.055] px-3 py-1.5 text-left text-xs font-medium text-accent transition hover:border-accent/30 hover:bg-accent/10"
                     >
-                      Idea: {message.followUpPrompt}
+                      {message.followUpPrompt}
                     </button>
                   </div>
                 ) : null}
 
                 {!isUser && !message.failed && !isTyping ? (
-                  <div className="mt-3 flex items-center justify-between border-t border-outline/50 pt-2 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+                  <div className="mt-3 flex items-center gap-2 opacity-70 transition sm:opacity-0 sm:group-hover/msg:opacity-100 sm:focus-within:opacity-100">
                     <MessageReactions
                       messageId={message.id}
                       onFeedback={(id, reaction, reason) => {

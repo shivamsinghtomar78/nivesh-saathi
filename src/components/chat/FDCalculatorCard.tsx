@@ -248,7 +248,7 @@ export function FDCalculatorCard({
                     className={cn(
                       "min-h-10 rounded-[calc(var(--radius-input)-2px)] px-2 text-xs font-semibold transition-[background-color,color,box-shadow,transform] duration-200",
                       active
-                        ? "bg-surface-dark text-on-dark shadow-[0_10px_24px_rgba(91,224,189,0.18)]"
+                        ? "bg-surface-dark text-on-dark shadow-[0_10px_24px_rgba(215,182,109,0.16)]"
                         : "text-text-muted hover:bg-inner-panel hover:text-text-strong"
                     )}
                     aria-pressed={active}

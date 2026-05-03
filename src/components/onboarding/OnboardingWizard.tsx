@@ -89,7 +89,7 @@ export function OnboardingWizard() {
               key={profile.availableAmount || 50000}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="text-4xl font-bold text-text-strong bg-clip-text text-transparent bg-gradient-to-r from-highlight to-emerald-500"
+              className="financial-value text-4xl font-bold text-highlight"
             >
               Rs {(profile.availableAmount || 50000).toLocaleString("en-IN")}
             </motion.div>

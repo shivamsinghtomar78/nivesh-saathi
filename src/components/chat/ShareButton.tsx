@@ -150,7 +150,7 @@ export function ShareButton({ messageText, rateCards }: ShareButtonProps) {
               onClick={handleWhatsApp}
               className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-text-strong hover:bg-inner-panel transition"
             >
-              <MessageCircle className="h-3.5 w-3.5 text-green-500" />
+              <MessageCircle className="h-3.5 w-3.5 text-success" />
               WhatsApp
             </button>
             <button

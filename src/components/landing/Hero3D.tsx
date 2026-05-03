@@ -29,7 +29,7 @@ function AbstractShape() {
           distortion={0.3}
           distortionScale={0.4}
           temporalDistortion={0.1}
-          color="#0f9f73"
+          color="#d7b66d"
           attenuationDistance={1.5}
           attenuationColor="#ffffff"
         />

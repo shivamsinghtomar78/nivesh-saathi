@@ -16,7 +16,7 @@ const stateCopy: Record<AgentState, { label: string; icon: typeof Mic }> = {
 
 export function AgentAudioVisualizerAura({
   state,
-  color = "#00c3ff",
+  color = "#d7b66d",
   className,
 }: {
   size?: "sm" | "md" | "lg" | "xl";

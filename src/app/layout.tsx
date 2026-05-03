@@ -56,7 +56,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#07110f" />
+        <meta name="theme-color" content="#030303" />
         <link rel="preconnect" href="https://firebaseapp.com" />
         <link rel="preconnect" href="https://generativelanguage.googleapis.com" />
       </head>

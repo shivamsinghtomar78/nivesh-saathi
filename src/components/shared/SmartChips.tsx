@@ -23,11 +23,11 @@ export default function SmartChips({ chips, onSelect, disabled }: SmartChipsProp
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
         transition={{ delay: 0.3, duration: 0.3 }}
-        className="mt-3 flex flex-wrap gap-2"
+        className="mt-4 flex flex-wrap items-center gap-2"
       >
-        <div className="flex items-center gap-1 mr-1">
-          <Sparkles className="h-3 w-3 text-accent" />
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+        <div className="mr-1 flex items-center gap-1">
+          <Sparkles className="h-3 w-3 text-accent/80" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-[#7B8490]">
             Follow-up
           </span>
         </div>
@@ -40,7 +40,7 @@ export default function SmartChips({ chips, onSelect, disabled }: SmartChipsProp
             type="button"
             disabled={disabled}
             onClick={() => onSelect(chip)}
-            className="rounded-full border border-accent/20 bg-accent/5 px-3 py-1.5 text-xs font-medium text-accent transition hover:bg-accent/10 hover:border-accent/30 disabled:opacity-50 disabled:pointer-events-none"
+            className="rounded-full border border-[#1F1F1F] bg-[#121212] px-3 py-1.5 text-xs font-medium text-[#9CA3AF] transition hover:border-accent/25 hover:bg-[#161616] hover:text-[#EAEAEA] disabled:pointer-events-none disabled:opacity-50"
           >
             {chip}
           </motion.button>
