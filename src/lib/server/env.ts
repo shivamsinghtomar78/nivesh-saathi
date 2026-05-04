@@ -20,3 +20,6 @@ export const hasFirebaseVapidConfig = Boolean(serverEnv.FIREBASE_VAPID_KEY);
 export const hasFdAlertCronSecret = Boolean(
   serverEnv.FD_ALERT_CRON_SECRET || serverEnv.CRON_SECRET
 );
+export const hasLangSmithConfig = Boolean(
+  serverEnv.LANGSMITH_API_KEY || serverEnv.LANGCHAIN_API_KEY
+);

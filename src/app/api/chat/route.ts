@@ -17,6 +17,7 @@ import {
   requireCsrfProtection,
   requireFirebaseSession,
 } from "@/lib/server/auth";
+import { withTracing } from "@/lib/server/langsmith";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,58 +82,77 @@ export async function POST(request: Request) {
       ...input,
       userId: sessionResult.session.uid,
     };
-    const promptRisk = assessPromptRisk(input.message);
+    const requestId = input.requestId || crypto.randomUUID();
 
-    if (promptRisk.blocked) {
-      logServerWarn("chat_prompt_blocked", {
-        ip,
+    const processChatRequest = withTracing(async (authInput: any) => {
+      const promptRisk = assessPromptRisk(authInput.message);
+
+      if (promptRisk.blocked) {
+        logServerWarn("chat_prompt_blocked", {
+          ip,
+          userId: authInput.userId,
+          reasons: promptRisk.reasons,
+          confidence: promptRisk.confidence,
+        });
+        await persistFlaggedMessage({
+          userId: authInput.userId,
+          message: authInput.message,
+          reasons: promptRisk.reasons,
+          confidence: promptRisk.confidence,
+        });
+
+        return {
+          threadId: authInput.threadId ?? crypto.randomUUID(),
+          response: {
+            text: buildBlockedPromptResponse(authInput.language),
+            rateCards: [],
+            actions: [
+              {
+                label:
+                  authInput.language === "hi"
+                    ? "Rates compare kijiye"
+                    : "Compare rates",
+                type: "primary",
+                action: "open_compare",
+                url: ROUTES.COMPARE,
+              },
+            ],
+            glossary: [],
+            followUpPrompt: "",
+            warnings: ["Guarded prompt rejected"],
+          },
+        };
+      }
+
+      const result = await invokeFdAdvisor({
+        ...authInput,
+        message: promptRisk.normalizedMessage,
+      });
+
+      await persistChatSessionTurn({
+        threadId: result.threadId,
+        userId: authInput.userId,
+        language: authInput.language,
+        userMessage: promptRisk.normalizedMessage,
+        assistantMessage: result.response.text,
+        fdContextIds: result.response.rateCards.map((card: any) => card.bankId),
+      });
+
+      return result;
+    }, {
+      name: "process_chat_request",
+      run_type: "chain",
+      metadata: {
         userId: sessionResult.session.uid,
-        reasons: promptRisk.reasons,
-        confidence: promptRisk.confidence,
-      });
-      await persistFlaggedMessage({
-        userId: sessionResult.session.uid,
-        message: input.message,
-        reasons: promptRisk.reasons,
-        confidence: promptRisk.confidence,
-      });
-
-      return jsonSuccess({
-        threadId: authenticatedInput.threadId ?? crypto.randomUUID(),
-        response: {
-          text: buildBlockedPromptResponse(authenticatedInput.language),
-          rateCards: [],
-          actions: [
-            {
-              label:
-                authenticatedInput.language === "hi"
-                  ? "Rates compare kijiye"
-                  : "Compare rates",
-              type: "primary",
-              action: "open_compare",
-              url: ROUTES.COMPARE,
-            },
-          ],
-          glossary: [],
-          followUpPrompt: "",
-          warnings: ["Guarded prompt rejected"],
-        },
-      });
-    }
-
-    const result = await invokeFdAdvisor({
-      ...authenticatedInput,
-      message: promptRisk.normalizedMessage,
+        sessionId: input.threadId,
+        threadId: input.threadId,
+        requestId,
+        feature: "chat",
+        mode: input.mode || "chat",
+      }
     });
 
-    await persistChatSessionTurn({
-      threadId: result.threadId,
-      userId: authenticatedInput.userId,
-      language: authenticatedInput.language,
-      userMessage: promptRisk.normalizedMessage,
-      assistantMessage: result.response.text,
-      fdContextIds: result.response.rateCards.map((card) => card.bankId),
-    });
+    const result = await processChatRequest(authenticatedInput);
 
     return jsonSuccess(result);
   } catch (error) {

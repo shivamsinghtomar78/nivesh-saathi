@@ -21,6 +21,22 @@ export const env = createEnv({
       .default("dual_firebase_primary"),
     FD_ALERT_CRON_SECRET: z.string().min(1).optional(),
     CRON_SECRET: z.string().min(1).optional(),
+    
+    // LangSmith / LangChain tracing legacy and current vars
+    LANGCHAIN_TRACING_V2: z.string().optional(),
+    LANGCHAIN_ENDPOINT: z.string().optional(),
+    LANGCHAIN_API_KEY: z.string().optional(),
+    LANGCHAIN_PROJECT: z.string().optional(),
+    
+    LANGSMITH_TRACING: z.string().optional(),
+    LANGSMITH_ENDPOINT: z.string().optional(),
+    LANGSMITH_API_KEY: z.string().optional(),
+    LANGSMITH_PROJECT: z.string().optional(),
+    LANGSMITH_WORKSPACE_ID: z.string().optional(),
+    
+    LANGSMITH_SAMPLE_RATE: z.string().optional(),
+    LANGSMITH_TRACING_BACKGROUND: z.string().optional(),
+    LANGCHAIN_CALLBACKS_BACKGROUND: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),

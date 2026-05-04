@@ -144,6 +144,7 @@ export const chatRequestSchema = z.object({
   language: appLanguageSchema.default("en"),
   threadId: z.string().trim().optional(),
   userId: z.string().trim().optional(),
+  requestId: z.string().trim().optional(),
   amount: z.number().int().positive().optional(),
   tenorMonths: z.number().int().positive().optional(),
   seniorCitizen: z.boolean().optional(),

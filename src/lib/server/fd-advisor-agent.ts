@@ -22,6 +22,7 @@ import { hasLlmConfig } from "@/lib/server/env";
 import { buildAdvisorAppContext } from "@/lib/server/advisor-context";
 import { getFdDashboard } from "@/lib/server/fd-tracker-service";
 import { invokeLlm, type LlmMessage } from "@/lib/server/llm-client";
+import { withTracing } from "@/lib/server/langsmith";
 import { getUserMemory, updateUserMemory } from "@/lib/server/persistence";
 import {
   buildMemoryPromptContext,
@@ -338,7 +339,7 @@ function detectIntentHeuristically(input: {
   });
 }
 
-async function detectIntentNode(state: typeof agentState.State) {
+const detectIntentNode = withTracing(async function detectIntentNode(state: typeof agentState.State) {
   const latestMessage = state.messages.at(-1);
   const messageText = getMessageText(latestMessage?.content);
   const language = (state.language ?? "en") as AppLanguage;
@@ -359,9 +360,9 @@ async function detectIntentNode(state: typeof agentState.State) {
         : [],
     },
   };
-}
+}, { name: "detect_intent", run_type: "chain" });
 
-async function assembleResponseNode(state: typeof agentState.State) {
+const assembleResponseNode = withTracing(async function assembleResponseNode(state: typeof agentState.State) {
   const intent = state.intent ?? detectIntentHeuristically({ message: "" });
   const amount = intent.amount ?? state.requestedAmount ?? DEFAULT_AMOUNT;
   const tenorMonths =
@@ -379,7 +380,7 @@ async function assembleResponseNode(state: typeof agentState.State) {
   });
 
   return { response };
-}
+}, { name: "assemble_response", run_type: "chain" });
 
 /**
  * Generate smart follow-up chip suggestions based on response content.
@@ -539,7 +540,7 @@ function detectModeSwitchSuggestion(
   return undefined;
 }
 
-async function narrateNode(state: typeof agentState.State) {
+const narrateNode = withTracing(async function narrateNode(state: typeof agentState.State) {
   const response = state.response;
   const language = (state.language ?? "en") as AppLanguage;
   const mode = (state.mode ?? "chat") as ConversationMode;
@@ -633,43 +634,26 @@ async function narrateNode(state: typeof agentState.State) {
       temperature: 0.2,
       maxTokens: mode === "voice" ? 300 : 900,
     });
-    const parsed = llmResponse ? safeJsonParse(llmResponse, narrativeSchema) : null;
 
-    if (!parsed) {
-      const enrichedResponse = enrichResponse({
-        response,
-        language,
-        mode,
-        messageText,
-        intent: state.intent,
-        userMemory,
-      });
-      return {
-        response: enrichedResponse,
-        messages: [new AIMessage(enrichedResponse.text)],
-      };
-    }
-
-    // Rate hallucination check
-    const mentionedRates = parsed.text.match(/\b\d+\.\d{1,2}%\b/g);
-    if (mentionedRates) {
-      const validRates = response.rateCards.map((c) => `${c.rateValue.toFixed(2)}%`);
-      const hasHallucination = mentionedRates.some((r) => !validRates.includes(r));
-      if (hasHallucination) {
-        const enrichedResponse = enrichResponse({
-          response,
-          language,
-          mode,
-          messageText,
-          intent: state.intent,
-          userMemory,
-        });
-        return {
-          response: enrichedResponse,
-          messages: [new AIMessage(enrichedResponse.text)],
-        };
+    const validateLlmResponse = withTracing(async (text: string | null) => {
+      const parsed = text ? safeJsonParse(text, narrativeSchema) : null;
+      if (!parsed) {
+        throw new Error("JSON parse failure");
       }
-    }
+      
+      const mentionedRates = parsed.text.match(/\b\d+\.\d{1,2}%\b/g);
+      if (mentionedRates) {
+        const validRates = response.rateCards.map((c: any) => `${c.rateValue.toFixed(2)}%`);
+        const hasHallucination = mentionedRates.some((r: string) => !validRates.includes(r));
+        if (hasHallucination) {
+          throw new Error("Hallucination fallback decision");
+        }
+      }
+      
+      return parsed;
+    }, { name: "validate_llm_response", run_type: "parser" });
+
+    const parsed = await validateLlmResponse(llmResponse);
 
     const finalResponse = enrichResponse({
       response: {
@@ -706,7 +690,7 @@ async function narrateNode(state: typeof agentState.State) {
       messages: [new AIMessage(enrichedResponse.text)],
     };
   }
-}
+}, { name: "narrate", run_type: "chain" });
 
 const advisorGraph = new StateGraph(agentState)
   .addNode("detect_intent", detectIntentNode)
@@ -735,7 +719,7 @@ async function getSafeFdDashboard(userId?: string) {
   }
 }
 
-export async function invokeFdAdvisor(input: ChatRequest) {
+export const invokeFdAdvisor = withTracing(async function invokeFdAdvisor(input: ChatRequest) {
   const threadId = input.threadId || crypto.randomUUID();
   const historyKey = `chat_history:${threadId}`;
   const prefsKey = `chat_prefs:${threadId}`;
@@ -851,4 +835,4 @@ export async function invokeFdAdvisor(input: ChatRequest) {
         glossaryTermIds: ["pa", "tenor", "dicgc"],
       })),
   };
-}
+}, { name: "invokeFdAdvisor", run_type: "chain" });

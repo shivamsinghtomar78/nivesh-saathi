@@ -12,6 +12,8 @@ import {
 } from "@/lib/server/auth";
 import { serverEnv } from "@/lib/server/env";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
+import { withTracing } from "@/lib/server/langsmith";
+import { getCurrentRunTree } from "langsmith/traceable";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,72 +85,86 @@ export async function POST(request: Request) {
     }
 
     const bytes = Buffer.from(await receipt.arrayBuffer()).toString("base64");
-    const endpoint = new URL(
-      `https://generativelanguage.googleapis.com/v1beta/models/${OCR_MODEL}:generateContent`
-    );
-    endpoint.searchParams.set("key", serverEnv.GEMINI_API_KEY);
+    
+    const processOcr = withTracing(async (fileInfo: { type: string; size: number; name: string }) => {
+      const endpoint = new URL(
+        `https://generativelanguage.googleapis.com/v1beta/models/${OCR_MODEL}:generateContent`
+      );
+      endpoint.searchParams.set("key", serverEnv.GEMINI_API_KEY);
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: [
-                  "Extract fixed deposit receipt fields for a web form.",
-                  "Return strict JSON only with keys: bankName, amount, interestRate, startDate, maturityDate, fdType, payoutFrequency, nominee, notes, confidence.",
-                  "Use YYYY-MM-DD for dates when visible. Use null for fields that are missing or uncertain.",
-                  "Do not invent values.",
-                ].join(" "),
-              },
-              {
-                inlineData: {
-                  mimeType: receipt.type || "image/jpeg",
-                  data: bytes,
-                },
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0,
-          maxOutputTokens: 700,
-          responseMimeType: "application/json",
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      }),
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: [
+                    "Extract fixed deposit receipt fields for a web form.",
+                    "Return strict JSON only with keys: bankName, amount, interestRate, startDate, maturityDate, fdType, payoutFrequency, nominee, notes, confidence.",
+                    "Use YYYY-MM-DD for dates when visible. Use null for fields that are missing or uncertain.",
+                    "Do not invent values.",
+                  ].join(" "),
+                },
+                {
+                  inlineData: {
+                    mimeType: fileInfo.type,
+                    data: bytes,
+                  },
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: 700,
+            responseMimeType: "application/json",
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`OCR extraction failed: ${detail.slice(0, 300)}`);
+      }
+
+      const payload = (await response.json()) as {
+        candidates?: Array<{
+          content?: {
+            parts?: Array<{
+              text?: string;
+            }>;
+          };
+        }>;
+      };
+      const text = payload.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text ?? "")
+        .join("")
+        .trim();
+
+      if (!text) {
+        throw new Error("OCR returned no text");
+      }
+
+      return ocrResultSchema.parse(JSON.parse(extractJson(text)));
+    }, {
+      name: "extract_receipt_ocr",
+      run_type: "llm",
+      metadata: {
+        userId: auth.session.uid,
+        feature: "ocr",
+      }
     });
 
-    if (!response.ok) {
-      const detail = await response.text();
-      return jsonError("OCR extraction failed", 502, {
-        detail: detail.slice(0, 300),
-      });
-    }
-
-    const payload = (await response.json()) as {
-      candidates?: Array<{
-        content?: {
-          parts?: Array<{
-            text?: string;
-          }>;
-        };
-      }>;
-    };
-    const text = payload.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text ?? "")
-      .join("")
-      .trim();
-
-    if (!text) {
-      return jsonError("OCR returned no text", 422);
-    }
-
-    const parsed = ocrResultSchema.parse(JSON.parse(extractJson(text)));
+    const parsed = await processOcr({ 
+      type: receipt.type || "image/jpeg", 
+      size: receipt.size,
+      name: receipt.name
+    });
 
     return jsonSuccess({
       fields: parsed,

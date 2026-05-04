@@ -4,6 +4,8 @@ import {
   serverEnv,
 } from "@/lib/server/env";
 import { logServerWarn } from "@/lib/server/telemetry";
+import { withTracing } from "@/lib/server/langsmith";
+import { getCurrentRunTree } from "langsmith/traceable";
 
 export type LlmMessage = {
   role: "system" | "user" | "assistant";
@@ -44,7 +46,7 @@ async function fetchWithTimeout(
   }
 }
 
-async function invokeGemini(messages: LlmMessage[], options: InvokeLlmOptions) {
+const invokeGemini = withTracing(async function invokeGemini(messages: LlmMessage[], options: InvokeLlmOptions) {
   const { system, conversation } = splitSystemPrompt(messages);
   const endpoint = new URL(
     `https://generativelanguage.googleapis.com/v1beta/models/${serverEnv.GEMINI_MODEL}:generateContent`
@@ -77,6 +79,20 @@ async function invokeGemini(messages: LlmMessage[], options: InvokeLlmOptions) {
     options.timeoutMs ?? 12000
   );
 
+  const runTree = getCurrentRunTree();
+  if (runTree) {
+    runTree.extra = {
+      ...runTree.extra,
+      metadata: {
+        ...runTree.extra?.metadata,
+        provider: "google",
+        model: serverEnv.GEMINI_MODEL,
+        temperature: options.temperature,
+        max_tokens: options.maxTokens,
+      }
+    };
+  }
+
   if (!response.ok) {
     throw new Error(`Gemini request failed with ${response.status}`);
   }
@@ -89,7 +105,24 @@ async function invokeGemini(messages: LlmMessage[], options: InvokeLlmOptions) {
         }>;
       };
     }>;
+    usageMetadata?: {
+      promptTokenCount?: number;
+      candidatesTokenCount?: number;
+      totalTokenCount?: number;
+    };
   };
+
+  if (runTree && payload.usageMetadata) {
+    runTree.extra = {
+      ...runTree.extra,
+      metadata: {
+        ...runTree.extra?.metadata,
+        prompt_tokens: payload.usageMetadata.promptTokenCount,
+        completion_tokens: payload.usageMetadata.candidatesTokenCount,
+        total_tokens: payload.usageMetadata.totalTokenCount,
+      }
+    };
+  }
   const text = payload.candidates?.[0]?.content?.parts
     ?.map((part) => part.text ?? "")
     .join("")
@@ -100,9 +133,9 @@ async function invokeGemini(messages: LlmMessage[], options: InvokeLlmOptions) {
   }
 
   return text;
-}
+}, { name: "invokeGemini", run_type: "llm" });
 
-async function invokeOpenRouter(
+const invokeOpenRouter = withTracing(async function invokeOpenRouter(
   messages: LlmMessage[],
   options: InvokeLlmOptions
 ) {
@@ -126,6 +159,20 @@ async function invokeOpenRouter(
     options.timeoutMs ?? 15000
   );
 
+  const runTree = getCurrentRunTree();
+  if (runTree) {
+    runTree.extra = {
+      ...runTree.extra,
+      metadata: {
+        ...runTree.extra?.metadata,
+        provider: "openrouter",
+        model: serverEnv.OPENROUTER_MODEL,
+        temperature: options.temperature,
+        max_tokens: options.maxTokens,
+      }
+    };
+  }
+
   if (!response.ok) {
     throw new Error(`OpenRouter request failed with ${response.status}`);
   }
@@ -136,7 +183,25 @@ async function invokeOpenRouter(
         content?: string;
       };
     }>;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
   };
+
+  if (runTree && payload.usage) {
+    runTree.extra = {
+      ...runTree.extra,
+      metadata: {
+        ...runTree.extra?.metadata,
+        prompt_tokens: payload.usage.prompt_tokens,
+        completion_tokens: payload.usage.completion_tokens,
+        total_tokens: payload.usage.total_tokens,
+      }
+    };
+  }
+
   const text = payload.choices?.[0]?.message?.content?.trim();
 
   if (!text) {
