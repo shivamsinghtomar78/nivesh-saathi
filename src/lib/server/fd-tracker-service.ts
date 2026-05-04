@@ -115,6 +115,7 @@ export type FdRecordDocument = {
 
 export type FdUserDocument = {
   _id: string;
+  firebaseUid: string;
   userId: string;
   email: string | null;
   name: string | null;
@@ -159,6 +160,7 @@ function objectIdFromString(id: string) {
 
 async function ensureIndexes(collections: FdCollections) {
   indexesReady ??= Promise.all([
+    collections.users.createIndex({ firebaseUid: 1 }, { unique: true }),
     collections.users.createIndex({ userId: 1 }, { unique: true }),
     collections.records.createIndex({ userId: 1, maturityDate: 1 }),
     collections.records.createIndex({ status: 1, maturityDate: 1 }),
@@ -181,7 +183,7 @@ export async function getFdCollections() {
   }
 
   const collections: FdCollections = {
-    users: db.collection<FdUserDocument>("fd_users"),
+    users: db.collection<FdUserDocument>("users"),
     records: db.collection<FdRecordDocument>("fd_records"),
     alerts: db.collection<FdAlertDocument>("fd_alerts"),
   };
@@ -246,11 +248,13 @@ export async function upsertFdUser(input: {
     {
       $set: {
         email: input.email ?? null,
+        firebaseUid: input.userId,
         name: input.name ?? null,
         updatedAt: now,
       },
       $setOnInsert: {
         _id: input.userId,
+        firebaseUid: input.userId,
         userId: input.userId,
         fcmTokens: [],
         notificationEnabled: false,

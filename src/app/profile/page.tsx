@@ -9,7 +9,7 @@ import AppShell from "@/components/app/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FD_RATES } from "@/lib/fd-data";
+import type { FDRate } from "@/lib/fd-data";
 import { ROUTES } from "@/lib/routes";
 import { useAuthStore } from "@/stores/authStore";
 import { useConversationStore } from "@/stores/conversationStore";
@@ -52,7 +52,9 @@ export default function ProfilePage() {
   const userId = user?.uid;
   const messages = useConversationStore((state) => state.messages);
   const shortlist = useCompareStore((state) => state.shortlist);
+  const replaceShortlist = useCompareStore((state) => state.replaceShortlist);
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
+  const [rates, setRates] = useState<FDRate[]>([]);
 
   useEffect(() => {
     if (!userId) {
@@ -79,9 +81,34 @@ export default function ProfilePage() {
     };
   }, [userId]);
 
+  useEffect(() => {
+    if (!userId) return;
+
+    let active = true;
+
+    Promise.all([
+      fetch("/api/shortlist").then(
+        (response) => response.json() as Promise<{ bankIds?: string[] }>
+      ),
+      fetch("/api/fd-rates").then(
+        (response) => response.json() as Promise<{ rates?: FDRate[] }>
+      ),
+    ])
+      .then(([shortlistPayload, ratesPayload]) => {
+        if (!active) return;
+        replaceShortlist(shortlistPayload.bankIds ?? []);
+        setRates(ratesPayload.rates ?? []);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, [replaceShortlist, userId]);
+
   const shortlistedRates = useMemo(
-    () => FD_RATES.filter((rate) => shortlist.includes(rate.id)),
-    [shortlist]
+    () => rates.filter((rate) => shortlist.includes(rate.id)),
+    [rates, shortlist]
   );
 
   return (

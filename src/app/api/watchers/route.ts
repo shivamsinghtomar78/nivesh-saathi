@@ -2,7 +2,19 @@ import { z } from "zod";
 
 import { jsonSuccess, handleRouteError } from "@/lib/server/api";
 import { requireCsrfProtection, requireFirebaseSession } from "@/lib/server/auth";
+import {
+  canFallbackToFirebase,
+  readsFirebaseFirst,
+  readsMongoFirst,
+  writesFirebase,
+} from "@/lib/server/datastore-mode";
 import { getFirebaseAdminDb } from "@/lib/server/firebase-admin";
+import {
+  deleteMongoWatcher,
+  listMongoWatchers,
+  saveMongoWatcher,
+} from "@/lib/server/mongo-repositories";
+import { logServerInfo } from "@/lib/server/telemetry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,17 +28,40 @@ export async function GET(request: Request) {
     const auth = await requireFirebaseSession(request);
     if (!auth.ok) return auth.response;
 
-    const db = getFirebaseAdminDb();
-    if (!db) return jsonSuccess({ watchers: [] as string[] });
+    if (readsMongoFirst()) {
+      const mongoWatchers = await listMongoWatchers(auth.session.uid);
+      if (mongoWatchers && mongoWatchers.length > 0) {
+        return jsonSuccess({ watchers: mongoWatchers });
+      }
+
+      if (!canFallbackToFirebase()) {
+        return jsonSuccess({ watchers: mongoWatchers ?? [] });
+      }
+    }
+
+    const db = canFallbackToFirebase() ? getFirebaseAdminDb() : null;
+    if (!db) {
+      const mongoWatchers = await listMongoWatchers(auth.session.uid);
+      return jsonSuccess({ watchers: mongoWatchers ?? [] });
+    }
 
     const snapshot = await db
       .collection("watchers")
       .where("userId", "==", auth.session.uid)
       .get();
 
-    return jsonSuccess({
-      watchers: snapshot.docs.map((doc) => doc.data().bankId as string),
-    });
+    const firebaseWatchers = snapshot.docs.map((doc) => doc.data().bankId as string);
+    if (firebaseWatchers.length > 0 || readsFirebaseFirst()) {
+      return jsonSuccess({ watchers: firebaseWatchers });
+    }
+
+    const mongoWatchers = await listMongoWatchers(auth.session.uid);
+    if (mongoWatchers && mongoWatchers.length > 0) {
+      logServerInfo("watchers_read_from_mongo_after_firebase_empty", {
+        userId: auth.session.uid,
+      });
+    }
+    return jsonSuccess({ watchers: mongoWatchers ?? firebaseWatchers });
   } catch (error) {
     return handleRouteError(error, "Failed to load rate watchers");
   }
@@ -41,7 +76,12 @@ export async function POST(request: Request) {
     if (!auth.ok) return auth.response;
 
     const data = watcherSchema.parse(await request.json());
-    const db = getFirebaseAdminDb();
+    await saveMongoWatcher({
+      userId: auth.session.uid,
+      bankId: data.bankId,
+    }).catch(() => false);
+
+    const db = writesFirebase() ? getFirebaseAdminDb() : null;
     if (db) {
       await db.collection("watchers").doc(`${auth.session.uid}_${data.bankId}`).set(
         {
@@ -72,7 +112,9 @@ export async function DELETE(request: Request) {
     if (!auth.ok) return auth.response;
 
     const data = watcherSchema.parse(await request.json());
-    const db = getFirebaseAdminDb();
+    await deleteMongoWatcher(auth.session.uid, data.bankId).catch(() => false);
+
+    const db = writesFirebase() ? getFirebaseAdminDb() : null;
     if (db) {
       await db.collection("watchers").doc(`${auth.session.uid}_${data.bankId}`).delete();
     }

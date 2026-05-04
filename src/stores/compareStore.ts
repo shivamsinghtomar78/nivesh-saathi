@@ -20,6 +20,7 @@ export type CompareSnapshot = {
 type CompareStore = {
   shortlist: string[];
   lastCompareSnapshot: CompareSnapshot | null;
+  replaceShortlist: (bankIds: string[]) => void;
   toggleShortlist: (bankId: string) => void;
   setLastCompareSnapshot: (snapshot: CompareSnapshot) => void;
   clearShortlist: () => void;
@@ -30,6 +31,8 @@ export const useCompareStore = create<CompareStore>()(
     (set, get) => ({
       shortlist: [],
       lastCompareSnapshot: null,
+      replaceShortlist: (bankIds) =>
+        set({ shortlist: Array.from(new Set(bankIds)) }),
       toggleShortlist: (bankId) => {
         const shortlist = get().shortlist;
         set({

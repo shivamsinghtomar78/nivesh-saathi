@@ -1,7 +1,9 @@
 import { jsonSuccess, handleRouteError } from "@/lib/server/api";
 import { requireCsrfProtection, requireFirebaseSession } from "@/lib/server/auth";
 import { z } from "zod";
+import { writesFirebase } from "@/lib/server/datastore-mode";
 import { getFirebaseAdminDb } from "@/lib/server/firebase-admin";
+import { saveMongoMessageFeedback } from "@/lib/server/mongo-repositories";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +12,7 @@ export const dynamic = "force-dynamic";
  * F-16: Message Feedback API
  * 
  * POST /api/feedback
- * Stores user reaction (👍/👎) and optional reason to Firestore
+ * Stores user reaction and optional reason to MongoDB
  * for future model quality analysis and improvement.
  */
 
@@ -32,7 +34,15 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = feedbackSchema.parse(body);
 
-    const db = getFirebaseAdminDb();
+    await saveMongoMessageFeedback({
+      userId: auth.session.uid,
+      messageId: data.messageId,
+      threadId: data.threadId ?? null,
+      reaction: data.reaction,
+      reason: data.reason ?? null,
+    }).catch(() => false);
+
+    const db = writesFirebase() ? getFirebaseAdminDb() : null;
     if (db) {
       await db.collection("message_feedback").add({
         userId: auth.session.uid,

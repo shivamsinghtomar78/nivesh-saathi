@@ -13,11 +13,11 @@ import {
   type PortfolioSplit,
   type PortfolioSplitAllocation,
 } from "@/lib/server/advisor-schemas";
-import { cacheGet, cacheSet } from "@/lib/server/cache";
 import { resolveGlossary } from "@/lib/server/jargon-catalog";
-
-const ONE_HOUR_IN_SECONDS = 60 * 60;
-const RATES_CACHE_VERSION = "v2";
+import {
+  getMongoFdRateById,
+  listMongoFdRates,
+} from "@/lib/server/mongo-repositories";
 
 const LOCALIZED_COPY: Record<
   AppLanguage,
@@ -78,19 +78,6 @@ const BADGE_LABELS: Record<NonNullable<FDRate["badge"]>, string> = {
   "safe-choice": "Safe Choice",
 };
 
-function buildRatesCacheKey(query: FDRatesQuery) {
-  return [
-    "fd-rates",
-    RATES_CACHE_VERSION,
-    query.bankId ?? "all-banks",
-    query.tenorMonths ?? "all",
-    query.amount ?? "all",
-    query.bankType ?? "all",
-    query.seniorCitizen ? "senior" : "regular",
-    query.limit ?? "all",
-  ].join(":");
-}
-
 function withRuntimeRateDefaults(rate: FDRate): FDRate {
   return {
     ...rate,
@@ -107,14 +94,9 @@ export function getApplicableRate(rate: FDRate, seniorCitizen?: boolean) {
 }
 
 export async function getFDRates(query: FDRatesQuery = {}) {
-  const cacheKey = buildRatesCacheKey(query);
-  const cached = await cacheGet<FDRate[]>(cacheKey);
-  if (cached) {
-    return cached;
-  }
-
-  const adminRates = await cacheGet<FDRate[]>("admin:fd-rates");
-  let filtered = adminRates ? [...adminRates] : [...FD_RATES];
+  const mongoRates = await listMongoFdRates().catch(() => null);
+  let filtered =
+    mongoRates && mongoRates.length > 0 ? [...mongoRates] : [...FD_RATES];
 
   if (query.bankId) {
     filtered = filtered.filter((rate) => rate.id === query.bankId);
@@ -174,15 +156,12 @@ export async function getFDRates(query: FDRatesQuery = {}) {
   }
 
   const normalized = filtered.map(withRuntimeRateDefaults);
-
-  await cacheSet(cacheKey, normalized, ONE_HOUR_IN_SECONDS);
   return normalized;
 }
 
 export async function getBankById(bankId: string) {
-  const adminRates = await cacheGet<FDRate[]>("admin:fd-rates");
-  const dataset = adminRates ? adminRates : FD_RATES;
-  return dataset.find((rate) => rate.id === bankId) ?? null;
+  const mongoRate = await getMongoFdRateById(bankId).catch(() => null);
+  return mongoRate ?? FD_RATES.find((rate) => rate.id === bankId) ?? null;
 }
 
 export function formatTenorLabel(months: number, language: AppLanguage) {

@@ -13,7 +13,8 @@ Voice-first, multilingual Fixed Deposit advisor for Hindi, Tamil, Bengali, and E
 - **TypeScript & Tailwind CSS**
 - **Framer Motion**: Smooth entrance and layout animations across all screens.
 - **Three.js (@react-three/fiber, @react-three/drei)**: Lightweight 3D interactive hero background.
-- **Firebase**: Client SDK and Firebase Admin hooks for Auth & Data.
+- **Firebase**: Client SDK and Firebase Admin hooks for Auth plus FCM notifications.
+- **MongoDB**: Primary application database for users, FD data, chat history, shortlists, calculations, feedback, and shared responses.
 - **LangGraph advisor flow**: Powered by Gemini 2.5 Flash-Lite primary model.
 - **OpenRouter & Deepgram**: Fallbacks for LLM and speech transcription.
 - **Zustand**: Persisted client state management.
@@ -24,7 +25,7 @@ Voice-first, multilingual Fixed Deposit advisor for Hindi, Tamil, Bengali, and E
 - **Framer Motion Interactivity**: Staggered fades, layout animations, and fluid transitions across the AppShell and content modules.
 - **3D Hero Integration**: Interactive glass-like Torus Knot on the landing page for a state-of-the-art feel.
 - **Firebase Authentication**: Email/Password, Phone, and Google auth UI with session-cookie exchange route.
-- **Persisted Context**: Shared shortlist and chat state that seamlessly transitions between text and voice bots.
+- **Persisted Context**: Mongo-backed shortlist, profile memory, and chat state that seamlessly transition between text and voice bots.
 - **LangGraph Advisor**: Prompt-injection guard, terminology explanation, and intelligent rate comparisons.
 - **PWA Ready**: Manifest, service worker registration, and mobile-optimized layouts.
 - **Lucide Icons**: Unified icon system for consistent visual language.
@@ -79,7 +80,8 @@ The app runs at [http://localhost:3000](http://localhost:3000).
 | `FIREBASE_ADMIN_PROJECT_ID` | Required for server session cookies and Firestore writes. |
 | `FIREBASE_ADMIN_CLIENT_EMAIL` | Firebase Admin service account email. |
 | `FIREBASE_ADMIN_PRIVATE_KEY` | Firebase Admin private key with escaped newlines. |
-| `NEXT_PUBLIC_FIREBASE_DATABASE_URL` | Optional Realtime Database URL. |
+| `MONGODB_URI` | MongoDB Atlas/local connection string. The URI path selects the database, defaulting to `nivesh_saathi`. |
+| `DATASTORE_MODE` | Migration phase: `dual_firebase_primary`, `mongo_primary_fallback`, or `mongo_only`. |
 | `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | Optional Firebase Analytics id. |
 
 ## API Routes
@@ -89,10 +91,23 @@ The app runs at [http://localhost:3000](http://localhost:3000).
 | `POST /api/chat` | LangGraph FD advisor response with prompt guard and rate limiting. |
 | `GET /api/fd-rates` | Filtered FD rates from seeded data and cache. |
 | `POST /api/maturity` | FD maturity calculator. |
+| `GET /api/calculations` | Recent Mongo-backed maturity calculation history. |
+| `GET /api/shortlist` / `PUT /api/shortlist` | Cross-device Mongo-backed shortlist sync. |
 | `POST /api/voice/transcribe` | Deepgram-backed speech transcription fallback with rate limiting. |
 | `GET /api/jargon/[termId]` | Localized finance term explanation. |
 | `POST /api/auth/session` | Exchanges Firebase id token for an HTTP-only session cookie. |
 | `DELETE /api/auth/session` | Clears the session cookie. |
+
+## MongoDB Migration Commands
+
+```powershell
+npm.cmd run db:seed:rates
+npm.cmd run db:migrate:firebase-to-mongo
+npm.cmd run db:migrate:firebase-to-mongo -- --apply
+npm.cmd run db:validate:migration
+```
+
+The migration command is a dry run unless `-- --apply` is provided. Use `dual_firebase_primary` for the first deploy, switch to `mongo_primary_fallback` after migration validation, and move to `mongo_only` after monitoring confirms MongoDB reads are healthy.
 
 ## Vercel Deployment Notes
 

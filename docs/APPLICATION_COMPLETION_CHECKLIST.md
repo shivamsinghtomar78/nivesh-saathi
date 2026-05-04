@@ -32,8 +32,8 @@ This file tracks the remaining APIs, credentials, and product work needed to tur
 | OpenRouter fallback | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL=openrouter/free` | OpenRouter free router | Keeps chat working if Gemini is unavailable or rate limited. |
 | Deepgram STT | `DEEPGRAM_API_KEY` | Deepgram free allowance | Required if voice fallback should work beyond browser-native speech recognition. |
 | Firebase Auth | Enable Phone provider, add app domain, configure reCAPTCHA | Firebase Auth free quota | Required for real phone OTP login. |
-| Firebase Admin | `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY` | Firebase no-cost quota | Needed for secure session cookies and server-side Firestore writes. |
-| Firestore | Create collections and deploy rules | Firebase free quota | Persists users and chat sessions beyond local memory. |
+| Firebase Admin | `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY` | Firebase no-cost quota | Needed for secure session cookies and FCM notification sending. |
+| MongoDB | `MONGODB_URI`, `DATASTORE_MODE` | MongoDB Atlas free tier | Primary store for users, rates, chat history, shortlists, calculations, feedback, and shared responses. |
 | Upstash Redis | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Upstash free tier | Shared FD rate cache and shared production rate limiting on Vercel. |
 | Vercel env vars | Add all production env vars in Vercel dashboard | Vercel Hobby | Local `.env.local` does not deploy automatically. |
 | Live rate source | RBI/bank source, CSV upload, or admin updater | Free if manually curated | Seeded rates are demo data; production needs freshness policy. |

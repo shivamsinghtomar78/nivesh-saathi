@@ -16,6 +16,9 @@ export const env = createEnv({
     FIREBASE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
     FIREBASE_VAPID_KEY: z.string().min(1).optional(),
     MONGODB_URI: z.string().url().optional(),
+    DATASTORE_MODE: z
+      .enum(["dual_firebase_primary", "mongo_primary_fallback", "mongo_only"])
+      .default("dual_firebase_primary"),
     FD_ALERT_CRON_SECRET: z.string().min(1).optional(),
     CRON_SECRET: z.string().min(1).optional(),
   },
@@ -23,7 +26,6 @@ export const env = createEnv({
     NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
     NEXT_PUBLIC_FIREBASE_API_KEY: z.string().min(1),
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string().min(1),
-    NEXT_PUBLIC_FIREBASE_DATABASE_URL: z.string().url().optional(),
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string().min(1),
     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: z.string().min(1),
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: z.string().min(1),
@@ -35,8 +37,6 @@ export const env = createEnv({
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:
       process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    NEXT_PUBLIC_FIREBASE_DATABASE_URL:
-      process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:
       process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,

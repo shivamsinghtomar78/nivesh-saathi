@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Star, Filter, Calculator, Landmark, MessageCircleMore, X, ChevronUp, Bell, BellRing, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
@@ -47,8 +47,9 @@ const itemVariants: Variants = {
 export default function CompareScreen() {
   const user = useAuthStore((state) => state.user);
   const shortlist = useCompareStore((state) => state.shortlist);
+  const lastCompareSnapshot = useCompareStore((state) => state.lastCompareSnapshot);
+  const replaceShortlist = useCompareStore((state) => state.replaceShortlist);
   const setLastCompareSnapshot = useCompareStore((state) => state.setLastCompareSnapshot);
-  const toggleShortlist = useCompareStore((state) => state.toggleShortlist);
   const [amount, setAmount] = useState(() => getInitialQueryNumber("amount", 100000));
   const [tenorMonths, setTenorMonths] = useState(
     () => {
@@ -63,6 +64,29 @@ export default function CompareScreen() {
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [watchedBankIds, setWatchedBankIds] = useState<string[]>([]);
   const watchedBankSet = useMemo(() => new Set(watchedBankIds), [watchedBankIds]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const controller = new AbortController();
+    fetch("/api/shortlist", { signal: controller.signal })
+      .then(
+        (response) =>
+          response.json() as Promise<{
+            bankIds?: string[];
+            lastCompareSnapshot?: ReturnType<typeof useCompareStore.getState>["lastCompareSnapshot"];
+          }>
+      )
+      .then((payload) => {
+        replaceShortlist(payload.bankIds ?? []);
+        if (payload.lastCompareSnapshot) {
+          setLastCompareSnapshot(payload.lastCompareSnapshot);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => controller.abort();
+  }, [replaceShortlist, setLastCompareSnapshot, user]);
 
   useEffect(() => {
     if (!user) {
@@ -184,6 +208,30 @@ export default function CompareScreen() {
       );
     });
   };
+
+  const toggleShortlistAndSync = useCallback(
+    async (bankId: string) => {
+      if (!user) return;
+
+      const nextShortlist = shortlist.includes(bankId)
+        ? shortlist.filter((id) => id !== bankId)
+        : [...shortlist, bankId];
+
+      replaceShortlist(nextShortlist);
+
+      await fetch("/api/shortlist", {
+        method: "PUT",
+        headers: withCsrfHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          bankIds: nextShortlist,
+          lastCompareSnapshot,
+        }),
+      }).catch(() => {
+        replaceShortlist(shortlist);
+      });
+    },
+    [lastCompareSnapshot, replaceShortlist, shortlist, user]
+  );
 
   return (
     <AppShell
@@ -386,7 +434,7 @@ export default function CompareScreen() {
                               <div className="flex flex-col gap-2 mt-auto">
                                 <Button
                                   variant={shortlisted ? "secondary" : "primary"}
-                                  onClick={() => toggleShortlist(rate.id)}
+                                  onClick={() => void toggleShortlistAndSync(rate.id)}
                                   className={cn("w-full shadow-sm", !shortlisted && "bg-surface-dark text-on-dark hover:bg-surface-dark-hover")}
                                 >
                                   <Star className={cn("mr-2 h-4 w-4", shortlisted ? "fill-current" : "")} />
@@ -476,7 +524,7 @@ export default function CompareScreen() {
                               </p>
                               <button
                                 type="button"
-                                onClick={() => toggleShortlist(rate.id)}
+                                onClick={() => void toggleShortlistAndSync(rate.id)}
                                 className="text-xs font-medium text-danger hover:text-danger/70 transition"
                               >
                                 Remove
@@ -587,7 +635,7 @@ export default function CompareScreen() {
                               <p className="font-semibold text-text-strong">{rate.bankName}</p>
                               <button
                                 type="button"
-                                onClick={() => toggleShortlist(rate.id)}
+                                onClick={() => void toggleShortlistAndSync(rate.id)}
                                 className="text-xs font-medium text-danger hover:text-danger/70 transition"
                               >
                                 Remove

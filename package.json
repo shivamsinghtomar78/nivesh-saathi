@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:seed:rates": "node --experimental-strip-types scripts/seed-fd-rates.ts",
+    "db:migrate:firebase-to-mongo": "node --experimental-strip-types scripts/migrate-firebase-to-mongo.ts",
+    "db:validate:migration": "node --experimental-strip-types scripts/validate-migration.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
