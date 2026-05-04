@@ -41,9 +41,9 @@ export default function LandingScreen() {
     <main className="dark-context min-h-screen overflow-x-hidden bg-app text-text">
       <PublicHeader />
 
-      <section className="safe-grid relative border-b border-outline bg-app pt-20">
+      <section className="safe-grid relative border-b border-outline bg-app pt-16 tablet:pt-20">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_74%_18%,rgba(215,182,109,0.16),transparent_28rem),radial-gradient(circle_at_20%_24%,rgba(255,255,255,0.05),transparent_22rem),linear-gradient(180deg,rgba(255,255,255,0.045),transparent_44%)]" />
-        <div className="relative mx-auto grid min-h-[calc(100svh-7rem)] max-w-7xl items-center gap-12 px-4 py-12 md:px-6 lg:grid-cols-[minmax(0,0.96fr)_minmax(360px,0.84fr)] lg:px-8">
+        <div className="relative mx-auto grid min-h-[calc(100svh-4rem)] max-w-7xl items-center gap-8 px-3 py-8 tablet:px-5 tablet:py-10 laptop:grid-cols-[minmax(0,0.96fr)_minmax(320px,0.84fr)] laptop:gap-12 laptop:px-8 laptop:py-12">
           <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.09 } } }}>
             <motion.div variants={fadeUp} className="mb-5 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent-soft px-3 py-2 text-xs font-semibold text-accent shadow-[0_16px_42px_rgba(0,0,0,0.24)]">
               <span className="font-heading text-base text-accent">Private FD advisor</span>
@@ -54,20 +54,20 @@ export default function LandingScreen() {
               Nivesh Saathi
             </motion.h1>
 
-            <motion.p variants={fadeUp} className="mt-5 max-w-2xl text-lg leading-8 text-text md:text-xl">
+            <motion.p variants={fadeUp} className="mt-5 max-w-2xl text-base leading-7 text-text tablet:text-lg tablet:leading-8 laptop:text-xl">
               Compare fixed deposits, calculate maturity, and speak with Saathi in one calm, secure wealth workspace.
             </motion.p>
 
-            <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-3 tablet:flex-row">
               <Link href={ROUTES.LOGIN}>
-                <Button size="lg" className="min-h-14 px-7 shadow-[0_22px_54px_rgba(215,182,109,0.22)]">
+                <Button size="lg" className="min-h-14 w-full px-7 shadow-[0_22px_54px_rgba(215,182,109,0.22)] tablet:w-auto">
                   Sign in securely
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="mt-9 grid gap-3 sm:grid-cols-2">
+            <motion.div variants={fadeUp} className="mt-9 grid gap-3 tablet:grid-cols-2">
               {trustItems.map((item, index) => {
                 const Icon = item.icon;
                 return (
@@ -92,9 +92,9 @@ export default function LandingScreen() {
             transition={{ delay: 0.24, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="relative min-w-0"
           >
-            <div className="glass-panel relative mx-auto w-full max-w-xl rounded-[var(--radius-card)] p-3 sm:p-4">
-              <div className="rounded-[var(--radius-panel)] border border-outline bg-panel-strong p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] sm:p-5">
-                <div className="flex items-start justify-between gap-3 border-b border-outline pb-4">
+            <div className="glass-panel relative mx-auto w-full max-w-xl rounded-[var(--radius-card)] p-3 tablet:p-4">
+              <div className="rounded-[var(--radius-panel)] border border-outline bg-panel-strong p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] tablet:p-5">
+                <div className="flex flex-col gap-3 border-b border-outline pb-4 tablet:flex-row tablet:items-start tablet:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">Market snapshot</p>
                     <h2 className="mt-2 text-xl font-semibold text-text-strong">FD comparison board</h2>
@@ -115,7 +115,7 @@ export default function LandingScreen() {
                           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{card.label}</p>
                           <p className="mt-1 text-sm text-text">{card.meta}</p>
                         </div>
-                        <p className={`financial-value text-3xl font-semibold ${card.tone === "success" ? "text-success" : "text-highlight"}`}>
+                        <p className={`financial-value shrink-0 text-2xl font-semibold tablet:text-3xl ${card.tone === "success" ? "text-success" : "text-highlight"}`}>
                           {card.value}
                         </p>
                       </div>
@@ -123,7 +123,7 @@ export default function LandingScreen() {
                   ))}
                 </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                <div className="mt-4 grid grid-cols-3 gap-2 text-center tablet:gap-3">
                   {["Maturity", "Tenure", "Safety"].map((label) => (
                     <div key={label} className="rounded-[var(--radius-panel)] border border-outline bg-input-bg p-3">
                       <p className="text-xs text-text-muted">{label}</p>
@@ -137,9 +137,9 @@ export default function LandingScreen() {
         </div>
       </section>
 
-      <section className="bg-app py-16">
-        <div className="mx-auto max-w-7xl px-4 md:px-6 lg:px-8">
-          <div className="grid gap-4 md:grid-cols-4">
+      <section className="bg-app py-12 tablet:py-16">
+        <div className="mx-auto max-w-7xl px-3 tablet:px-5 laptop:px-8">
+          <div className="grid gap-4 tablet:grid-cols-2 laptop:grid-cols-4">
             {[
               { icon: BarChart3, title: "Compare rates", body: "Dense FD cards with rate, tenure, maturity, insurance, and deposit limits." },
               { icon: MessageCircleMore, title: "Ask Saathi", body: "Structured answers with recommendation, safety note, calculation, and next step." },

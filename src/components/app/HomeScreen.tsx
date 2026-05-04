@@ -88,8 +88,8 @@ export default function HomeScreen() {
       title="Welcome to Nivesh Saathi"
       description="Your personalized hub for comparing fixed deposits, chatting with our intelligent assistant, and securing the best rates."
       actions={user ? (
-        <Link href={ROUTES.CHAT}>
-          <Button variant="secondary" className="rounded-full shadow-sm">
+        <Link href={ROUTES.CHAT} className="w-full tablet:w-auto">
+          <Button variant="secondary" className="w-full rounded-full shadow-sm tablet:w-auto">
             Ask Saathi
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
@@ -104,25 +104,25 @@ export default function HomeScreen() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid gap-6 xl:grid-cols-[1fr_340px]"
+          className="grid gap-5 laptop:grid-cols-[minmax(0,1fr)_340px] laptop:gap-6"
         >
           <div className="grid gap-6">
             <motion.div variants={itemVariants}>
-              <Card className="p-6 border-outline bg-panel-glass shadow-sm backdrop-blur-sm overflow-hidden relative">
+              <Card className="relative overflow-hidden border-outline bg-panel-glass p-4 shadow-sm backdrop-blur-sm tablet:p-6">
                 <CardHeader className="relative z-10 pb-4">
                   <div className="flex items-center gap-3 mb-2">
                     <Badge variant="accent" className="bg-accent/10 text-accent hover:bg-accent/20 border-transparent shadow-none">
                       Active Session
                     </Badge>
                   </div>
-                  <CardTitle className="text-2xl">
+                  <CardTitle className="text-[clamp(1.35rem,5vw,1.55rem)]">
                     Hello, {user?.displayName || user?.email?.split('@')[0] || "Investor"}
                   </CardTitle>
                   <CardDescription className="text-text-muted mt-1">
                     Here&apos;s a quick summary of your current session.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="relative z-10 grid gap-4 sm:grid-cols-4">
+                <CardContent className="relative z-10 grid gap-3 tablet:grid-cols-2 laptop:grid-cols-4 laptop:gap-4">
                   <div className="rounded-[var(--radius-panel)] border border-outline bg-panel-strong/70 p-5 transition-shadow hover:shadow-soft">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                       Saved Shortlist
@@ -159,7 +159,7 @@ export default function HomeScreen() {
               </Card>
             </motion.div>
 
-            <motion.div variants={containerVariants} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <motion.div variants={containerVariants} className="grid gap-4 tablet:grid-cols-2 laptop:grid-cols-4">
               {quickActions.map((action) => {
                 const Icon = action.icon;
                 return (
@@ -182,7 +182,7 @@ export default function HomeScreen() {
           </div>
 
           <motion.div variants={itemVariants} className="grid gap-4">
-            <Card className="p-6 border-outline bg-panel shadow-sm">
+            <Card className="border-outline bg-panel p-4 shadow-sm tablet:p-6">
               <CardHeader className="pb-5">
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="w-4 h-4 text-accent" />
@@ -202,9 +202,9 @@ export default function HomeScreen() {
                     transition={{ delay: 0.3 + index * 0.1 }}
                     className="group rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4 transition-colors hover:bg-panel hover:border-accent/30"
                   >
-                    <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="mb-3 flex min-w-0 items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-text-strong">
+                        <p className="break-words font-semibold text-text-strong">
                           {rate.bankName}
                         </p>
                         <p className="text-xs text-text-muted capitalize mt-0.5">

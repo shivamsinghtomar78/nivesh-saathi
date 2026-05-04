@@ -102,28 +102,28 @@ export default function ProfilePage() {
         body="Your profile shows the account behind the protected journey and the data that stays with it."
       >
         <div className="grid gap-6">
-          <Card className="p-6 shadow-soft">
+          <Card className="p-4 shadow-soft tablet:p-6">
             <CardHeader>
-              <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-                <div className="flex items-start gap-4">
+              <div className="flex flex-col gap-5 laptop:flex-row laptop:items-start laptop:justify-between">
+                <div className="flex min-w-0 items-start gap-4">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-dark text-on-dark">
                     <UserRound className="h-7 w-7" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <Badge variant="accent" className="w-fit">
                       Signed-in user
                     </Badge>
-                    <CardTitle className="mt-3">
+                    <CardTitle className="mt-3 break-words">
                       {user?.displayName || profile?.user?.name || "Nivesh Saathi user"}
                     </CardTitle>
-                    <CardDescription className="mt-2">
+                    <CardDescription className="mt-2 break-words">
                       {user?.email || user?.phoneNumber || profile?.user?.email || "Signed in"}
                     </CardDescription>
                   </div>
                 </div>
 
                 <Link href={ROUTES.CHAT}>
-                  <Button size="lg" variant="secondary">
+                  <Button size="lg" variant="secondary" className="w-full laptop:w-auto">
                     <MessageCircleMore className="h-4 w-4" />
                     Open text bot
                   </Button>
@@ -132,7 +132,7 @@ export default function ProfilePage() {
             </CardHeader>
           </Card>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 tablet:grid-cols-3">
             <Card className="p-5 shadow-soft">
               <CardContent className="!mt-0">
                 <ShieldCheck className="h-5 w-5 text-text-strong" />
@@ -170,8 +170,8 @@ export default function ProfilePage() {
             </Card>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-            <Card className="p-6 shadow-soft">
+          <div className="grid gap-6 laptop:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <Card className="p-4 shadow-soft tablet:p-6">
               <CardHeader>
                 <Badge variant="outline" className="w-fit">
                   Database details
@@ -203,10 +203,10 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
 
-            <Card className="p-6 shadow-soft">
+            <Card className="p-4 shadow-soft tablet:p-6">
               <CardHeader>
-                <div className="flex items-center justify-between gap-3">
-                  <div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <Badge variant="success" className="w-fit">
                       Stored chats
                     </Badge>
@@ -225,11 +225,11 @@ export default function ProfilePage() {
                       key={chat.threadId}
                       className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4"
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-mono text-xs text-text-muted">
+                      <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:justify-between tablet:gap-3">
+                        <p className="break-all font-mono text-xs text-text-muted">
                           {chat.threadId}
                         </p>
-                        <span className="rounded-full bg-input-bg px-3 py-1 text-xs font-semibold text-text-strong">
+                        <span className="w-fit shrink-0 rounded-full bg-input-bg px-3 py-1 text-xs font-semibold text-text-strong">
                           {chat.messageCount} messages
                         </span>
                       </div>
@@ -250,14 +250,14 @@ export default function ProfilePage() {
             </Card>
           </div>
 
-          <Card className="p-6 shadow-soft">
+          <Card className="p-4 shadow-soft tablet:p-6">
             <CardHeader>
               <Badge variant="outline" className="w-fit">
                 Shortlist
               </Badge>
               <CardTitle>Current comparison context</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <CardContent className="grid gap-3 tablet:grid-cols-2 laptop:grid-cols-3">
               {shortlistedRates.length > 0 ? (
                 shortlistedRates.map((rate) => (
                   <div

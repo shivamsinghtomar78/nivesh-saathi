@@ -20,11 +20,11 @@ export function VoiceSummaryCard({ summary, topRates, onClose }: VoiceSummaryCar
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 backdrop-blur-sm tablet:p-4"
       onClick={onClose}
     >
       <Card 
-      className="w-full max-w-md overflow-hidden border-accent bg-panel shadow-[var(--shadow-card-hover)]"
+      className="max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-hidden border-accent bg-panel shadow-[var(--shadow-card-hover)]"
         onClick={(e) => e.stopPropagation()}
       >
         <CardHeader className="bg-surface-dark pb-6 text-center">
@@ -39,7 +39,7 @@ export function VoiceSummaryCard({ summary, topRates, onClose }: VoiceSummaryCar
           <CardTitle className="text-xl text-on-dark">Session Summary</CardTitle>
         </CardHeader>
         
-        <CardContent className="pt-6 space-y-6">
+        <CardContent className="custom-scrollbar max-h-[55dvh] space-y-6 overflow-y-auto pt-6">
           <p className="text-text-strong text-sm leading-relaxed text-center">
             {summary || "Here is a quick recap of what we just discussed."}
           </p>
@@ -54,10 +54,10 @@ export function VoiceSummaryCard({ summary, topRates, onClose }: VoiceSummaryCar
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 + (i * 0.1) }}
-                    className="flex justify-between items-center p-3 rounded-lg bg-input-bg border border-outline"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-outline bg-input-bg p-3"
                   >
-                    <span className="font-medium text-text-strong">{rate.bankName}</span>
-                    <span className="font-bold text-highlight">{rate.rate}</span>
+                    <span className="min-w-0 break-words font-medium text-text-strong">{rate.bankName}</span>
+                    <span className="shrink-0 font-bold text-highlight">{rate.rate}</span>
                   </motion.div>
                 ))}
               </div>
@@ -65,11 +65,11 @@ export function VoiceSummaryCard({ summary, topRates, onClose }: VoiceSummaryCar
           )}
         </CardContent>
 
-        <CardFooter className="flex gap-3 pt-2 pb-6 px-6">
-          <Button variant="outline" className="flex-1" onClick={onClose}>
+        <CardFooter className="flex flex-col gap-3 px-4 pb-5 pt-2 tablet:flex-row tablet:px-6 tablet:pb-6">
+          <Button variant="outline" className="w-full tablet:flex-1" onClick={onClose}>
             Close
           </Button>
-          <Link href={ROUTES.COMPARE} className="flex-1">
+          <Link href={ROUTES.COMPARE} className="w-full tablet:flex-1">
           <Button className="w-full">
               Compare Rates <ArrowRight className="w-4 h-4 ml-2" />
             </Button>

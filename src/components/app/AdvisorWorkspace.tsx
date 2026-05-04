@@ -552,16 +552,16 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
             className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_50%_0%,rgba(215,182,109,0.07),transparent_34rem)]"
             aria-hidden="true"
           />
-          <div className="relative flex h-full min-h-0">
+          <div className="relative flex h-full min-h-0 min-w-0">
             <aside
               aria-hidden="true"
-              className="hidden w-0 shrink-0 border-r border-[#1F1F1F]/70 lg:block"
+              className="hidden w-0 shrink-0 border-r border-[#1F1F1F]/70 laptop:block"
             />
             <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
               <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
-                <div className="mx-auto flex min-h-full w-full max-w-[860px] flex-col px-4 pb-8 pt-7 sm:px-6 lg:px-8">
-                  <header className="sticky top-0 z-20 -mx-4 mb-7 flex flex-wrap items-center justify-between gap-4 bg-[#0A0A0A]/95 px-4 pb-4 pt-3 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-                    <div className="flex min-w-0 items-center gap-3">
+                <div className="mx-auto flex min-h-full w-full max-w-[900px] flex-col px-3 pb-6 pt-4 tablet:px-5 tablet:pt-6 laptop:px-8">
+                  <header className="sticky top-0 z-20 -mx-3 mb-5 flex flex-wrap items-center justify-between gap-3 bg-[#0A0A0A]/95 px-3 pb-3 pt-3 backdrop-blur-xl tablet:-mx-5 tablet:mb-7 tablet:px-5 tablet:pb-4 laptop:-mx-8 laptop:px-8">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#1F1F1F] bg-[#121212] text-accent">
                         <Sparkles className="h-4 w-4" />
                       </div>
@@ -572,7 +572,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                           </h1>
                           <Badge
                             variant="outline"
-                            className="hidden rounded-full border-[#1F1F1F] bg-[#161616] px-2 py-0.5 text-[10px] uppercase tracking-wider text-[#9CA3AF] sm:inline-flex"
+                            className="hidden rounded-full border-[#1F1F1F] bg-[#161616] px-2 py-0.5 text-[10px] uppercase tracking-wider text-[#9CA3AF] tablet:inline-flex"
                           >
                             {LANGUAGE_LABELS[language]}
                           </Badge>
@@ -585,8 +585,8 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <div className="hidden min-h-9 items-center gap-2 rounded-full border border-[#1F1F1F] bg-[#121212]/80 px-3 py-1.5 text-xs font-medium text-[#9CA3AF] sm:flex">
+                    <div className="flex shrink-0 items-center gap-2">
+                      <div className="hidden min-h-9 items-center gap-2 rounded-full border border-[#1F1F1F] bg-[#121212]/80 px-3 py-1.5 text-xs font-medium text-[#9CA3AF] tablet:flex">
                         {voiceState === "listening" || voiceState === "speaking" ? (
                           <span className="wave-bars" aria-hidden="true">
                             <span />
@@ -657,15 +657,15 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                       initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                      className="mb-8 rounded-[24px] border border-[#1F1F1F] bg-[#121212]/78 px-4 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.26)] backdrop-blur-xl sm:px-5"
+                      className="mb-6 rounded-[20px] border border-[#1F1F1F] bg-[#121212]/78 px-3 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.26)] backdrop-blur-xl tablet:mb-8 tablet:rounded-[24px] tablet:px-5"
                     >
-                      <div className="grid items-center gap-5 md:grid-cols-[auto_1fr_auto]">
+                      <div className="grid items-center gap-5 laptop:grid-cols-[auto_1fr_auto]">
                         <button
                           type="button"
                           onClick={handleMicPress}
                           disabled={voice.isProcessing || isStreaming || isTyping}
                           className={cn(
-                            "relative mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-[#1F1F1F] bg-[#0F0F0F] text-accent transition hover:-translate-y-0.5 hover:border-accent/35 md:mx-0",
+                            "relative mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-[#1F1F1F] bg-[#0F0F0F] text-accent transition hover:-translate-y-0.5 hover:border-accent/35 laptop:mx-0",
                             voiceState === "listening" && "animate-mic-pulse border-accent/35 bg-accent text-on-accent",
                             voiceState === "speaking" && "border-accent/25 bg-[#1A1A1A] text-[#EAEAEA]",
                             voiceState === "error" && "text-danger"
@@ -681,7 +681,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                           )}
                         </button>
 
-                        <div className="min-w-0 text-center md:text-left">
+                        <div className="min-w-0 text-center laptop:text-left">
                           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
                             Voice advisor
                           </p>
@@ -704,10 +704,10 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                           ) : null}
                         </div>
 
-                        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
+                        <div className="grid gap-2 tablet:grid-cols-2 laptop:grid-cols-1">
                           <Button
                             variant="outline"
-                            className="border-[#1F1F1F] bg-[#161616] text-[#EAEAEA]"
+                            className="w-full border-[#1F1F1F] bg-[#161616] text-[#EAEAEA]"
                             onClick={cancelSpeech}
                             disabled={!isSpeaking}
                           >
@@ -716,7 +716,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                           </Button>
                           <Button
                             variant="outline"
-                            className="border-[#1F1F1F] bg-[#161616] text-[#EAEAEA]"
+                            className="w-full border-[#1F1F1F] bg-[#161616] text-[#EAEAEA]"
                             onClick={() => setActiveMode("chat")}
                           >
                             <MessageCircleMore className="h-4 w-4" />

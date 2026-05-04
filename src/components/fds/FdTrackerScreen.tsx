@@ -96,11 +96,11 @@ export default function FdTrackerScreen() {
       actions={
         user ? (
           <>
-            <Button variant="outline" onClick={() => void loadDashboard()}>
+            <Button variant="outline" onClick={() => void loadDashboard()} className="w-full tablet:w-auto">
               <RefreshCcw className="h-4 w-4" />
               Refresh
             </Button>
-            <Button onClick={() => setIsModalOpen(true)}>
+            <Button onClick={() => setIsModalOpen(true)} className="w-full tablet:w-auto">
               <Plus className="h-4 w-4" />
               Add FD
             </Button>
@@ -114,7 +114,7 @@ export default function FdTrackerScreen() {
       >
         {loading ? (
           <div className="grid gap-5">
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-4 tablet:grid-cols-2 laptop:grid-cols-5">
               {Array.from({ length: 5 }).map((_, index) => (
                 <Card key={index} className="h-32 animate-pulse bg-panel-glass p-5 shadow-sm">
                   <div className="h-full rounded-[var(--radius-panel)] bg-inner-panel/60" />
@@ -126,8 +126,8 @@ export default function FdTrackerScreen() {
             </Card>
           </div>
         ) : error ? (
-          <Card className="border-danger/25 bg-danger/10 p-6 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Card className="border-danger/25 bg-danger/10 p-4 shadow-sm tablet:p-6">
+            <div className="flex flex-col gap-4 tablet:flex-row tablet:items-center tablet:justify-between">
               <div className="flex items-start gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-danger/25 bg-danger/10 text-danger">
                   <AlertCircle className="h-5 w-5" />
@@ -139,7 +139,7 @@ export default function FdTrackerScreen() {
                   <p className="mt-1 text-sm text-text-muted">{error}</p>
                 </div>
               </div>
-              <Button variant="outline" onClick={() => void loadDashboard()}>
+              <Button variant="outline" onClick={() => void loadDashboard()} className="w-full tablet:w-auto">
                 Try again
               </Button>
             </div>

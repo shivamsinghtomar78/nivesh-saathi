@@ -70,7 +70,7 @@ export default function ConversationTimeline({
   const showInlineRichContent = richContent === "inline";
 
   return (
-    <div className="space-y-8 pb-2" role="log" aria-live="polite" aria-relevant="additions text">
+    <div className="space-y-6 pb-2 tablet:space-y-8" role="log" aria-live="polite" aria-relevant="additions text">
       <AnimatePresence initial={false}>
         {messages.map((message, messageIndex) => {
           const isUser = message.role === "user";
@@ -88,8 +88,8 @@ export default function ConversationTimeline({
                 className={cn(
                   "min-w-0",
                   isUser
-                    ? "ml-auto max-w-[82%] rounded-[22px] rounded-br-md border border-[#1F1F1F] bg-[#161616] px-4 py-3 text-[#EAEAEA] shadow-[0_14px_40px_rgba(0,0,0,0.22)] sm:max-w-[75%]"
-                    : "mr-auto w-full max-w-full text-[#EAEAEA]",
+                    ? "ml-auto max-w-[92%] rounded-[20px] rounded-br-md border border-[#1F1F1F] bg-[#161616] px-3.5 py-3 text-[#EAEAEA] shadow-[0_14px_40px_rgba(0,0,0,0.22)] tablet:max-w-[78%] tablet:rounded-[22px] tablet:px-4"
+                    : "mr-auto w-full max-w-full break-words text-[#EAEAEA]",
                   message.failed && "border-danger/35 bg-danger/10"
                 )}
               >
@@ -131,11 +131,11 @@ export default function ConversationTimeline({
 
                 <div className="mt-1">
                   {isUser ? (
-                    <p className="whitespace-pre-wrap text-[15px] leading-6 text-inherit">
+                    <p className="whitespace-pre-wrap break-words text-[15px] leading-6 text-inherit">
                       {message.content}
                     </p>
                   ) : (
-                    <div className="text-[15.5px] leading-7 text-[#EAEAEA] md:text-base [&_a]:text-accent [&_strong]:text-[#F4F4F5]">
+                    <div className="break-words text-[15.5px] leading-7 text-[#EAEAEA] tablet:text-base [&_a]:break-words [&_a]:text-accent [&_strong]:text-[#F4F4F5]">
                       <StructuredAnswer text={message.content} />
                     </div>
                   )}
@@ -155,7 +155,7 @@ export default function ConversationTimeline({
                 ) : null}
 
                 {showInlineRichContent && message.rateCards && message.rateCards.length > 0 ? (
-                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  <div className="mt-5 grid gap-3 tablet:grid-cols-2">
                     {message.rateCards.map((card) => (
                       <div
                         key={`${message.id}-${card.bankId ?? card.bankName}`}
@@ -227,7 +227,7 @@ export default function ConversationTimeline({
                 ) : null}
 
                 {message.actions && message.actions.length > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="custom-scrollbar -mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 tablet:mx-0 tablet:flex-wrap tablet:overflow-visible tablet:px-0 tablet:pb-0">
                     {message.actions.slice(0, 2).map((action) => {
                       const Icon = getActionIcon(action);
 
@@ -238,6 +238,7 @@ export default function ConversationTimeline({
                           onClick={() => onAction(action)}
                           className={cn(
                             "inline-flex min-h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition hover:-translate-y-px",
+                            "shrink-0",
                             action.type === "primary"
                               ? "border-accent/25 bg-accent-soft text-accent hover:bg-accent/15"
                               : "border-[#1F1F1F] bg-[#121212] text-[#9CA3AF] hover:border-accent/25 hover:text-[#EAEAEA]"
@@ -274,7 +275,7 @@ export default function ConversationTimeline({
                           action: undefined,
                         })
                       }
-                      className="rounded-full border border-accent/20 bg-accent/[0.055] px-3 py-1.5 text-left text-xs font-medium text-accent transition hover:border-accent/30 hover:bg-accent/10"
+                      className="max-w-full rounded-full border border-accent/20 bg-accent/[0.055] px-3 py-1.5 text-left text-xs font-medium text-accent transition hover:border-accent/30 hover:bg-accent/10"
                     >
                       {message.followUpPrompt}
                     </button>
@@ -282,7 +283,7 @@ export default function ConversationTimeline({
                 ) : null}
 
                 {!isUser && !message.failed && !isTyping ? (
-                  <div className="mt-3 flex items-center gap-2 opacity-70 transition sm:opacity-0 sm:group-hover/msg:opacity-100 sm:focus-within:opacity-100">
+                  <div className="mt-3 flex items-center gap-2 opacity-70 transition tablet:opacity-0 tablet:group-hover/msg:opacity-100 tablet:focus-within:opacity-100">
                     <MessageReactions
                       messageId={message.id}
                       onFeedback={(id, reaction, reason) => {

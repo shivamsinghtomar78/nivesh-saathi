@@ -76,7 +76,7 @@ export default function AppShell({
   return (
     <div
       className={cn(
-        "min-h-screen bg-app text-text",
+        "min-h-screen min-w-0 bg-app text-text",
         workspace && "h-[100svh] overflow-hidden bg-[#0A0A0A] text-[#EAEAEA]"
       )}
     >
@@ -90,8 +90,8 @@ export default function AppShell({
       >
         <div
           className={cn(
-            "mx-auto flex items-center gap-4 px-4 md:px-6 lg:px-8",
-            workspace ? "h-14 max-w-none" : "h-16 max-w-[95rem]"
+            "mx-auto flex min-w-0 items-center gap-2 px-3 tablet:px-5 laptop:px-8",
+            workspace ? "h-14 max-w-none" : "h-14 max-w-[95rem] laptop:h-16"
           )}
         >
           <Link href={ROUTES.HOME} className="flex min-w-0 items-center gap-3 group">
@@ -104,14 +104,14 @@ export default function AppShell({
             >
               <Landmark className="h-5 w-5 transition-colors" />
             </motion.div>
-            <div className="min-w-0 hidden sm:block">
+            <div className="hidden min-w-0 tablet:block">
               <p className="truncate text-lg font-semibold text-text-strong">
                 Nivesh Saathi
               </p>
             </div>
           </Link>
 
-          <nav className="hidden flex-1 items-center justify-center gap-1 xl:flex">
+          <nav className="hidden flex-1 items-center justify-center gap-1 laptop:flex">
             {NAV_ITEMS.map((item) => {
               const active =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -141,8 +141,8 @@ export default function AppShell({
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            <div className="hidden rounded-full border border-[#1F1F1F] bg-[#121212]/88 p-1 shadow-none md:flex">
+          <div className="ml-auto flex min-w-0 items-center gap-1.5 tablet:gap-3">
+            <div className="hidden rounded-full border border-[#1F1F1F] bg-[#121212]/88 p-1 shadow-none tablet:flex">
               {Object.entries(LANGUAGE_LABELS).map(([code, label]) => (
                 <button
                   key={code}
@@ -167,12 +167,12 @@ export default function AppShell({
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                   className={cn(
-                    "flex items-center gap-2 rounded-full border border-[#1F1F1F] bg-[#121212]/88 pl-3 pr-2 text-[#EAEAEA] transition hover:border-accent/35 hover:bg-[#161616]",
+                    "flex min-w-0 items-center gap-2 rounded-full border border-[#1F1F1F] bg-[#121212]/88 pl-2.5 pr-2 text-[#EAEAEA] transition hover:border-accent/35 hover:bg-[#161616] tablet:pl-3",
                     workspace ? "h-9" : "h-10"
                   )}
                 >
                   <UserRound className="h-4 w-4" />
-                  <span className="text-sm font-medium max-w-[80px] truncate hidden sm:inline-block">
+                  <span className="hidden max-w-[96px] truncate text-sm font-medium tablet:inline-block">
                     {user.displayName || 'Profile'}
                   </span>
                   <ChevronDown className={cn("h-4 w-4 text-text-muted transition-transform", isProfileOpen && "rotate-180")} />
@@ -216,7 +216,7 @@ export default function AppShell({
             ) : (
               <Link
                 href={ROUTES.LOGIN}
-                className="rounded-full border border-accent/20 bg-accent-soft px-5 py-2 text-sm font-semibold text-accent shadow-none transition hover:border-accent/35 hover:bg-accent/15"
+                className="inline-flex min-h-10 items-center rounded-full border border-accent/20 bg-accent-soft px-3 text-sm font-semibold text-accent shadow-none transition hover:border-accent/35 hover:bg-accent/15 tablet:px-5"
               >
                 {copy.nav.login}
               </Link>
@@ -229,7 +229,7 @@ export default function AppShell({
         className={cn(
           workspace
             ? "h-[100svh] overflow-hidden bg-[#0A0A0A] pb-0 pt-14"
-            : "min-h-screen pb-24 pt-24 xl:pb-12"
+            : "min-h-screen pb-24 pt-20 laptop:pb-12 laptop:pt-24"
         )}
       >
         <motion.div
@@ -240,12 +240,12 @@ export default function AppShell({
             "mx-auto flex flex-col",
             workspace
               ? "h-[calc(100svh-3.5rem)] w-full max-w-none gap-0 px-0 py-0"
-              : "max-w-[95rem] gap-8 px-4 py-6 md:px-6 lg:px-8"
+              : "w-full max-w-[95rem] gap-6 px-3 py-5 tablet:px-5 laptop:gap-8 laptop:px-8 laptop:py-6"
           )}
         >
           {!workspace ? (
-            <div className="flex flex-col gap-4 border-b border-outline pb-6 md:flex-row md:items-end md:justify-between">
-              <div className="max-w-2xl">
+            <div className="flex min-w-0 flex-col gap-4 border-b border-outline pb-5 tablet:pb-6 laptop:flex-row laptop:items-end laptop:justify-between">
+              <div className="min-w-0 max-w-2xl">
                 <motion.p
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
                   className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent"
@@ -254,30 +254,30 @@ export default function AppShell({
                 </motion.p>
                 <motion.h1
                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                  className="text-3xl font-semibold tracking-tight text-text-strong md:text-4xl"
+                  className="text-[clamp(1.8rem,6vw,2.45rem)] font-semibold leading-tight tracking-normal text-text-strong"
                 >
                   {title}
                 </motion.h1>
                 <motion.p
                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                  className="mt-3 text-base leading-relaxed text-text-muted"
+                  className="mt-3 max-w-2xl text-sm leading-6 text-text-muted tablet:text-base tablet:leading-relaxed"
                 >
                   {description}
                 </motion.p>
               </div>
-              {actions ? <div className="flex flex-wrap gap-3 mt-4 md:mt-0">{actions}</div> : null}
+              {actions ? <div className="mt-2 flex w-full flex-wrap gap-3 tablet:w-auto laptop:mt-0">{actions}</div> : null}
             </div>
           ) : null}
 
-          <div className={cn("relative", workspace && "h-full min-h-0 w-full")}>
+          <div className={cn("relative min-w-0", workspace && "h-full min-h-0 w-full")}>
             {children}
           </div>
         </motion.div>
       </main>
 
       {!workspace ? (
-        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/94 pb-[env(safe-area-inset-bottom)] shadow-[0_-16px_48px_rgba(0,0,0,0.42)] backdrop-blur-2xl xl:hidden">
-          <div className="mx-auto grid max-w-3xl grid-cols-5 gap-1 px-2 py-2">
+        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/94 pb-[env(safe-area-inset-bottom)] shadow-[0_-16px_48px_rgba(0,0,0,0.42)] backdrop-blur-2xl laptop:hidden">
+          <div className="mx-auto grid max-w-3xl grid-cols-5 gap-1 px-1.5 py-2">
             {NAV_ITEMS.map((item) => {
               const active =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -288,7 +288,7 @@ export default function AppShell({
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "relative rounded-[var(--radius-panel)] px-2 py-2.5 text-center text-[11px] font-medium transition flex flex-col items-center justify-center gap-1",
+                    "relative flex min-h-[52px] min-w-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-panel)] px-1.5 py-2 text-center text-[10px] font-medium transition tablet:text-[11px]",
                     active
                       ? "text-text-strong"
                       : "text-text-muted hover:bg-input-bg"
@@ -302,7 +302,7 @@ export default function AppShell({
                     />
                   )}
                   <Icon className={cn("h-5 w-5 mb-0.5", active && "text-accent")} />
-                  <span className={cn(active && "font-semibold")}>{copy.nav[item.key]}</span>
+                  <span className={cn("max-w-full truncate", active && "font-semibold")}>{copy.nav[item.key]}</span>
                 </Link>
               );
             })}

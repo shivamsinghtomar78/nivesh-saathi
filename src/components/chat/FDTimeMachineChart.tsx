@@ -57,9 +57,9 @@ export function FDTimeMachineChart() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className="w-full overflow-hidden bg-panel shadow-sm border-outline">
+      <Card className="w-full overflow-hidden border-outline bg-panel shadow-sm">
         <CardHeader className="pb-2">
-          <div className="flex justify-between items-start">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <CardTitle className="text-base flex items-center gap-2 text-text-strong">
                 <TrendingUp className="h-4 w-4 text-accent" />
@@ -73,13 +73,13 @@ export function FDTimeMachineChart() {
         </CardHeader>
         <CardContent className="pt-2">
           {/* Bank filter chips */}
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="custom-scrollbar -mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-1 tablet:mx-0 tablet:flex-wrap tablet:overflow-visible tablet:px-0 tablet:pb-0">
             {banks.map((bank) => (
               <button
                 key={bank}
                 type="button"
                 onClick={() => setActiveBank(activeBank === bank ? null : bank)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                className={`min-h-9 shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-all ${
                   activeBank === bank || !activeBank
                     ? "border-transparent text-[#080806] shadow-sm"
                     : "border-outline bg-inner-panel text-text-muted opacity-50"
@@ -95,7 +95,7 @@ export function FDTimeMachineChart() {
             ))}
           </div>
 
-          <div className="h-52 w-full">
+          <div className="h-56 w-full tablet:h-52">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={HISTORICAL_DATA} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(225,244,235,0.10)" />

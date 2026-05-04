@@ -155,7 +155,7 @@ export default function StructuredAnswer({
             key={`${block.type}-${index}`}
             className={cn(
               "text-sm leading-7 text-text-strong",
-              !compact && "md:text-base"
+              !compact && "tablet:text-base"
             )}
           >
             {parseInline(block.text)}

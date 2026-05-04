@@ -43,8 +43,8 @@ type FdChartsProps = {
 
 export function FdCharts({ dashboard }: FdChartsProps) {
   return (
-    <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-      <Card className="border-outline bg-panel-glass p-5 shadow-sm">
+    <div className="grid gap-5 laptop:grid-cols-[1.2fr_0.8fr]">
+      <Card className="border-outline bg-panel-glass p-4 shadow-sm tablet:p-5">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <ChartNoAxesCombined className="h-4 w-4 text-accent" />
@@ -55,7 +55,7 @@ export function FdCharts({ dashboard }: FdChartsProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="mt-0">
-          <div className="h-72 w-full">
+          <div className="h-64 w-full tablet:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={dashboard.growthSeries}
@@ -95,7 +95,7 @@ export function FdCharts({ dashboard }: FdChartsProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-outline bg-panel-glass p-5 shadow-sm">
+      <Card className="border-outline bg-panel-glass p-4 shadow-sm tablet:p-5">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <Landmark className="h-4 w-4 text-accent" />
@@ -104,7 +104,7 @@ export function FdCharts({ dashboard }: FdChartsProps) {
           <CardDescription>Where your principal is concentrated.</CardDescription>
         </CardHeader>
         <CardContent className="mt-0">
-          <div className="h-72 w-full">
+          <div className="h-64 w-full tablet:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -156,7 +156,7 @@ export function FdCharts({ dashboard }: FdChartsProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-outline bg-panel-glass p-5 shadow-sm xl:col-span-2">
+      <Card className="border-outline bg-panel-glass p-4 shadow-sm laptop:col-span-2 tablet:p-5">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <CalendarClock className="h-4 w-4 text-accent" />
@@ -167,7 +167,7 @@ export function FdCharts({ dashboard }: FdChartsProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="mt-0">
-          <div className="h-72 w-full">
+          <div className="h-64 w-full tablet:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={dashboard.maturityBars}

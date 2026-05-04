@@ -39,12 +39,12 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const isLast = step === STEPS.length - 1;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-3 backdrop-blur-sm tablet:p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-lg rounded-[var(--radius-card)] border border-outline bg-panel shadow-soft p-8 relative overflow-hidden"
+        className="relative max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-[var(--radius-card)] border border-outline bg-panel p-5 shadow-soft tablet:p-8"
       >
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-2 mb-8">
@@ -70,7 +70,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
             <div className="w-16 h-16 rounded-[var(--radius-panel)] bg-accent/10 flex items-center justify-center mx-auto mb-5">
               <Icon className="w-7 h-7 text-accent" />
             </div>
-            <h2 className="text-2xl font-semibold text-text-strong mb-3">{current.title}</h2>
+            <h2 className="mb-3 text-[clamp(1.45rem,6vw,1.5rem)] font-semibold leading-tight text-text-strong">{current.title}</h2>
             <p className="text-sm text-text-muted leading-relaxed max-w-sm mx-auto">{current.body}</p>
 
             {/* Step 0: Language picker */}
@@ -81,7 +81,7 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
                     key={code}
                     type="button"
                     onClick={() => setLanguage(code)}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                    className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-all ${
                       language === code
                         ? "bg-surface-dark text-on-dark shadow-sm scale-105"
                         : "bg-inner-panel border border-outline text-text-muted hover:text-text-strong hover:border-accent/30"

@@ -39,7 +39,7 @@ export function FdNotificationPrompt() {
 
   return (
     <Card className="border-outline bg-panel p-4 shadow-sm">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 tablet:flex-row tablet:items-center tablet:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-accent/20 bg-accent-soft text-accent">
             <BellRing className="h-5 w-5" />
@@ -58,7 +58,7 @@ export function FdNotificationPrompt() {
           variant="soft"
           onClick={() => void enable()}
           disabled={state === "enabling"}
-          className="shrink-0"
+          className="w-full shrink-0 tablet:w-auto"
         >
           {state === "enabling" ? (
             <Loader2 className="h-4 w-4 animate-spin" />

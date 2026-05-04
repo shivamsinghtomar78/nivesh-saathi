@@ -276,17 +276,17 @@ export function FdEntryModal({ draft, isOpen, onClose, onSaved }: FdEntryModalPr
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 260, damping: 28 }}
-            className="fixed inset-x-3 bottom-3 top-16 z-[80] mx-auto flex max-w-3xl flex-col overflow-hidden rounded-[var(--radius-card)] border border-outline bg-panel shadow-[var(--shadow-card)] sm:inset-x-6 sm:bottom-auto sm:top-20 sm:max-h-[calc(100vh-7rem)]"
+            className="fixed inset-x-2 bottom-2 top-2 z-[80] mx-auto flex max-w-3xl flex-col overflow-hidden rounded-[var(--radius-card)] border border-outline bg-panel shadow-[var(--shadow-card)] tablet:inset-x-6 tablet:bottom-auto tablet:top-20 tablet:max-h-[calc(100dvh-7rem)]"
           >
-            <div className="border-b border-outline bg-panel-glass px-5 py-4 backdrop-blur-xl">
+            <div className="border-b border-outline bg-panel-glass px-4 py-4 backdrop-blur-xl tablet:px-5">
               <div className="flex items-start justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
                     Quick FD capture
                   </p>
                   <h2
                     id="fd-entry-title"
-                    className="mt-1 text-2xl font-semibold text-text-strong"
+                    className="mt-1 text-[clamp(1.45rem,6vw,1.5rem)] font-semibold leading-tight text-text-strong"
                   >
                     Add a fixed deposit
                   </h2>
@@ -307,7 +307,7 @@ export function FdEntryModal({ draft, isOpen, onClose, onSaved }: FdEntryModalPr
               </div>
             </div>
 
-            <div className="custom-scrollbar flex-1 overflow-y-auto px-5 py-5">
+            <div className="custom-scrollbar flex-1 overflow-y-auto px-4 py-4 tablet:px-5 tablet:py-5">
               {ocrConfidence !== null ? (
                 <div className="mb-4 rounded-[var(--radius-panel)] border border-accent/20 bg-accent-soft px-4 py-3 text-sm text-text-strong">
                   <div className="flex items-center gap-2 font-semibold">
@@ -320,8 +320,8 @@ export function FdEntryModal({ draft, isOpen, onClose, onSaved }: FdEntryModalPr
                 </div>
               ) : null}
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="grid gap-2 sm:col-span-2">
+              <div className="grid gap-4 tablet:grid-cols-2">
+                <label className="grid gap-2 tablet:col-span-2">
                   <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
                     <Landmark className="h-3.5 w-3.5 text-accent" />
                     Bank name
@@ -397,7 +397,7 @@ export function FdEntryModal({ draft, isOpen, onClose, onSaved }: FdEntryModalPr
                 </label>
               </div>
 
-              <div className="mt-5 flex flex-col gap-3 rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-5 flex flex-col gap-3 rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4 tablet:flex-row tablet:items-center tablet:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-text-strong">
                     Optional receipt scan
@@ -420,7 +420,7 @@ export function FdEntryModal({ draft, isOpen, onClose, onSaved }: FdEntryModalPr
                   variant="outline"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={ocrLoading}
-                  className="shrink-0"
+                  className="w-full shrink-0 tablet:w-auto"
                 >
                   {ocrLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -447,7 +447,7 @@ export function FdEntryModal({ draft, isOpen, onClose, onSaved }: FdEntryModalPr
                     exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="mt-4 grid gap-4 tablet:grid-cols-2">
                       <label className="grid gap-2">
                         <span className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
                           FD type
@@ -495,7 +495,7 @@ export function FdEntryModal({ draft, isOpen, onClose, onSaved }: FdEntryModalPr
                           className="min-h-11 rounded-[var(--radius-input)] border border-outline bg-input-bg px-4 text-sm text-text-strong outline-none focus:border-accent"
                         />
                       </label>
-                      <label className="grid gap-2 sm:col-span-2">
+                      <label className="grid gap-2 tablet:col-span-2">
                         <span className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
                           Notes
                         </span>
@@ -515,20 +515,20 @@ export function FdEntryModal({ draft, isOpen, onClose, onSaved }: FdEntryModalPr
               </AnimatePresence>
             </div>
 
-            <div className="border-t border-outline bg-panel-glass px-5 py-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="border-t border-outline bg-panel-glass px-4 py-4 tablet:px-5">
+              <div className="flex flex-col gap-3 tablet:flex-row tablet:items-center tablet:justify-between">
                 <p className="text-xs leading-5 text-text-muted">
                   Alerts will be scheduled for 7 days before, 1 day before, and
                   maturity day.
                 </p>
-                <div className="flex gap-3">
-                  <Button variant="ghost" onClick={onClose}>
+                <div className="grid gap-3 tablet:flex tablet:shrink-0">
+                  <Button variant="ghost" onClick={onClose} className="w-full tablet:w-auto">
                     Later
                   </Button>
                   <Button
                     onClick={() => void handleSave()}
                     disabled={!canSave || saving}
-                    className={cn("min-w-32", saving && "opacity-80")}
+                    className={cn("min-w-32 w-full tablet:w-auto", saving && "opacity-80")}
                   >
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     Save FD

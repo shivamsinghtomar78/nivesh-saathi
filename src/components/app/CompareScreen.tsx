@@ -191,8 +191,8 @@ export default function CompareScreen() {
       title="Analyze and Shortlist Fixed Deposits"
       description="Filter by your preferences, compare returns side-by-side, and build a shortlist to discuss with our AI advisors."
       actions={user ? (
-        <Link href={ROUTES.CHAT}>
-          <Button variant="secondary" className="rounded-full shadow-sm">
+        <Link href={ROUTES.CHAT} className="w-full tablet:w-auto">
+          <Button variant="secondary" className="w-full rounded-full shadow-sm tablet:w-auto">
             <MessageCircleMore className="mr-2 h-4 w-4" />
             Ask Saathi
           </Button>
@@ -203,9 +203,9 @@ export default function CompareScreen() {
         title="Sign in to view comparisons"
         body="Your shortlist and preferences are securely synced to your profile."
       >
-        <div className="grid gap-8 xl:grid-cols-[1fr_360px]">
-          <div className="grid gap-8">
-            <Card className="p-6 border-outline bg-panel-glass shadow-sm">
+        <div className="grid gap-6 laptop:grid-cols-[minmax(0,1fr)_360px] laptop:gap-8">
+          <div className="grid min-w-0 gap-6 laptop:gap-8">
+            <Card className="border-outline bg-panel-glass p-4 shadow-sm tablet:p-6">
               <CardHeader className="pb-5 border-b border-outline/50 mb-5">
                 <div className="flex items-center gap-2 mb-2">
                   <Filter className="w-4 h-4 text-accent" />
@@ -214,7 +214,7 @@ export default function CompareScreen() {
                 <CardTitle className="text-xl">Investment Criteria</CardTitle>
                 <CardDescription>Adjust these settings to update the available rates below.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <CardContent className="grid gap-4 tablet:grid-cols-2 laptop:grid-cols-4 laptop:gap-6">
                 <label className="grid gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wider text-text-muted flex items-center gap-1">
                     <Calculator className="w-3 h-3" /> Principal
@@ -329,55 +329,55 @@ export default function CompareScreen() {
                         exit="exit"
                       >
                         <Card className={cn(
-                          "p-6 transition-all duration-300",
+                          "p-4 transition-all duration-300 tablet:p-5 laptop:p-6",
                           shortlisted ? "border-accent bg-panel shadow-[var(--shadow-card)]" : "border-outline bg-panel-glass shadow-sm hover:border-accent/35 hover:shadow-[var(--shadow-card)]"
                         )}>
-                          <div className="flex flex-col md:flex-row gap-6">
-                            <div className="flex-1">
-                              <div className="flex items-start justify-between gap-3 mb-4">
-                                <div>
-                                  <div className="flex items-center gap-3">
-                                    <h3 className="text-xl font-semibold text-text-strong">{rate.bankName}</h3>
-                                    {index === 0 && <Badge variant="outline" className="border-highlight/30 bg-highlight-soft text-highlight">Top Yield</Badge>}
+                          <div className="flex min-w-0 flex-col gap-5 laptop:flex-row laptop:gap-6">
+                            <div className="min-w-0 flex-1">
+                              <div className="mb-4 flex flex-col gap-3 tablet:flex-row tablet:items-start tablet:justify-between">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2 tablet:gap-3">
+                                    <h3 className="min-w-0 break-words text-lg font-semibold text-text-strong tablet:text-xl">{rate.bankName}</h3>
+                                    {index === 0 && <Badge variant="outline" className="shrink-0 border-highlight/30 bg-highlight-soft text-highlight">Top Yield</Badge>}
                                   </div>
                                   <p className="mt-1 text-sm text-text-muted capitalize">
                                     {rate.bankType.replace("-", " ")} Bank
                                   </p>
                                 </div>
-                                {rate.badge && <Badge variant="outline" className="bg-panel">{rate.badge}</Badge>}
+                                {rate.badge && <Badge variant="outline" className="w-fit shrink-0 bg-panel">{rate.badge}</Badge>}
                               </div>
                               
-                              <div className="grid grid-cols-2 gap-3 mb-4 md:grid-cols-4">
-                                <div className="bg-inner-panel rounded-[var(--radius-panel)] p-3">
+                              <div className="mb-4 grid grid-cols-2 gap-3 laptop:grid-cols-4">
+                                <div className="min-w-0 rounded-[var(--radius-panel)] bg-inner-panel p-3">
                                   <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Regular Rate</p>
-                                  <p className="financial-value text-2xl font-bold text-accent mt-1">{rate.regularRate.toFixed(2)}%</p>
+                                  <p className="financial-value mt-1 text-xl font-bold text-accent tablet:text-2xl">{rate.regularRate.toFixed(2)}%</p>
                                 </div>
-                                <div className="bg-inner-panel rounded-[var(--radius-panel)] p-3">
+                                <div className="min-w-0 rounded-[var(--radius-panel)] bg-inner-panel p-3">
                                   <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Senior Rate</p>
-                                  <p className="financial-value text-2xl font-bold text-highlight mt-1">{rate.seniorRate.toFixed(2)}%</p>
+                                  <p className="financial-value mt-1 text-xl font-bold text-highlight tablet:text-2xl">{rate.seniorRate.toFixed(2)}%</p>
                                 </div>
-                                <div className="bg-inner-panel rounded-[var(--radius-panel)] p-3">
+                                <div className="min-w-0 rounded-[var(--radius-panel)] bg-inner-panel p-3">
                                   <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Tenure</p>
-                                  <p className="financial-value text-lg font-semibold text-text-strong mt-1">{rate.tenorLabel}</p>
+                                  <p className="financial-value mt-1 break-words text-base font-semibold text-text-strong tablet:text-lg">{rate.tenorLabel}</p>
                                 </div>
-                                <div className="bg-inner-panel rounded-[var(--radius-panel)] p-3">
+                                <div className="min-w-0 rounded-[var(--radius-panel)] bg-inner-panel p-3">
                                   <p className="text-[11px] uppercase tracking-wider text-text-muted font-medium">Maturity</p>
-                                  <p className="financial-value text-lg font-semibold text-text-strong mt-1">{formatCurrency(maturity.maturityAmount)}</p>
+                                  <p className="financial-value mt-1 break-words text-base font-semibold text-text-strong tablet:text-lg">{formatCurrency(maturity.maturityAmount)}</p>
                                 </div>
                               </div>
                             </div>
                             
-                            <div className="w-full md:w-64 flex flex-col justify-between gap-4">
+                            <div className="flex w-full flex-col justify-between gap-4 laptop:w-64">
                               <div className="space-y-2 text-sm text-text-muted">
-                                <p className="flex justify-between border-b border-outline pb-1">
+                                <p className="flex flex-wrap justify-between gap-2 border-b border-outline pb-1">
                                   <span>Range:</span> 
-                                  <span className="font-medium text-text-strong">{formatCurrency(rate.minAmount)} - {rate.maxAmount >= 100000000 ? 'Max' : formatCurrency(rate.maxAmount)}</span>
+                                  <span className="text-right font-medium text-text-strong">{formatCurrency(rate.minAmount)} - {rate.maxAmount >= 100000000 ? 'Max' : formatCurrency(rate.maxAmount)}</span>
                                 </p>
-                                <p className="flex justify-between border-b border-outline pb-1">
+                                <p className="flex flex-wrap justify-between gap-2 border-b border-outline pb-1">
                                   <span>Insurance:</span> 
-                                  <span className={cn("font-medium", rate.dicgcInsured ? "text-success" : "text-danger")}>{rate.dicgcInsured ? "DICGC insured" : "Not insured"}</span>
+                                  <span className={cn("text-right font-medium", rate.dicgcInsured ? "text-success" : "text-danger")}>{rate.dicgcInsured ? "DICGC insured" : "Not insured"}</span>
                                 </p>
-                                <p className="flex justify-between border-b border-outline pb-1">
+                                <p className="flex flex-wrap justify-between gap-2 border-b border-outline pb-1">
                                   <span>Applied:</span> 
                                   <span className="financial-value font-medium text-text-strong">{appliedRate.toFixed(2)}%</span>
                                 </p>
@@ -437,9 +437,9 @@ export default function CompareScreen() {
           </div>
 
           {/* Desktop sidebar */}
-          <div className="hidden xl:block relative">
+          <div className="relative hidden laptop:block">
             <div className="sticky top-24">
-              <Card className="p-6 border-outline bg-panel shadow-sm">
+              <Card className="border-outline bg-panel p-5 shadow-sm">
                 <CardHeader className="pb-5">
                   <div className="flex items-center gap-2 mb-2">
                     <Star className="w-4 h-4 text-accent fill-accent/20" />
@@ -521,14 +521,14 @@ export default function CompareScreen() {
         </div>
 
         {/* Mobile shortlist floating pill + bottom sheet */}
-        <div className="xl:hidden">
+        <div className="laptop:hidden">
           {shortlist.length > 0 && !showBottomSheet && (
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               type="button"
               onClick={() => setShowBottomSheet(true)}
-              className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 inline-flex items-center gap-2 rounded-full bg-surface-dark text-on-dark px-5 py-3 text-sm font-semibold shadow-lg transition hover:bg-surface-dark-hover"
+              className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] left-1/2 z-40 inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-surface-dark px-5 py-3 text-sm font-semibold text-on-dark shadow-lg transition hover:bg-surface-dark-hover"
             >
               <Star className="h-4 w-4 fill-accent text-accent" />
               Shortlist ({shortlist.length})
@@ -551,7 +551,7 @@ export default function CompareScreen() {
                   animate={{ y: 0 }}
                   exit={{ y: "100%" }}
                   transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                  className="fixed inset-x-0 bottom-0 z-50 max-h-[70vh] overflow-y-auto rounded-t-[var(--radius-card)] border-t border-outline bg-panel shadow-lg"
+                  className="fixed inset-x-0 bottom-0 z-50 max-h-[min(76vh,720px)] overflow-y-auto rounded-t-[var(--radius-card)] border-t border-outline bg-panel pb-[env(safe-area-inset-bottom)] shadow-lg"
                 >
                   <div className="sticky top-0 bg-panel border-b border-outline p-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">

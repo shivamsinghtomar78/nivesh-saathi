@@ -176,7 +176,7 @@ function FdRecordsTable({
   }
 
   return (
-    <Card className="border-outline bg-panel p-5 shadow-sm">
+    <Card className="border-outline bg-panel p-4 shadow-sm tablet:p-5">
       <CardHeader className="pb-4">
         <div className="flex items-center gap-2">
           <Landmark className="h-4 w-4 text-accent" />
@@ -184,8 +184,70 @@ function FdRecordsTable({
         </div>
         <CardDescription>All active and matured FDs in this module.</CardDescription>
       </CardHeader>
-      <CardContent className="mt-0 overflow-x-auto">
-        <table className="w-full min-w-[720px] border-separate border-spacing-y-2 text-left text-sm">
+      <CardContent className="mt-0">
+        <div className="grid gap-3 tablet:hidden">
+          {records.map((record) => (
+            <article
+              key={record.id}
+              className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="break-words text-sm font-semibold text-text-strong">
+                    {record.bankName}
+                  </h3>
+                  <p className="mt-1 text-xs capitalize text-text-muted">
+                    {record.status}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => void deleteRecord(record)}
+                  disabled={deletingId === record.id}
+                  aria-label={`Delete ${record.bankName} FD`}
+                  className="h-10 w-10 shrink-0"
+                >
+                  <Trash2 className="h-4 w-4 text-danger" />
+                </Button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                <div className="rounded-[var(--radius-input)] border border-outline bg-panel/60 p-3">
+                  <p className="uppercase tracking-[0.14em] text-text-muted">Amount</p>
+                  <p className="financial-value mt-1 break-words font-semibold text-text-strong">
+                    {formatCurrency(record.amount)}
+                  </p>
+                </div>
+                <div className="rounded-[var(--radius-input)] border border-outline bg-panel/60 p-3">
+                  <p className="uppercase tracking-[0.14em] text-text-muted">Rate</p>
+                  <p className="financial-value mt-1 font-semibold text-accent">
+                    {record.interestRate.toFixed(2)}%
+                  </p>
+                </div>
+                <div className="rounded-[var(--radius-input)] border border-outline bg-panel/60 p-3">
+                  <p className="uppercase tracking-[0.14em] text-text-muted">Maturity</p>
+                  <p className="mt-1 font-semibold text-text-strong">
+                    {new Intl.DateTimeFormat("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }).format(new Date(record.maturityDate))}
+                  </p>
+                </div>
+                <div className="rounded-[var(--radius-input)] border border-outline bg-panel/60 p-3">
+                  <p className="uppercase tracking-[0.14em] text-text-muted">Expected</p>
+                  <p className="financial-value mt-1 break-words font-semibold text-accent">
+                    {formatCurrency(record.expectedMaturityAmount)}
+                  </p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="custom-scrollbar hidden overflow-x-auto tablet:block">
+          <table className="w-full min-w-[720px] border-separate border-spacing-y-2 text-left text-sm">
           <thead>
             <tr className="text-[11px] uppercase tracking-[0.16em] text-text-muted">
               <th className="px-3 py-2">Bank</th>
@@ -236,7 +298,8 @@ function FdRecordsTable({
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       </CardContent>
     </Card>
   );
@@ -256,7 +319,7 @@ export function FdDashboard({ dashboard, onAdd, onRefresh }: FdDashboardProps) {
 
   return (
     <div className="grid gap-5">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 tablet:grid-cols-2 laptop:grid-cols-5">
         <SummaryCard
           icon={Banknote}
           label="Total FD Amount"
@@ -290,7 +353,7 @@ export function FdDashboard({ dashboard, onAdd, onRefresh }: FdDashboardProps) {
       <FdNotificationPrompt />
       <AlertInbox dashboard={dashboard} onRefresh={onRefresh} />
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
+      <div className="grid gap-5 laptop:grid-cols-[minmax(0,1fr)_360px]">
         <div className="grid gap-5">
           <FdRecordsTable records={dashboard.records} onRefresh={onRefresh} />
         </div>

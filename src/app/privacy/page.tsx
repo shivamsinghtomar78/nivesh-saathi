@@ -4,12 +4,12 @@ import { ROUTES } from "@/lib/routes";
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-app px-4 py-16 text-text md:px-6">
-      <section className="mx-auto max-w-3xl rounded-[var(--radius-card)] border border-outline bg-panel p-6 shadow-sm md:p-8">
+    <main className="min-h-screen bg-app px-3 py-10 text-text tablet:px-6 tablet:py-16">
+      <section className="mx-auto max-w-3xl rounded-[var(--radius-card)] border border-outline bg-panel p-4 shadow-sm tablet:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
           Privacy
         </p>
-        <h1 className="mt-3 text-3xl font-semibold text-text-strong">
+        <h1 className="mt-3 text-[clamp(1.9rem,7vw,2.25rem)] font-semibold leading-tight text-text-strong">
           Privacy Policy
         </h1>
         <p className="mt-4 text-sm leading-7 text-text-muted">

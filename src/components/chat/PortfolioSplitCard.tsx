@@ -21,9 +21,9 @@ export function PortfolioSplitCard({ split }: PortfolioSplitCardProps) {
   }));
 
   return (
-    <Card className="w-full max-w-sm overflow-hidden bg-panel shadow-sm border-outline">
+    <Card className="w-full overflow-hidden border-outline bg-panel shadow-sm tablet:max-w-sm">
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle className="text-base flex items-center gap-2 text-text-strong">
               Portfolio Diversification
@@ -74,14 +74,14 @@ export function PortfolioSplitCard({ split }: PortfolioSplitCardProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="flex items-center justify-between text-sm p-2 rounded-md bg-input-bg border border-outline"
+              className="flex items-center justify-between gap-3 rounded-md border border-outline bg-input-bg p-2 text-sm"
             >
-              <div className="flex items-center gap-2 truncate flex-1">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
                 <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                 <span className="font-medium text-text-strong truncate">{alloc.bankName}</span>
               </div>
-              <div className="text-right shrink-0">
-                <div className="font-semibold text-text-strong">Rs {alloc.allocationAmount.toLocaleString("en-IN")}</div>
+              <div className="max-w-[45%] shrink-0 text-right">
+                <div className="break-words font-semibold text-text-strong">Rs {alloc.allocationAmount.toLocaleString("en-IN")}</div>
                 <div className="text-[10px] text-highlight font-medium">@{alloc.rate.toFixed(2)}%</div>
               </div>
             </motion.div>

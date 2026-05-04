@@ -159,7 +159,7 @@ export default function FirebaseAuthCard({
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="mt-5 grid gap-3 tablet:grid-cols-2">
           <motion.button
             type="button"
             onClick={() => router.push(nextPath)}
@@ -201,7 +201,7 @@ export default function FirebaseAuthCard({
             exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
             transition={{ duration: 0.22 }}
           >
-            <h1 className="text-3xl font-semibold text-text-strong md:text-4xl">
+            <h1 className="text-[clamp(1.9rem,7vw,2.45rem)] font-semibold leading-tight text-text-strong">
               {isSignUp ? "Create an account" : "Welcome back"}
             </h1>
             <p className="mt-3 text-sm text-text-muted">
@@ -219,7 +219,7 @@ export default function FirebaseAuthCard({
       </div>
 
       <motion.form
-        className="mt-10 grid gap-5"
+        className="mt-8 grid gap-5 tablet:mt-10"
         onSubmit={(event) => {
           event.preventDefault();
           void handleEmailAuth();
@@ -278,7 +278,7 @@ export default function FirebaseAuthCard({
         <motion.button
           type="submit"
           disabled={busyAction !== null}
-          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] bg-accent px-5 text-sm font-bold uppercase tracking-[0.08em] text-on-accent shadow-[0_18px_42px_rgba(215,182,109,0.2)] transition hover:bg-accent-hover disabled:opacity-60"
+          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] bg-accent px-4 text-sm font-bold uppercase tracking-[0.04em] text-on-accent shadow-[0_18px_42px_rgba(215,182,109,0.2)] transition hover:bg-accent-hover disabled:opacity-60 tablet:px-5 tablet:tracking-[0.08em]"
           variants={{
             hidden: { opacity: 0, y: 12 },
             show: { opacity: 1, y: 0 },
@@ -309,7 +309,7 @@ export default function FirebaseAuthCard({
           type="button"
           onClick={() => void handleGoogleAuth()}
           disabled={busyAction !== null}
-          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] border border-outline bg-panel px-5 text-sm font-bold uppercase tracking-[0.06em] text-text-strong transition hover:border-accent/35 hover:text-accent disabled:opacity-60"
+          className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] border border-outline bg-panel px-4 text-sm font-bold uppercase tracking-[0.03em] text-text-strong transition hover:border-accent/35 hover:text-accent disabled:opacity-60 tablet:px-5 tablet:tracking-[0.06em]"
           whileHover={reduceMotion ? undefined : { y: -2 }}
           whileTap={reduceMotion ? undefined : { scale: 0.97 }}
         >

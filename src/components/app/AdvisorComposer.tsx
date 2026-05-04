@@ -117,22 +117,22 @@ export default function AdvisorComposer({
   }, [draft]);
 
   return (
-    <div className="sticky bottom-0 z-20 shrink-0 bg-[linear-gradient(180deg,rgba(10,10,10,0),rgba(10,10,10,0.94)_28%,#0A0A0A_100%)] px-4 pb-3 pt-8 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-[860px]">
+    <div className="sticky bottom-0 z-20 shrink-0 bg-[linear-gradient(180deg,rgba(10,10,10,0),rgba(10,10,10,0.94)_28%,#0A0A0A_100%)] px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-6 tablet:px-5 tablet:pt-8 laptop:px-8">
+      <div className="mx-auto w-full max-w-[900px]">
         <AnimatePresence>
           {showPrompts ? (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 6 }}
-              className="mb-3 flex flex-wrap gap-2"
+              className="custom-scrollbar -mx-3 mb-3 flex gap-2 overflow-x-auto px-3 pb-1 tablet:mx-0 tablet:flex-wrap tablet:overflow-visible tablet:px-0 tablet:pb-0"
             >
               {prompts.slice(0, 3).map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
                   onClick={() => onPrompt(prompt)}
-                  className="rounded-full border border-[#1F1F1F] bg-[#121212]/82 px-3 py-1.5 text-xs font-medium text-[#9CA3AF] transition hover:border-accent/30 hover:bg-[#161616] hover:text-[#EAEAEA]"
+                  className="min-h-10 max-w-[82vw] shrink-0 whitespace-nowrap rounded-full border border-[#1F1F1F] bg-[#121212]/82 px-3 py-1.5 text-xs font-medium text-[#9CA3AF] transition hover:border-accent/30 hover:bg-[#161616] hover:text-[#EAEAEA] tablet:max-w-full tablet:whitespace-normal"
                 >
                   {prompt}
                 </button>
@@ -161,15 +161,15 @@ export default function AdvisorComposer({
           ) : null}
         </AnimatePresence>
 
-        <div className="rounded-[26px] border border-[#1F1F1F] bg-[#121212]/96 p-2 shadow-[0_22px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl transition focus-within:border-accent/40 focus-within:shadow-[0_0_0_1px_rgba(215,182,109,0.12),0_24px_70px_rgba(0,0,0,0.45)]">
-          <div className="grid grid-cols-[42px_minmax(0,1fr)_42px] items-end gap-2">
+        <div className="rounded-[22px] border border-[#1F1F1F] bg-[#121212]/96 p-1.5 shadow-[0_22px_60px_rgba(0,0,0,0.35)] backdrop-blur-2xl transition focus-within:border-accent/40 focus-within:shadow-[0_0_0_1px_rgba(215,182,109,0.12),0_24px_70px_rgba(0,0,0,0.45)] tablet:rounded-[26px] tablet:p-2">
+          <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-end gap-1.5 tablet:gap-2">
             <button
               type="button"
               onClick={voiceState === "error" ? onVoiceRetry : onMicPress}
               disabled={micIsDisabled}
               aria-label={micLabel(voiceState)}
               className={cn(
-                "relative flex h-[42px] w-[42px] shrink-0 items-center justify-center overflow-visible rounded-[18px] border border-transparent text-[#9CA3AF] transition hover:border-[#2A2A2A] hover:bg-white/[0.055] hover:text-[#EAEAEA] disabled:cursor-not-allowed disabled:opacity-45",
+                "relative flex h-11 w-11 shrink-0 items-center justify-center overflow-visible rounded-[18px] border border-transparent text-[#9CA3AF] transition hover:border-[#2A2A2A] hover:bg-white/[0.055] hover:text-[#EAEAEA] disabled:cursor-not-allowed disabled:opacity-45",
                 voiceState === "listening" && "border-accent/35 bg-accent-soft text-accent",
                 voiceState === "speaking" && "border-accent/30 bg-[#1A1A1A] text-[#EAEAEA]",
                 voiceState === "error" && "text-danger hover:text-danger"
@@ -212,7 +212,7 @@ export default function AdvisorComposer({
               placeholder={`Ask or speak in ${LANGUAGE_LABELS[language]}...`}
               rows={1}
               maxLength={MAX_CHARS}
-              className="max-h-32 min-h-[46px] w-full resize-none bg-transparent px-1 py-3 text-[15px] leading-6 text-[#EAEAEA] outline-none placeholder:text-[#777F8C] custom-scrollbar"
+              className="max-h-32 min-h-[46px] w-full resize-none bg-transparent px-1 py-3 text-[16px] leading-6 text-[#EAEAEA] outline-none placeholder:text-[#777F8C] custom-scrollbar tablet:text-[15px]"
             />
 
             <button
@@ -221,7 +221,7 @@ export default function AdvisorComposer({
               disabled={!canSend}
               aria-label="Send message"
               className={cn(
-                "flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[18px] border transition disabled:cursor-not-allowed",
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] border transition disabled:cursor-not-allowed",
                 canSend
                   ? "border-accent/30 bg-accent text-on-accent shadow-[0_14px_34px_rgba(215,182,109,0.18)] hover:bg-accent-hover"
                   : "border-[#1F1F1F] bg-[#161616] text-[#5F6670]"
@@ -291,8 +291,8 @@ export default function AdvisorComposer({
           ) : null}
         </AnimatePresence>
 
-        <div className="mt-1.5 flex items-center justify-between px-1">
-          <span className="hidden text-[10px] text-[#777F8C] sm:inline">
+        <div className="mt-1.5 flex items-center justify-end px-1 tablet:justify-between">
+          <span className="hidden text-[10px] text-[#777F8C] tablet:inline">
             Enter to send. Shift+Enter for a new line.
           </span>
           <span

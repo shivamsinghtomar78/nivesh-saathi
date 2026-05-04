@@ -2,10 +2,10 @@ import Skeleton from "@/components/shared/Skeleton";
 
 export default function CompareLoading() {
   return (
-    <div className="min-h-screen bg-app px-4 py-24 md:px-6">
+    <div className="min-h-screen bg-app px-3 py-20 tablet:px-6 tablet:py-24">
       <div className="mx-auto max-w-7xl">
         <Skeleton className="h-20 rounded-[var(--radius-card)]" />
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-6 grid gap-4 tablet:grid-cols-2 laptop:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <div
               key={index}

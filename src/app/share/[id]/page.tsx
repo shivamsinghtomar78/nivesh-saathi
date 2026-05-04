@@ -45,32 +45,32 @@ export default async function SharePage({
   }
 
   return (
-    <main className="min-h-screen bg-app px-4 py-10 text-text-strong">
+    <main className="min-h-screen bg-app px-3 py-6 text-text-strong tablet:px-4 tablet:py-10">
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
-        <header className="flex items-center justify-between gap-4">
-          <Link href={ROUTES.LANDING} className="flex items-center gap-3">
+        <header className="flex flex-col gap-4 tablet:flex-row tablet:items-center tablet:justify-between">
+          <Link href={ROUTES.LANDING} className="flex min-w-0 items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-surface-dark text-on-dark shadow-soft">
               <Sparkles className="h-5 w-5" />
             </span>
-            <span>
+            <span className="min-w-0">
               <span className="block text-lg font-semibold">Nivesh Saathi</span>
               <span className="block text-xs text-text-muted">Shared FD recommendation</span>
             </span>
           </Link>
-          <Link href={ROUTES.COMPARE}>
-            <Button variant="secondary" size="sm">
+          <Link href={ROUTES.COMPARE} className="w-full tablet:w-auto">
+            <Button variant="secondary" size="sm" className="w-full tablet:w-auto">
               Compare rates
               <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </Link>
         </header>
 
-        <section className="rounded-[var(--radius-card)] border border-outline bg-panel p-6 shadow-soft md:p-8">
+        <section className="rounded-[var(--radius-card)] border border-outline bg-panel p-4 shadow-soft tablet:p-8">
           <div className="mb-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
             <ShieldCheck className="h-4 w-4" />
             Read-only advisor note
           </div>
-          <div className="whitespace-pre-wrap text-base leading-7 text-text-strong">
+          <div className="whitespace-pre-wrap break-words text-base leading-7 text-text-strong">
             {shared.messageText}
           </div>
 
@@ -85,8 +85,8 @@ export default async function SharePage({
                   className="rounded-2xl border border-outline bg-inner-panel p-4"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-semibold text-text-strong">
+                    <div className="min-w-0">
+                      <p className="break-words font-semibold text-text-strong">
                         {card.bankName ?? "Bank"}
                       </p>
                       {card.tenor && (
@@ -94,7 +94,7 @@ export default async function SharePage({
                       )}
                     </div>
                     {card.rate && (
-                      <p className="text-xl font-semibold text-accent">{card.rate}</p>
+                      <p className="shrink-0 text-xl font-semibold text-accent">{card.rate}</p>
                     )}
                   </div>
                   {card.maturityPreview && (

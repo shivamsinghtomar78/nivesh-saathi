@@ -32,9 +32,9 @@ export default async function LoginPage({
   const nextPath = getSafeNextPath(params?.next);
 
   return (
-    <main className="dark-context min-h-screen bg-app">
-      <section className="grid min-h-screen lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <div className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-8 lg:px-12">
+    <main className="dark-context min-h-[100svh] bg-app">
+      <section className="grid min-h-[100svh] laptop:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <div className="flex min-h-[100svh] items-center justify-center px-4 py-8 tablet:px-8 laptop:px-12">
           <MotionStagger className="w-full max-w-xl">
             <MotionStaggerItem>
               <Link
@@ -72,7 +72,7 @@ export default async function LoginPage({
         </div>
 
         <MotionReveal
-          className="relative hidden min-h-screen overflow-hidden border-l border-outline bg-panel lg:block"
+          className="relative hidden min-h-[100svh] overflow-hidden border-l border-outline bg-panel laptop:block"
           direction="left"
         >
           <Image

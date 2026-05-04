@@ -29,7 +29,7 @@ export default function PublicHeader() {
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-3 tablet:px-5 laptop:px-8">
         <Link href={ROUTES.LANDING} className="flex min-w-0 items-center gap-3">
           <motion.div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-panel)] border border-accent/20 bg-accent-soft text-accent shadow-[var(--shadow-soft-layer)]"
@@ -39,16 +39,16 @@ export default function PublicHeader() {
             <Sparkles className="h-5 w-5" />
           </motion.div>
           <div className="min-w-0">
-            <p className="truncate text-base font-semibold text-text-strong sm:text-lg">
+            <p className="truncate text-base font-semibold text-text-strong tablet:text-lg">
               Nivesh Saathi
             </p>
-            <p className="hidden text-[11px] uppercase tracking-[0.18em] text-text-muted sm:block">
+            <p className="hidden text-[11px] uppercase tracking-[0.18em] text-text-muted tablet:block">
               Your trusted FD guide
             </p>
           </div>
         </Link>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2 tablet:gap-3">
           {/* Language toggle for non-English visitors */}
           <div className="relative">
             <button
@@ -57,7 +57,7 @@ export default function PublicHeader() {
               className="flex min-h-10 items-center gap-1.5 rounded-full border border-outline bg-input-bg px-3 py-2 text-xs font-medium text-text-muted transition hover:border-accent/30 hover:bg-panel-strong hover:text-text-strong"
             >
               <Globe className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{LANGUAGE_LABELS[language]}</span>
+              <span className="hidden tablet:inline">{LANGUAGE_LABELS[language]}</span>
             </button>
             {langOpen && (
               <div className="absolute right-0 z-50 mt-2 w-36 rounded-[var(--radius-panel)] border border-outline bg-panel py-1 shadow-[var(--shadow-card)]">
@@ -88,10 +88,10 @@ export default function PublicHeader() {
           >
             <Link
               href={href}
-              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-accent/20 bg-accent px-3 text-sm font-semibold text-on-accent shadow-[0_18px_42px_rgba(215,182,109,0.2)] transition hover:bg-accent-hover hover:shadow-[0_22px_54px_rgba(215,182,109,0.26)] sm:px-5"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-accent/20 bg-accent px-3 text-sm font-semibold text-on-accent shadow-[0_18px_42px_rgba(215,182,109,0.2)] transition hover:bg-accent-hover hover:shadow-[0_22px_54px_rgba(215,182,109,0.26)] tablet:px-5"
             >
-              <span className="sm:hidden">{label}</span>
-              <span className="hidden sm:inline">{fullLabel}</span>
+                <span className="tablet:hidden">{label}</span>
+              <span className="hidden tablet:inline">{fullLabel}</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
           </motion.div>

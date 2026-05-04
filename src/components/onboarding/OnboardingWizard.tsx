@@ -51,7 +51,7 @@ export function OnboardingWizard() {
       title: "What's your primary goal?",
       desc: "Help Nivesh Saathi understand what you want to achieve.",
       content: (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 tablet:grid-cols-2">
           {[
             { id: "wealth_creation", label: "Wealth Creation", icon: TrendingUp },
             { id: "safe_returns", label: "Safe & Steady Returns", icon: ShieldCheck },
@@ -63,7 +63,7 @@ export function OnboardingWizard() {
               <button
                 key={goal.id}
                 onClick={() => setProfileField("investmentGoal", goal.id)}
-                className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-3 transition-all ${
+                className={`flex min-h-28 flex-col items-center justify-center gap-3 rounded-xl border p-4 transition-all ${
                   isSelected
                         ? "border-accent bg-accent/10 text-accent"
                     : "border-outline bg-input-bg text-text-muted hover:border-text-strong"
@@ -89,7 +89,7 @@ export function OnboardingWizard() {
               key={profile.availableAmount || 50000}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="financial-value text-4xl font-bold text-highlight"
+              className="financial-value break-words text-[clamp(2rem,9vw,2.25rem)] font-bold text-highlight"
             >
               Rs {(profile.availableAmount || 50000).toLocaleString("en-IN")}
             </motion.div>
@@ -111,7 +111,7 @@ export function OnboardingWizard() {
       title: "What's your time horizon?",
       desc: "How long can you keep the money invested?",
       content: (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 tablet:grid-cols-2">
           {[
             { id: 6, label: "Short (6 Months)" },
             { id: 12, label: "Medium (1 Year)" },
@@ -142,10 +142,10 @@ export function OnboardingWizard() {
       title: "Are you a Senior Citizen?",
       desc: "Senior citizens (60+ years) get extra 0.5% - 0.75% interest.",
       content: (
-        <div className="flex gap-4">
+        <div className="grid gap-3 tablet:grid-cols-2">
           <button
             onClick={() => setProfileField("isSeniorCitizen", true)}
-            className={`flex-1 p-4 rounded-xl border text-center transition-all ${
+            className={`min-h-28 rounded-xl border p-4 text-center transition-all ${
               profile.isSeniorCitizen === true
                         ? "border-accent bg-accent/10 text-accent"
                 : "border-outline bg-input-bg text-text-muted hover:border-text-strong"
@@ -156,7 +156,7 @@ export function OnboardingWizard() {
           </button>
           <button
             onClick={() => setProfileField("isSeniorCitizen", false)}
-            className={`flex-1 p-4 rounded-xl border text-center transition-all ${
+            className={`min-h-28 rounded-xl border p-4 text-center transition-all ${
               profile.isSeniorCitizen === false
                         ? "border-accent bg-accent/10 text-accent"
                 : "border-outline bg-input-bg text-text-muted hover:border-text-strong"
@@ -174,8 +174,8 @@ export function OnboardingWizard() {
   const currentStep = steps[step - 1];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-      <Card className="w-full max-w-lg overflow-hidden bg-panel shadow-2xl border-outline relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-md tablet:p-4">
+      <Card className="relative max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-hidden border-outline bg-panel shadow-2xl">
         <div className="h-1 w-full bg-surface-dark absolute top-0 left-0">
           <motion.div
                     className="h-full bg-accent"
@@ -184,19 +184,19 @@ export function OnboardingWizard() {
           />
         </div>
         
-        <CardHeader className="pt-8 pb-4">
+        <CardHeader className="pb-4 pt-8">
           <motion.div
             key={currentStep.id}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            <CardTitle className="text-2xl text-text-strong">{currentStep.title}</CardTitle>
+            <CardTitle className="text-[clamp(1.45rem,6vw,1.5rem)] leading-tight text-text-strong">{currentStep.title}</CardTitle>
             <CardDescription className="text-text-muted mt-2">{currentStep.desc}</CardDescription>
           </motion.div>
         </CardHeader>
         
-        <CardContent className="min-h-[220px]">
+        <CardContent className="custom-scrollbar min-h-[220px] overflow-y-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep.id}
@@ -210,7 +210,7 @@ export function OnboardingWizard() {
           </AnimatePresence>
         </CardContent>
 
-        <CardFooter className="flex justify-between border-t border-outline pt-4 bg-input-bg/50">
+        <CardFooter className="flex justify-between gap-3 border-t border-outline bg-input-bg/50 pt-4">
           {step > 1 ? (
             <Button variant="outline" onClick={handlePrev} className="text-text-muted border-outline">
               Back

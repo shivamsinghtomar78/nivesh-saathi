@@ -2,11 +2,11 @@ import Skeleton from "@/components/shared/Skeleton";
 
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-app px-4 py-24 md:px-6">
+    <div className="min-h-screen bg-app px-3 py-20 tablet:px-6 tablet:py-24">
       <div className="mx-auto max-w-7xl">
         <Skeleton className="h-14 w-48 rounded-2xl" />
         <Skeleton className="mt-6 h-16 max-w-3xl rounded-[var(--radius-card)]" />
-        <div className="mt-8 grid gap-4 lg:grid-cols-3">
+        <div className="mt-8 grid gap-4 laptop:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
             <div
               key={index}

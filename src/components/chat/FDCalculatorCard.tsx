@@ -88,8 +88,8 @@ export function FDCalculatorCard({
 
   return (
     <Card className="w-full overflow-hidden border-outline bg-panel shadow-[var(--shadow-card)]">
-      <CardHeader className="border-b border-outline/60 p-5">
-        <div className="flex items-start justify-between gap-3">
+      <CardHeader className="border-b border-outline/60 p-4 tablet:p-5">
+        <div className="flex flex-col gap-3 tablet:flex-row tablet:items-start tablet:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-lg text-text-strong">
               <Calculator className="h-4 w-4 text-accent" />
@@ -107,12 +107,12 @@ export function FDCalculatorCard({
         </div>
       </CardHeader>
 
-      <CardContent className={cn("mt-0", compact ? "space-y-4 p-4" : "space-y-5 p-5")}>
+      <CardContent className={cn("mt-0", compact ? "space-y-4 p-4" : "space-y-4 p-4 tablet:space-y-5 tablet:p-5")}>
         <motion.section
           layout
-          className="rounded-[var(--radius-panel)] border border-accent/20 bg-accent/10 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+          className="rounded-[var(--radius-panel)] border border-accent/20 bg-accent/10 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] tablet:p-5"
         >
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:justify-between tablet:gap-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
               Result Display
             </p>
@@ -125,11 +125,11 @@ export function FDCalculatorCard({
             initial={{ opacity: 0.75, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="financial-value mt-3 text-4xl font-semibold tracking-tight text-text-strong"
+            className="financial-value mt-3 break-words text-[clamp(1.75rem,8vw,2.25rem)] font-semibold tracking-normal text-text-strong"
           >
             {formatCurrency(displayAmount)}
           </motion.p>
-          <div className="mt-4 grid gap-3 text-xs text-text-muted sm:grid-cols-2">
+          <div className="mt-4 grid gap-3 text-xs text-text-muted tablet:grid-cols-2">
             <span className="rounded-[var(--radius-input)] border border-outline bg-input-bg px-3 py-2">
               Interest earned: <strong className="font-semibold text-text-strong">{formatCurrency(maturity.interestEarned)}</strong>
             </span>
@@ -145,7 +145,7 @@ export function FDCalculatorCard({
         </motion.section>
 
         <section className="rounded-[var(--radius-panel)] border border-outline bg-inner-panel p-4">
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-4 flex flex-col gap-1 tablet:flex-row tablet:items-center tablet:justify-between tablet:gap-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-muted">
               Calculator Controls
             </p>
@@ -166,7 +166,7 @@ export function FDCalculatorCard({
                   step={10000}
                   value={principal}
                   onChange={(event) => setPrincipal(clamp(Number(event.target.value) || 10000, 10000, 5000000))}
-                  className="h-10 w-32 rounded-[var(--radius-input)] border border-outline bg-input-bg px-3 text-right text-sm font-semibold text-text-strong outline-none transition focus:border-accent"
+                  className="h-10 w-28 rounded-[var(--radius-input)] border border-outline bg-input-bg px-3 text-right text-sm font-semibold text-text-strong outline-none transition focus:border-accent tablet:w-32"
                   aria-label="FD principal amount"
                 />
               </span>

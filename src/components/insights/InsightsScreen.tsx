@@ -118,7 +118,7 @@ function MaturityTimeline({ dashboard }: { dashboard: FdDashboardDto }) {
       <CardContent className="mt-0">
         {items.length > 0 ? (
           <div className="custom-scrollbar overflow-x-auto pb-2">
-            <div className="relative flex min-w-[760px] items-start justify-between gap-4 px-2 pt-7">
+            <div className="relative flex min-w-[640px] items-start justify-between gap-4 px-2 pt-7 tablet:min-w-[760px]">
               <div className="absolute left-8 right-8 top-11 h-px bg-outline" />
               {items.map((item) => (
                 <div key={item.id} className="group relative z-10 grid w-28 justify-items-center text-center">
@@ -209,7 +209,7 @@ function LadderTimeline({ plan }: { plan: FdLadderPlan }) {
         <h3 className="text-sm font-semibold text-text-strong">Staggered Maturity Sequence</h3>
       </div>
       <div className="custom-scrollbar mt-5 overflow-x-auto pb-2">
-        <div className="relative flex min-w-[720px] items-start justify-between gap-4 px-2 pt-5">
+        <div className="relative flex min-w-[640px] items-start justify-between gap-4 px-2 pt-5 tablet:min-w-[720px]">
           <div className="absolute left-8 right-8 top-9 h-px bg-outline" />
           {plan.blocks.map((block) => (
             <div key={block.id} className="group relative z-10 grid w-28 justify-items-center text-center">
@@ -283,7 +283,7 @@ function LadderPlanner({ defaultRate }: { defaultRate: number }) {
     <section className="grid gap-5">
       <Card className="border-outline bg-panel p-5 shadow-sm">
         <CardHeader className="pb-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-4 laptop:flex-row laptop:items-start laptop:justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <Split className="h-4 w-4 text-accent" />
@@ -296,7 +296,7 @@ function LadderPlanner({ defaultRate }: { defaultRate: number }) {
                 {plan.summary}
               </CardDescription>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 tablet:grid-cols-4 tablet:gap-3">
               <Button variant="outline" onClick={handleSavePlan}>
                 <Save className="h-4 w-4" />
                 Save
@@ -319,7 +319,7 @@ function LadderPlanner({ defaultRate }: { defaultRate: number }) {
           </div>
         </CardHeader>
         <CardContent className="mt-0 grid gap-6">
-          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_0.7fr]">
+          <div className="grid gap-4 laptop:grid-cols-[1fr_1fr_0.7fr]">
             <label className="grid gap-2">
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
                 Lump sum amount
@@ -365,7 +365,7 @@ function LadderPlanner({ defaultRate }: { defaultRate: number }) {
             </label>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 tablet:grid-cols-3">
             <div className="rounded-[var(--radius-panel)] border border-outline bg-accent-soft p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
                 Total maturity
@@ -392,7 +392,7 @@ function LadderPlanner({ defaultRate }: { defaultRate: number }) {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-4 tablet:grid-cols-2 laptop:grid-cols-5">
             {plan.blocks.map((block) => (
               <LadderBlockCard key={block.id} block={block} />
             ))}
@@ -400,7 +400,7 @@ function LadderPlanner({ defaultRate }: { defaultRate: number }) {
 
           <LadderTimeline plan={plan} />
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 tablet:grid-cols-3">
             {plan.benefits.map((benefit) => (
               <div
                 key={benefit}
@@ -481,7 +481,7 @@ export default function InsightsScreen() {
       description="A dedicated workspace for calculator assumptions, maturity visualization, and laddering strategy."
       actions={
         user ? (
-          <Button variant="outline" onClick={() => void loadInsights()}>
+          <Button variant="outline" onClick={() => void loadInsights()} className="w-full tablet:w-auto">
             <RefreshCcw className="h-4 w-4" />
             Refresh
           </Button>
@@ -494,7 +494,7 @@ export default function InsightsScreen() {
       >
         {loading ? (
           <div className="grid gap-5">
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-4 tablet:grid-cols-2 laptop:grid-cols-5">
               {Array.from({ length: 5 }).map((_, index) => (
                 <Card key={index} className="h-32 animate-pulse bg-panel-glass p-5 shadow-sm">
                   <div className="h-full rounded-[var(--radius-panel)] bg-inner-panel/60" />
@@ -516,7 +516,7 @@ export default function InsightsScreen() {
               </Card>
             ) : null}
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-4 tablet:grid-cols-2 laptop:grid-cols-5">
               <SummaryCard
                 icon={Banknote}
                 label="Total FD Value"
@@ -556,7 +556,7 @@ export default function InsightsScreen() {
               <EmptyAnalyticsState />
             )}
 
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+            <div className="grid gap-6 laptop:grid-cols-[minmax(0,1fr)_420px]">
               <LadderPlanner defaultRate={defaultRate} />
               <div className="grid gap-5 content-start">
                 <FDCalculatorCard
