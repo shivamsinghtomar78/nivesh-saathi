@@ -185,6 +185,7 @@ export function useVoiceInput(options: VoiceHookOptions) {
 
     if (Recognition) {
       const recognition = new Recognition();
+      let recognitionErrored = false;
       recognition.lang = LANGUAGE_META[language].speechRecognition;
       recognition.continuous = false;
       recognition.interimResults = true;
@@ -200,6 +201,7 @@ export function useVoiceInput(options: VoiceHookOptions) {
         }
       };
       recognition.onerror = (event) => {
+        recognitionErrored = true;
         setError(
           event.error === "not-allowed" || event.error === "service-not-allowed"
             ? "Microphone blocked. Allow mic access in your browser, or continue in chat."
@@ -208,11 +210,15 @@ export function useVoiceInput(options: VoiceHookOptions) {
         setStatus("error");
       };
       recognition.onend = () => {
+        if (recognitionErrored) return;
         const finalTranscript = transcriptRef.current.trim();
-        setStatus("idle");
         if (finalTranscript) {
+          setStatus("idle");
           onTranscript?.(finalTranscript);
+          return;
         }
+        setError("No speech was detected. Please try again.");
+        setStatus("error");
       };
 
       recognitionRef.current = recognition;

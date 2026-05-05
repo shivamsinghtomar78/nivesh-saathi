@@ -72,6 +72,8 @@ const initialMessages = (language: AppLanguage): ChatMessage[] => [
     content:
       language === "hi"
         ? "Namaste. Main Nivesh Saathi hoon. FD rates, safety, maturity aur plain-language explainers ke liye poochhiye."
+        : language === "hinglish"
+          ? "Namaste. Main Nivesh Saathi hoon. FD rates, safety, maturity aur booking ke liye poochhiye."
         : language === "ta"
           ? "Vanakkam. Naan Nivesh Saathi. FD rates, safety, maturity matrum simple explainers kaaga kelunga."
           : language === "bn"

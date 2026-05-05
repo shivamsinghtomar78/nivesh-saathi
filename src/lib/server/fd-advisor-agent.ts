@@ -62,7 +62,7 @@ const narrativeSchema = z.object({
 
 const agentState = new StateSchema({
   messages: MessagesValue,
-  language: z.enum(["en", "hi", "ta", "bn"]).optional(),
+  language: z.enum(["en", "hi", "hinglish", "ta", "bn"]).optional(),
   mode: z.enum(["chat", "voice"]).optional(),
   requestedAmount: z.number().optional(),
   requestedTenorMonths: z.number().optional(),
@@ -267,6 +267,9 @@ function getClarificationChips(language: AppLanguage) {
   if (language === "hi") {
     return ["1 saal ke liye best FD", "Sabse safe bank", "Rs 5 lakh ka split plan"];
   }
+  if (language === "hinglish") {
+    return ["1 saal ke liye best FD", "Safest bank", "Rs 5 lakh split plan"];
+  }
   if (language === "ta") {
     return ["Best 1 year FD", "Safest bank", "Rs 5 lakh split plan"];
   }
@@ -387,7 +390,7 @@ const assembleResponseNode = withTracing(async function assembleResponseNode(sta
  */
 function generateSuggestedChips(response: AdvisorResponse, language: AppLanguage): string[] {
   const chips: string[] = [];
-  const isHindi = language === "hi";
+  const isHindi = language === "hi" || language === "hinglish";
 
   if (response.rateCards.length > 0) {
     chips.push(
@@ -426,6 +429,9 @@ function shouldShowTimeMachine(message: string) {
 
 function getClarificationPrompt(language: AppLanguage) {
   if (language === "hi") {
+    return "Goal choose kijiye: highest return, safest bank, ya amount-tenure based recommendation.";
+  }
+  if (language === "hinglish") {
     return "Goal choose kijiye: highest return, safest bank, ya amount-tenure based recommendation.";
   }
   if (language === "ta") {
@@ -516,7 +522,7 @@ function detectModeSwitchSuggestion(
   if (currentMode === "voice" && response.rateCards.length > 1) {
     return {
       targetMode: "chat",
-      reason: language === "hi"
+      reason: language === "hi" || language === "hinglish"
         ? "Rates compare karne ke liye chat mode better rahega — table dikhega."
         : "This comparison has detailed data — switch to chat to see the full table.",
     };
@@ -531,7 +537,7 @@ function detectModeSwitchSuggestion(
   ) {
     return {
       targetMode: "voice",
-      reason: language === "hi"
+      reason: language === "hi" || language === "hinglish"
         ? "Is tarah ke sawaalon ke liye voice mode try kijiye — zyada natural lagega."
         : "For quick questions like this, try voice mode — it feels more natural.",
     };
@@ -595,12 +601,13 @@ const narrateNode = withTracing(async function narrateNode(state: typeof agentSt
 
   let languagePrompt = "If language is en, answer in English only.";
   if (language === "hi") languagePrompt = "You MUST answer entirely in conversational Hindi.";
+  if (language === "hinglish") languagePrompt = "You MUST answer in natural Hinglish: simple English financial words with Hindi sentence flow, written in Latin script.";
   if (language === "ta") languagePrompt = "You MUST answer entirely in conversational Tamil.";
   if (language === "bn") languagePrompt = "You MUST answer entirely in conversational Bengali.";
 
   // P0: Response length adaptation — voice gets concise, chat gets rich
   const modeInstruction = mode === "voice"
-    ? "IMPORTANT: This response will be SPOKEN ALOUD. Keep it under 3 sentences maximum. Use simple, conversational phrasing. Do NOT use bullet points, headings, or structured formatting. Speak as if talking to a friend. If there are multiple rate cards, mention only the top 1-2."
+    ? "IMPORTANT: This response will be SPOKEN ALOUD. Keep it under 5 short sentences. Use simple, conversational phrasing. Do NOT use bullet points, headings, or structured formatting. Speak as if talking to a friend. If there are multiple rate cards, mention exactly the top 3 options with bank name, rate, tenure, maturity or return, and one safety note."
     : "Structure text with short labelled sections and hyphen bullets. You may be detailed.";
 
   const memoryContext = buildMemoryPromptContext(userMemory);
@@ -643,8 +650,8 @@ const narrateNode = withTracing(async function narrateNode(state: typeof agentSt
       
       const mentionedRates = parsed.text.match(/\b\d+\.\d{1,2}%\b/g);
       if (mentionedRates) {
-        const validRates = response.rateCards.map((c: any) => `${c.rateValue.toFixed(2)}%`);
-        const hasHallucination = mentionedRates.some((r: string) => !validRates.includes(r));
+        const validRates = response.rateCards.map((card) => `${card.rateValue.toFixed(2)}%`);
+        const hasHallucination = mentionedRates.some((rate) => !validRates.includes(rate));
         if (hasHallucination) {
           throw new Error("Hallucination fallback decision");
         }

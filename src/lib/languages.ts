@@ -11,6 +11,12 @@ export const LANGUAGE_META = {
     speechSynthesis: "hi-IN",
     deepgram: "hi",
   },
+  hinglish: {
+    label: "Hinglish",
+    speechRecognition: "hi-IN",
+    speechSynthesis: "hi-IN",
+    deepgram: "hi",
+  },
   bho: {
     label: "Bhojpuri",
     speechRecognition: "hi-IN",

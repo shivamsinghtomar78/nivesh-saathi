@@ -8,6 +8,8 @@ export const env = createEnv({
     OPENROUTER_API_KEY: z.string().min(1).optional(),
     OPENROUTER_MODEL: z.string().min(1).default("openrouter/free"),
     DEEPGRAM_API_KEY: z.string().min(1).optional(),
+    ELEVENLABS_API_KEY: z.string().min(1).optional(),
+    ELEVENLABS_VOICE_ID: z.string().min(1).optional(),
     UPSTASH_REDIS_REST_URL: z.string().url().optional(),
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
     FIREBASE_ADMIN_PROJECT_ID: z.string().min(1).optional(),

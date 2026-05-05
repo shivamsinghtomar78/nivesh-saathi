@@ -30,6 +30,28 @@ export type UserMemory = {
   lastUserMessage?: string;
   lastAssistantSummary?: string;
   interactionCount?: number;
+  languagePreference?: AppLanguage;
+  lastVoiceFlow?: {
+    status: "started" | "recommended" | "booking_started" | "kyc_handoff" | "completed";
+    updatedAt: string;
+    lastTranscript?: string;
+  };
+  bookingDraft?: {
+    draftId: string;
+    bankId: string;
+    bankName: string;
+    amount: number;
+    tenorMonths: number;
+    rate: string;
+    maturityAmount: number;
+    status: "draft" | "confirmed" | "kyc_handoff" | "completed";
+    updatedAt: string;
+  };
+  kycHandoffState?: {
+    status: "not_started" | "ready" | "handoff_shown" | "completed";
+    draftId?: string;
+    updatedAt: string;
+  };
   themePreference?: "light" | "dark" | "system";
   updatedAt: string;
 };
@@ -101,6 +123,10 @@ export function buildCompactMemorySummary(memory: Partial<UserMemory>) {
       : undefined,
     typeof memory.seniorCitizen === "boolean"
       ? `Senior citizen: ${memory.seniorCitizen ? "yes" : "no"}`
+      : undefined,
+    memory.languagePreference ? `Language: ${memory.languagePreference}` : undefined,
+    memory.bookingDraft
+      ? `Booking draft: ${memory.bookingDraft.bankName} ${memory.bookingDraft.rate} for ${formatCurrency(memory.bookingDraft.amount)}`
       : undefined,
     memory.lastRecommendedBanks?.[0]
       ? `Last top FD discussed: ${memory.lastRecommendedBanks[0].bankName}${
@@ -183,7 +209,7 @@ export function buildMemoryRecallLine(memory: UserMemory, language: AppLanguage)
     ? `${memory.preferredTenorMonths} months`
     : null;
 
-  if (language === "hi") {
+  if (language === "hi" || language === "hinglish") {
     return [
       "Welcome back.",
       amount || tenor
@@ -275,6 +301,10 @@ export function buildMemoryUpdateFromTurn(params: {
     lastUserMessage: trimText(userMessage, 280),
     lastAssistantSummary: trimText(assistantMessage, 420),
     interactionCount: (existingMemory?.interactionCount ?? 0) + 1,
+    languagePreference: params.language,
+    lastVoiceFlow: existingMemory?.lastVoiceFlow,
+    bookingDraft: existingMemory?.bookingDraft,
+    kycHandoffState: existingMemory?.kycHandoffState,
     themePreference: existingMemory?.themePreference,
     updatedAt: now,
   };

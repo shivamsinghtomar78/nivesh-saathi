@@ -50,6 +50,16 @@ const LOCALIZED_COPY: Record<
     safety:
       "Ek bank mein Rs 5 lakh tak ki deposit amount par aam taur par DICGC cover rehta hai.",
   },
+  hinglish: {
+    compareLabel: "Aur rates compare kijiye",
+    explainLabel: "Koi term samjhaiye",
+    officialLabel: "Bank ki official site",
+    followUp:
+      "Amount, tenure, ya safety concern batayiye; main options aur narrow kar dunga.",
+    noMatch: "Is filter ke liye current list mein matching FD nahi mili.",
+    safety:
+      "Ek bank mein Rs 5 lakh tak deposit par usually DICGC cover rehta hai.",
+  },
   ta: {
     compareLabel: "Innum rates compare pannunga",
     explainLabel: "Oru term-ai vilakkunga",
@@ -77,6 +87,38 @@ const BADGE_LABELS: Record<NonNullable<FDRate["badge"]>, string> = {
   popular: "Popular",
   "safe-choice": "Safe Choice",
 };
+
+function uniqueRatesById(rates: FDRate[]) {
+  const seen = new Set<string>();
+  return rates.filter((rate) => {
+    if (seen.has(rate.id)) return false;
+    seen.add(rate.id);
+    return true;
+  });
+}
+
+function buildBroadenedComparisonWarning(language: AppLanguage) {
+  if (language === "hi") {
+    return "तीन विकल्प दिखाने के लिए exact filter से बाहर भी matching FD rates शामिल किए गए हैं। बुकिंग से पहले bank eligibility verify करें।";
+  }
+  if (language === "hinglish") {
+    return "Teen options dikhane ke liye exact filter se bahar bhi matching FD rates include kiye gaye hain. Booking se pehle bank eligibility verify karein.";
+  }
+  return "To show three options, the comparison includes FD rates beyond the exact filter. Verify eligibility with the bank before booking.";
+}
+
+function buildRateSourceWarning(rateCards: AdvisorRateCard[], language: AppLanguage) {
+  const topCard = rateCards[0];
+  if (!topCard) return null;
+
+  if (language === "hi") {
+    return `रेट ${topCard.sourceLabel} से ${topCard.asOf} तक के हैं। बुकिंग से पहले official bank page पर final rate verify करें।`;
+  }
+  if (language === "hinglish") {
+    return `Rates ${topCard.sourceLabel} se ${topCard.asOf} tak ke hain. Booking se pehle official bank page par final rate verify karein.`;
+  }
+  return `Rates are from ${topCard.sourceLabel} as of ${topCard.asOf}. Verify the final rate on the official bank page before booking.`;
+}
 
 function withRuntimeRateDefaults(rate: FDRate): FDRate {
   return {
@@ -168,7 +210,7 @@ export function formatTenorLabel(months: number, language: AppLanguage) {
   const years = months / 12;
 
   if (months < 12) {
-    if (language === "hi") {
+    if (language === "hi" || language === "hinglish") {
       return `${months} mahine`;
     }
     if (language === "ta") {
@@ -181,7 +223,7 @@ export function formatTenorLabel(months: number, language: AppLanguage) {
   }
 
   if (Number.isInteger(years)) {
-    if (language === "hi") {
+    if (language === "hi" || language === "hinglish") {
       return `${years} saal`;
     }
     if (language === "ta") {
@@ -216,7 +258,7 @@ export function createAdvisorRateCard(params: {
     bankId: rate.id,
     bankName: rate.bankName,
     bankNameLocal:
-      language === "hi" && rate.bankNameHi ? rate.bankNameHi : rate.bankName,
+      (language === "hi" || language === "hinglish") && rate.bankNameHi ? rate.bankNameHi : rate.bankName,
     bankType: rate.bankType,
     rate: `${applicableRate.toFixed(2)}% p.a.`,
     rateValue: applicableRate,
@@ -289,7 +331,7 @@ export function buildFallbackText(params: {
     return LOCALIZED_COPY[language].noMatch;
   }
 
-  if (language === "hi") {
+  if (language === "hi" || language === "hinglish") {
     return `Summary:
 - ${topCard.bankName} ${formatTenorLabel(
       tenorMonths,
@@ -479,10 +521,37 @@ export async function buildDeterministicAdvisorResponse(params: {
     bankType,
   });
   const preferredBankSet = new Set(preferredBankIds ?? []);
-  const candidateRates =
+  let candidateRates =
     preferredBankSet.size > 0
       ? rates.filter((rate) => preferredBankSet.has(rate.id))
       : rates;
+  let broadenedComparison = false;
+
+  if (candidateRates.length < 3) {
+    const broadenedRates = await getFDRates({
+      amount,
+      tenorMonths,
+      seniorCitizen,
+    });
+    candidateRates = uniqueRatesById([...candidateRates, ...broadenedRates]);
+    broadenedComparison = candidateRates.length >= 3;
+  }
+
+  if (candidateRates.length < 3) {
+    const broadenedRates = await getFDRates({
+      tenorMonths,
+      seniorCitizen,
+    });
+    candidateRates = uniqueRatesById([...candidateRates, ...broadenedRates]);
+    broadenedComparison = candidateRates.length >= 3;
+  }
+
+  if (candidateRates.length < 3) {
+    const broadenedRates = await getFDRates({ seniorCitizen });
+    candidateRates = uniqueRatesById([...candidateRates, ...broadenedRates]);
+    broadenedComparison = candidateRates.length >= 3;
+  }
+
   const topRates = candidateRates.slice(0, 3);
 
   const rateCards = topRates.map((rate, index) => {
@@ -514,6 +583,12 @@ export async function buildDeterministicAdvisorResponse(params: {
     seniorCitizen,
   });
 
+  const warnings = [
+    rateCards.length === 0 ? LOCALIZED_COPY[language].noMatch : null,
+    broadenedComparison ? buildBroadenedComparisonWarning(language) : null,
+    buildRateSourceWarning(rateCards, language),
+  ].filter((warning): warning is string => Boolean(warning));
+
   const response: AdvisorResponse = {
     text: buildFallbackText({ language, amount, tenorMonths, rateCards }),
     rateCards,
@@ -524,7 +599,7 @@ export async function buildDeterministicAdvisorResponse(params: {
     }),
     glossary,
     followUpPrompt: LOCALIZED_COPY[language].followUp,
-    warnings: rateCards.length === 0 ? [LOCALIZED_COPY[language].noMatch] : [],
+    warnings,
     tone: rateCards.length === 0 ? "cautionary" : "informative",
     suggestedChips: [],
     portfolioSplit,

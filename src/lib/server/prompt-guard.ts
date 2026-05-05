@@ -52,8 +52,8 @@ export function assessPromptRisk(message: string): PromptGuardResult {
   };
 }
 
-export function buildBlockedPromptResponse(language: "en" | "hi" | "ta" | "bn") {
-  if (language === "hi") {
+export function buildBlockedPromptResponse(language: "en" | "hi" | "hinglish" | "ta" | "bn") {
+  if (language === "hi" || language === "hinglish") {
     return "Main sirf FD, suraksha, return aur jargon samjhane mein madad kar sakta hoon. Kripya apna nivesh sawal seedhe tarike se poochhiye.";
   }
 

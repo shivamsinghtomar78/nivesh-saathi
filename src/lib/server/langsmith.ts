@@ -1,6 +1,5 @@
 import { hasLangSmithConfig, serverEnv } from "./env";
 import { traceable } from "langsmith/traceable";
-import { RunTreeConfig } from "langsmith/run_trees";
 
 // Set default project if not provided
 if (!process.env.LANGSMITH_PROJECT && !process.env.LANGCHAIN_PROJECT) {
@@ -27,7 +26,7 @@ export function redactSensitiveData(text: string): string {
   return redacted;
 }
 
-export function redactObject(obj: any): any {
+export function redactObject(obj: unknown): unknown {
   if (process.env.NODE_ENV !== "production") return obj;
   if (obj === null || obj === undefined) return obj;
   if (typeof obj === "string") return redactSensitiveData(obj);
@@ -35,7 +34,7 @@ export function redactObject(obj: any): any {
     return obj.map(item => redactObject(item));
   }
   if (typeof obj === "object") {
-    const redactedObj: any = {};
+    const redactedObj: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       redactedObj[key] = redactObject(value);
     }
@@ -51,10 +50,19 @@ export interface TracingMetadata {
   requestId?: string;
   feature?: string;
   mode?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-export function withTracing<Func extends (...args: any[]) => any>(
+type TraceableFunction = (...args: never[]) => unknown;
+
+function toTraceMap(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return { value };
+}
+
+export function withTracing<Func extends TraceableFunction>(
   fn: Func,
   options: {
     name: string;
@@ -73,11 +81,13 @@ export function withTracing<Func extends (...args: any[]) => any>(
       ...options.metadata,
       timestamp: new Date().toISOString(),
     },
-    processInputs: (inputs: any) => {
-      return process.env.NODE_ENV === "production" ? redactObject(inputs) : inputs;
+    processInputs: (inputs) => {
+      const value = process.env.NODE_ENV === "production" ? redactObject(inputs) : inputs;
+      return toTraceMap(value);
     },
-    processOutputs: (outputs: any) => {
-      return process.env.NODE_ENV === "production" ? redactObject(outputs) : outputs;
+    processOutputs: (outputs) => {
+      const value = process.env.NODE_ENV === "production" ? redactObject(outputs) : outputs;
+      return toTraceMap(value);
     }
-  });
+  }) as Func;
 }

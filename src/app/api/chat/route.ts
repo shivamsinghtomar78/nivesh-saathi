@@ -1,4 +1,4 @@
-import { chatRequestSchema } from "@/lib/server/advisor-schemas";
+import { chatRequestSchema, type AdvisorRateCard } from "@/lib/server/advisor-schemas";
 import { jsonError, jsonSuccess, getRequestIp, handleRouteError } from "@/lib/server/api";
 import { invokeFdAdvisor } from "@/lib/server/fd-advisor-agent";
 import {
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     };
     const requestId = input.requestId || crypto.randomUUID();
 
-    const processChatRequest = withTracing(async (authInput: any) => {
+    const processChatRequest = withTracing(async (authInput: typeof authenticatedInput) => {
       const promptRisk = assessPromptRisk(authInput.message);
 
       if (promptRisk.blocked) {
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
             actions: [
               {
                 label:
-                  authInput.language === "hi"
+                  authInput.language === "hi" || authInput.language === "hinglish"
                     ? "Rates compare kijiye"
                     : "Compare rates",
                 type: "primary",
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
         language: authInput.language,
         userMessage: promptRisk.normalizedMessage,
         assistantMessage: result.response.text,
-        fdContextIds: result.response.rateCards.map((card: any) => card.bankId),
+        fdContextIds: result.response.rateCards.map((card: AdvisorRateCard) => card.bankId),
       });
 
       return result;

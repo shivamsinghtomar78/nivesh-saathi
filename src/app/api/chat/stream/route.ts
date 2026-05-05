@@ -118,7 +118,7 @@ export async function POST(request: Request) {
             type: "meta",
             threadId: authenticatedInput.threadId ?? crypto.randomUUID(),
             rateCards: [],
-            actions: [{ label: authenticatedInput.language === "hi" ? "Rates compare kijiye" : "Compare rates", type: "primary", action: "open_compare", url: ROUTES.COMPARE }],
+            actions: [{ label: authenticatedInput.language === "hi" || authenticatedInput.language === "hinglish" ? "Rates compare kijiye" : "Compare rates", type: "primary", action: "open_compare", url: ROUTES.COMPARE }],
             glossary: [],
             warnings: ["Guarded prompt rejected"],
             tone: "cautionary",

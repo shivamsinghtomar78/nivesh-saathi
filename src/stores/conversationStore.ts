@@ -1,17 +1,17 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 import type { AppLanguage } from "@/lib/server/advisor-schemas";
 
 /**
  * Shared Conversation Store — Context Engine
- * 
- * This store acts as the unified context layer between Chat and Voice modes.
- * Both interfaces read/write from here so context carries across modes seamlessly.
- * 
- * Implements: P0 — Shared context between chat and voice sessions
+ *
+ * ChatGPT-like behavior:
+ * - NO persist middleware → state resets on reload
+ * - Empty chat on app open (no auto-restore)
+ * - User must explicitly select a past chat from history sidebar
+ * - Conversations list is fetched on demand
  */
 
 const MAX_MESSAGES = 50;
@@ -86,27 +86,60 @@ export interface ConversationMessage {
   showTimeMachine?: boolean;
 }
 
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  lastMessage: string;
+  updatedAt: string;
+  messageCount: number;
+  isArchived: boolean;
+}
+
 interface ConversationState {
+  // Active chat session
   messages: ConversationMessage[];
   language: AppLanguage;
   threadId: string | null;
+  /** The new-model conversationId (separate from legacy threadId) */
+  activeConversationId: string | null;
   activeMode: ConversationMode;
   isTyping: boolean;
   /** Immediate acknowledgment text shown in voice mode */
   voiceAcknowledgment: string | null;
 
-  // Actions
+  // Sidebar / history
+  conversations: ConversationSummary[];
+  conversationsLoading: boolean;
+  sidebarOpen: boolean;
+
+  // Actions — active chat
   addMessage: (msg: ConversationMessage) => void;
   setMessages: (messages: ConversationMessage[]) => void;
   updateMessage: (id: string, updates: Partial<ConversationMessage>) => void;
   setLanguage: (lang: AppLanguage) => void;
   setThreadId: (threadId: string | null) => void;
+  setActiveConversationId: (id: string | null) => void;
   setActiveMode: (mode: ConversationMode) => void;
   setTyping: (typing: boolean) => void;
   setVoiceAcknowledgment: (text: string | null) => void;
   clearMessages: () => void;
   markLastFailed: () => void;
   retryLastMessage: () => ConversationMessage | null;
+
+  // Actions — sidebar / history
+  setConversations: (conversations: ConversationSummary[]) => void;
+  setConversationsLoading: (loading: boolean) => void;
+  setSidebarOpen: (open: boolean) => void;
+  removeConversation: (id: string) => void;
+
+  /** Start a fresh empty chat (like clicking "New Chat" in ChatGPT) */
+  startNewChat: () => void;
+
+  /** Load a past conversation into the active chat area */
+  loadConversation: (
+    conversationId: string,
+    messages: ConversationMessage[]
+  ) => void;
 }
 
 const initialMessages = (language: AppLanguage): ConversationMessage[] => [
@@ -116,6 +149,8 @@ const initialMessages = (language: AppLanguage): ConversationMessage[] => [
     content:
       language === "hi"
         ? "Namaste. Main Nivesh Saathi hoon. FD rates, safety, maturity aur plain-language explainers ke liye poochhiye."
+        : language === "hinglish"
+          ? "Namaste. Main Nivesh Saathi hoon. FD rates, safety, maturity aur booking ke next steps ke liye bolkar poochhiye."
         : language === "ta"
           ? "Vanakkam. Naan Nivesh Saathi. FD rates, safety, maturity matrum simple explainers kaaga kelunga."
           : language === "bn"
@@ -126,15 +161,6 @@ const initialMessages = (language: AppLanguage): ConversationMessage[] => [
     source: "chat",
   },
 ];
-
-function getInitialState() {
-  return {
-    messages: initialMessages("en"),
-    language: "en" as AppLanguage,
-    threadId: null,
-    activeMode: "chat" as ConversationMode,
-  };
-}
 
 /**
  * Detects whether a response contains data-heavy content (tables, comparisons)
@@ -155,21 +181,21 @@ export function generateSmartChips(msg: ConversationMessage, language: AppLangua
 
   if (msg.rateCards && msg.rateCards.length > 0) {
     chips.push(
-      language === "hi" ? "Kaunsa bank best hai?" : "Which bank is best?",
-      language === "hi" ? "Senior citizen rate batao" : "Show senior citizen rates",
+      language === "hi" || language === "hinglish" ? "Kaunsa bank best hai?" : "Which bank is best?",
+      language === "hi" || language === "hinglish" ? "Senior citizen rate batao" : "Show senior citizen rates",
     );
   }
 
   if (msg.glossary && msg.glossary.length > 0) {
     chips.push(
-      language === "hi" ? "Aur example dijiye" : "Give me more examples",
+      language === "hi" || language === "hinglish" ? "Aur example dijiye" : "Give me more examples",
     );
   }
 
   if (msg.content.toLowerCase().includes("fd") || msg.content.toLowerCase().includes("fixed deposit")) {
     chips.push(
-      language === "hi" ? "Kya small finance bank safe hai?" : "Is small finance bank safe?",
-      language === "hi" ? "Maturity amount batao" : "Calculate maturity amount",
+      language === "hi" || language === "hinglish" ? "Kya small finance bank safe hai?" : "Is small finance bank safe?",
+      language === "hi" || language === "hinglish" ? "Maturity amount batao" : "Calculate maturity amount",
     );
   }
 
@@ -178,86 +204,126 @@ export function generateSmartChips(msg: ConversationMessage, language: AppLangua
 }
 
 export const useConversationStore = create<ConversationState>()(
-  persist(
-    (set, get) => ({
-      messages: initialMessages("en"),
-      language: "en",
-      threadId: null,
-      activeMode: "chat",
-      isTyping: false,
-      voiceAcknowledgment: null,
+  (set, get) => ({
+    // ── Initial state: empty chat (ChatGPT-like) ──
+    messages: initialMessages("en"),
+    language: "en",
+    threadId: null,
+    activeConversationId: null,
+    activeMode: "chat",
+    isTyping: false,
+    voiceAcknowledgment: null,
 
-      addMessage: (msg) =>
-        set((state) => {
-          const updated = [...state.messages, msg];
-          if (updated.length > MAX_MESSAGES) {
-            return { messages: updated.slice(updated.length - MAX_MESSAGES) };
-          }
-          return { messages: updated };
-        }),
+    // Sidebar
+    conversations: [],
+    conversationsLoading: false,
+    sidebarOpen: false,
 
-      setMessages: (messages) => set({ messages }),
+    // ── Active chat actions ──
+    addMessage: (msg) =>
+      set((state) => {
+        const updated = [...state.messages, msg];
+        if (updated.length > MAX_MESSAGES) {
+          return { messages: updated.slice(updated.length - MAX_MESSAGES) };
+        }
+        return { messages: updated };
+      }),
 
-      updateMessage: (id, updates) =>
-        set((state) => ({
-          messages: state.messages.map((m) =>
-            m.id === id ? { ...m, ...updates } : m
-          ),
-        })),
+    setMessages: (messages) => set({ messages }),
 
-      setLanguage: (lang) =>
-        set((state) => ({
-          language: lang,
-          messages:
-            state.messages.length <= 1 ? initialMessages(lang) : state.messages,
-        })),
+    updateMessage: (id, updates) =>
+      set((state) => ({
+        messages: state.messages.map((m) =>
+          m.id === id ? { ...m, ...updates } : m
+        ),
+      })),
 
-      setThreadId: (threadId) => set({ threadId }),
-      setActiveMode: (mode) => set({ activeMode: mode }),
-      setTyping: (typing) => set({ isTyping: typing }),
-      setVoiceAcknowledgment: (text) => set({ voiceAcknowledgment: text }),
+    setLanguage: (lang) =>
+      set((state) => ({
+        language: lang,
+        messages:
+          state.messages.length <= 1 ? initialMessages(lang) : state.messages,
+      })),
 
-      clearMessages: () => {
-        const language = get().language;
-        set({ messages: initialMessages(language), threadId: null });
-      },
+    setThreadId: (threadId) => set({ threadId }),
+    setActiveConversationId: (id) => set({ activeConversationId: id }),
+    setActiveMode: (mode) => set({ activeMode: mode }),
+    setTyping: (typing) => set({ isTyping: typing }),
+    setVoiceAcknowledgment: (text) => set({ voiceAcknowledgment: text }),
 
-      markLastFailed: () =>
-        set((state) => {
-          const msgs = [...state.messages];
-          for (let i = msgs.length - 1; i >= 0; i--) {
-            if (msgs[i].role === "user") {
-              msgs[i] = { ...msgs[i], failed: true };
-              break;
-            }
-          }
-          return { messages: msgs };
-        }),
+    clearMessages: () => {
+      const language = get().language;
+      set({
+        messages: initialMessages(language),
+        threadId: null,
+        activeConversationId: null,
+      });
+    },
 
-      retryLastMessage: () => {
-        const state = get();
+    markLastFailed: () =>
+      set((state) => {
         const msgs = [...state.messages];
         for (let i = msgs.length - 1; i >= 0; i--) {
-          if (msgs[i].role === "user" && msgs[i].failed) {
-            const msg = msgs[i];
-            msgs.splice(i, 1);
-            set({ messages: msgs });
-            return msg;
+          if (msgs[i].role === "user") {
+            msgs[i] = { ...msgs[i], failed: true };
+            break;
           }
         }
-        return null;
-      },
-    }),
-    {
-      name: "nivesh-conversation",
-      version: 3,
-      partialize: (state) => ({
-        messages: state.messages,
-        language: state.language,
-        threadId: state.threadId,
-        activeMode: state.activeMode,
+        return { messages: msgs };
       }),
-      migrate: () => getInitialState(),
-    }
-  )
+
+    retryLastMessage: () => {
+      const state = get();
+      const msgs = [...state.messages];
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        if (msgs[i].role === "user" && msgs[i].failed) {
+          const msg = msgs[i];
+          msgs.splice(i, 1);
+          set({ messages: msgs });
+          return msg;
+        }
+      }
+      return null;
+    },
+
+    // ── Sidebar / history actions ──
+    setConversations: (conversations) => set({ conversations }),
+    setConversationsLoading: (loading) =>
+      set({ conversationsLoading: loading }),
+    setSidebarOpen: (open) => set({ sidebarOpen: open }),
+
+    removeConversation: (id) =>
+      set((state) => ({
+        conversations: state.conversations.filter((c) => c.id !== id),
+        // If the removed conversation was active, reset to empty chat
+        ...(state.activeConversationId === id
+          ? {
+              activeConversationId: null,
+              threadId: null,
+              messages: initialMessages(state.language),
+            }
+          : {}),
+      })),
+
+    startNewChat: () => {
+      const language = get().language;
+      set({
+        messages: initialMessages(language),
+        threadId: null,
+        activeConversationId: null,
+        isTyping: false,
+        voiceAcknowledgment: null,
+      });
+    },
+
+    loadConversation: (conversationId, messages) => {
+      set({
+        activeConversationId: conversationId,
+        threadId: conversationId,
+        messages,
+        isTyping: false,
+        voiceAcknowledgment: null,
+      });
+    },
+  })
 );

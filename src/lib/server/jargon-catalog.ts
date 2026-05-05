@@ -1,6 +1,8 @@
 import type { AppLanguage, GlossaryItem } from "@/lib/server/advisor-schemas";
 
-type LocalizedText = Record<AppLanguage, string>;
+type LocalizedText = Record<Exclude<AppLanguage, "hinglish">, string> & {
+  hinglish?: string;
+};
 
 type JargonEntry = {
   id: string;
@@ -204,9 +206,9 @@ export function localizeJargonEntry(
 
   return {
     termId: entry.id,
-    term: entry.term[language],
-    plain: entry.plain[language],
-    example: entry.example[language],
+    term: entry.term[language] ?? entry.term.hi ?? entry.term.en,
+    plain: entry.plain[language] ?? entry.plain.hi ?? entry.plain.en,
+    example: entry.example[language] ?? entry.example.hi ?? entry.example.en,
   };
 }
 

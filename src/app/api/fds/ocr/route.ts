@@ -13,7 +13,6 @@ import {
 import { serverEnv } from "@/lib/server/env";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { withTracing } from "@/lib/server/langsmith";
-import { getCurrentRunTree } from "langsmith/traceable";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

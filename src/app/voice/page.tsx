@@ -1,7 +1,6 @@
-import { redirect } from "next/navigation";
-
-import { ROUTES } from "@/lib/routes";
+import VoiceScreen from "@/components/app/VoiceScreen";
 
 export default function VoicePage() {
-  redirect(ROUTES.CHAT);
+  return <VoiceScreen />;
 }
+

@@ -3,6 +3,7 @@ import type { AppLanguage } from "@/lib/server/advisor-schemas";
 export const LANGUAGE_LABELS: Record<AppLanguage, string> = {
   en: "English",
   hi: "Hindi",
+  hinglish: "Hinglish",
   ta: "Tamil",
   bn: "Bengali",
 };
@@ -121,6 +122,44 @@ export const APP_COPY: Record<
     voice: {
       title: "Saathi Advisor",
       subtitle: "Ek hi secure conversation mein type ya mic se poochhiye.",
+      send: "Send",
+    },
+  },
+  hinglish: {
+    tagline: "Aapka trusted FD guide",
+    nav: {
+      home: "Home",
+      compare: "Compare",
+      fds: "Dashboard",
+      insights: "Insights",
+      chat: "Chat",
+      voice: "Voice",
+      login: "Sign in",
+      logout: "Sign out",
+      profile: "Profile",
+    },
+    auth: {
+      title: "Apni shortlist safe rakhiye",
+      subtitle: "Sign in karke rates save kijiye aur baad mein continue kijiye.",
+      phoneLabel: "Phone number",
+      sendOtp: "OTP bhejiye",
+      otpLabel: "OTP",
+      verifyOtp: "OTP verify kijiye",
+      signOut: "Sign out",
+    },
+    compare: {
+      title: "FD options clearly compare kijiye",
+      subtitle: "Filter kijiye, shortlist banaiye, phir Saathi se simple advice lijiye.",
+      shortlist: "Shortlist",
+      askSaathi: "Saathi se poochhiye",
+      emptyTitle: "Is filter ke liye rate nahi mila",
+      emptyBody: "Amount, tenure, ya bank type change karke dekhiye.",
+      stickyTitle: "Shortlist ko Saathi ke saath compare karna hai?",
+      stickyCta: "Chat kholo",
+    },
+    voice: {
+      title: "Saathi Voice Call",
+      subtitle: "English, Hindi ya Hinglish mein bolkar FD compare aur book kijiye.",
       send: "Send",
     },
   },

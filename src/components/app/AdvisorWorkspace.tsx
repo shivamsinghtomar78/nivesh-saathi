@@ -8,6 +8,7 @@ import {
   History,
   ListChecks,
   MessageCircleMore,
+  PanelLeft,
   Mic,
   MoreHorizontal,
   RotateCcw,
@@ -51,6 +52,11 @@ const SAMPLE_PROMPTS: Record<AppLanguage, string[]> = {
     "Small finance bank FD surakshit hai kya",
     "Rs 500000 ka 2 saal maturity calculate kijiye",
   ],
+  hinglish: [
+    "1 lakh ke liye 12 month FD best kaunsi hai",
+    "Small finance bank FD safe hai kya",
+    "5 lakh ka 2 year maturity calculate karo",
+  ],
   ta: [
     "Rs 100000-kku 12 month FD best edhu",
     "Small finance bank FD safe-aa",
@@ -66,6 +72,7 @@ const SAMPLE_PROMPTS: Record<AppLanguage, string[]> = {
 const ACKNOWLEDGMENTS: Record<AppLanguage, string[]> = {
   en: ["Let me check that for you.", "Looking into it.", "One moment."],
   hi: ["Dekhta hoon.", "Ek minute.", "Dhundh raha hoon."],
+  hinglish: ["Dekhta hoon.", "Ek minute.", "Options check kar raha hoon."],
   ta: ["Paarkkiren.", "Oru nimidam.", "Check pannuren."],
   bn: ["Dekhchi.", "Ek moment.", "Khujchi."],
 };
@@ -168,7 +175,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const threadId = useConversationStore((state) => state.threadId);
   const isTyping = useConversationStore((state) => state.isTyping);
   const addMessage = useConversationStore((state) => state.addMessage);
-  const clearMessages = useConversationStore((state) => state.clearMessages);
   const markLastFailed = useConversationStore((state) => state.markLastFailed);
   const retryLastMessage = useConversationStore((state) => state.retryLastMessage);
   const setActiveMode = useConversationStore((state) => state.setActiveMode);
@@ -176,6 +182,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const setTyping = useConversationStore((state) => state.setTyping);
   const setVoiceAcknowledgment = useConversationStore((state) => state.setVoiceAcknowledgment);
   const updateMessage = useConversationStore((state) => state.updateMessage);
+  const startNewChat = useConversationStore((state) => state.startNewChat);
   const voiceAcknowledgment = useConversationStore((state) => state.voiceAcknowledgment);
   const latestLadderPlan = useLadderStore((state) => state.latestPlan);
   const shortlist = useCompareStore((state) => state.shortlist);
@@ -529,8 +536,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
 
   const resetConversation = () => {
     cancelSpeech();
-    clearMessages();
-    setThreadId(null);
+    startNewChat();
     setShowMenu(false);
   };
 
@@ -562,6 +568,14 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                 <div className="mx-auto flex min-h-full w-full max-w-[900px] flex-col px-3 pb-6 pt-4 tablet:px-5 tablet:pt-6 laptop:px-8">
                   <header className="sticky top-0 z-20 -mx-3 mb-5 flex flex-wrap items-center justify-between gap-3 bg-[#0A0A0A]/95 px-3 pb-3 pt-3 backdrop-blur-xl tablet:-mx-5 tablet:mb-7 tablet:px-5 tablet:pb-4 laptop:-mx-8 laptop:px-8">
                     <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowHistory(true)}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#1F1F1F] bg-[#121212] text-[#9CA3AF] transition hover:border-accent/30 hover:text-accent"
+                        aria-label="Open chat history"
+                      >
+                        <PanelLeft className="h-4 w-4" />
+                      </button>
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#1F1F1F] bg-[#121212] text-accent">
                         <Sparkles className="h-4 w-4" />
                       </div>
