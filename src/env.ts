@@ -39,6 +39,10 @@ export const env = createEnv({
     LANGSMITH_SAMPLE_RATE: z.string().optional(),
     LANGSMITH_TRACING_BACKGROUND: z.string().optional(),
     LANGCHAIN_CALLBACKS_BACKGROUND: z.string().optional(),
+
+    // n8n webhook integration for voice agent
+    N8N_WEBHOOK_URL: z.string().url().optional(),
+    N8N_WEBHOOK_API_KEY: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
