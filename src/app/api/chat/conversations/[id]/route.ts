@@ -5,7 +5,11 @@ import {
   getRecentMessages,
   getMessages,
   deleteConversation,
+  hardDeleteConversation,
   archiveConversation,
+  markConversationRead,
+  restoreConversation,
+  updateConversationMetadata,
 } from "@/lib/server/chat-repository";
 
 export const runtime = "nodejs";
@@ -93,7 +97,12 @@ export async function DELETE(
 
     const { id: conversationId } = await params;
 
-    const deleted = await deleteConversation(conversationId, auth.session.uid);
+    const { searchParams } = new URL(request.url);
+    const hard = searchParams.get("hard") === "true";
+
+    const deleted = hard
+      ? await hardDeleteConversation(conversationId, auth.session.uid)
+      : await deleteConversation(conversationId, auth.session.uid);
     if (!deleted) {
       return jsonError("Conversation not found or already deleted", 404);
     }
@@ -105,7 +114,7 @@ export async function DELETE(
 }
 
 /**
- * PATCH /api/chat/conversations/[id] — Archive a conversation
+ * PATCH /api/chat/conversations/[id] — Rename, pin, archive, restore, tag, or mark read
  */
 export async function PATCH(
   request: Request,
@@ -127,6 +136,79 @@ export async function PATCH(
         return jsonError("Conversation not found", 404);
       }
       return jsonSuccess({ archived: true });
+    }
+
+    if (body?.action === "unarchive") {
+      const conversation = await updateConversationMetadata({
+        conversationId,
+        userId: auth.session.uid,
+        archived: false,
+      });
+      if (!conversation) return jsonError("Conversation not found", 404);
+      return jsonSuccess({ conversation });
+    }
+
+    if (body?.action === "restore") {
+      const restored = await restoreConversation(conversationId, auth.session.uid);
+      if (!restored) return jsonError("Conversation not found", 404);
+      return jsonSuccess({ restored: true });
+    }
+
+    if (body?.action === "rename") {
+      const title =
+        typeof body?.title === "string" ? body.title.trim() : "";
+      if (!title) return jsonError("Title is required", 400);
+      const conversation = await updateConversationMetadata({
+        conversationId,
+        userId: auth.session.uid,
+        title,
+      });
+      if (!conversation) return jsonError("Conversation not found", 404);
+      return jsonSuccess({ conversation });
+    }
+
+    if (body?.action === "pin" || body?.action === "unpin") {
+      const conversation = await updateConversationMetadata({
+        conversationId,
+        userId: auth.session.uid,
+        pinned: body.action === "pin",
+      });
+      if (!conversation) return jsonError("Conversation not found", 404);
+      return jsonSuccess({ conversation });
+    }
+
+    if (body?.action === "tags") {
+      const tags = Array.isArray(body?.tags)
+        ? body.tags.filter((tag: unknown): tag is string => typeof tag === "string")
+        : [];
+      const conversation = await updateConversationMetadata({
+        conversationId,
+        userId: auth.session.uid,
+        tags,
+      });
+      if (!conversation) return jsonError("Conversation not found", 404);
+      return jsonSuccess({ conversation });
+    }
+
+    if (body?.action === "summary") {
+      const summary =
+        typeof body?.summary === "string" ? body.summary.trim() : "";
+      const conversation = await updateConversationMetadata({
+        conversationId,
+        userId: auth.session.uid,
+        summary,
+      });
+      if (!conversation) return jsonError("Conversation not found", 404);
+      return jsonSuccess({ conversation });
+    }
+
+    if (body?.action === "mark_read") {
+      const marked = await markConversationRead({
+        conversationId,
+        userId: auth.session.uid,
+        messageId: typeof body?.messageId === "string" ? body.messageId : undefined,
+      });
+      return jsonSuccess({ marked });
     }
 
     return jsonError("Invalid action", 400);

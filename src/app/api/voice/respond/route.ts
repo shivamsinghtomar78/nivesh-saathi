@@ -1,5 +1,5 @@
 import { z } from "zod";
-
+import { withTracing } from "@/lib/server/langsmith";
 import type { AppLanguage } from "@/lib/server/advisor-schemas";
 import { appLanguageSchema } from "@/lib/server/advisor-schemas";
 import { getRequestIp, handleRouteError, jsonError } from "@/lib/server/api";
@@ -18,6 +18,12 @@ import {
 import { persistChatSessionTurn, persistFlaggedMessage } from "@/lib/server/persistence";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { logServerWarn } from "@/lib/server/telemetry";
+import {
+  recordVoiceTurn,
+  startVoiceSession,
+  trackAnalyticsEvent,
+  updateAssistantState,
+} from "@/lib/server/assistant-memory";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +34,7 @@ const voiceRespondSchema = z.object({
   language: appLanguageSchema.default("en"),
   conversationId: z.string().trim().optional(),
   threadId: z.string().trim().optional(),
+  voiceSessionId: z.string().trim().optional(),
   clientTurnId: z.string().trim().optional(),
   recentMessages: z
     .array(
@@ -71,8 +78,8 @@ function voiceSystemPrompt(language: AppLanguage) {
         ? "Hinglish"
         : language === "ta"
           ? "Tamil when needed, otherwise Hinglish/English"
-          : language === "bn"
-            ? "Bengali when needed, otherwise Hinglish/English"
+        : language === "te"
+          ? "Telugu when needed, otherwise Hinglish/English"
             : "English";
 
   return [
@@ -157,6 +164,7 @@ async function synthesizeChunk(params: {
 async function ensureVoiceConversation(input: {
   userId: string;
   transcript: string;
+  language: AppLanguage;
   requestedId?: string;
 }) {
   if (input.requestedId) {
@@ -170,6 +178,9 @@ async function ensureVoiceConversation(input: {
   const conversation = await createConversation({
     userId: input.userId,
     firstMessage: input.transcript,
+    language: input.language,
+    conversationType: "voice",
+    interactionMode: "voice",
   });
 
   return {
@@ -207,12 +218,26 @@ export async function POST(request: Request) {
     const conversation = await ensureVoiceConversation({
       userId: auth.session.uid,
       transcript: input.transcript,
+      language: input.language,
       requestedId,
     });
 
     if (!conversation.ok) return conversation.response;
 
     const conversationId = conversation.conversationId;
+    const voiceSession =
+      input.voiceSessionId
+        ? { sessionId: input.voiceSessionId }
+        : await startVoiceSession({
+            userId: auth.session.uid,
+            conversationId,
+            language: input.language,
+            metadata: {
+              clientTurnId: input.clientTurnId,
+              transport: "deepgram-elevenlabs-sse",
+            },
+          }).catch(() => null);
+    const voiceSessionId = voiceSession?.sessionId;
     const abortController = new AbortController();
     request.signal.addEventListener("abort", () => abortController.abort(), { once: true });
 
@@ -225,6 +250,7 @@ export async function POST(request: Request) {
             type: "meta",
             conversationId,
             threadId: conversationId,
+            voiceSessionId,
             clientTurnId: input.clientTurnId,
           });
           sse(controller, { type: "user", transcript: input.transcript });
@@ -232,10 +258,15 @@ export async function POST(request: Request) {
           await insertMessage({
             conversationId,
             userId: auth.session.uid,
-            role: "user",
-            content: input.transcript,
-            metadata: { source: "voice", clientTurnId: input.clientTurnId },
-          }).catch(() => null);
+              role: "user",
+              content: input.transcript,
+              type: "voice",
+              transcript: input.transcript,
+              detectedLanguage: input.language,
+              voiceSessionId,
+              clientTurnId: input.clientTurnId,
+              metadata: { source: "voice", clientTurnId: input.clientTurnId },
+            }).catch(() => null);
 
           const promptRisk = assessPromptRisk(input.transcript);
           if (promptRisk.blocked) {
@@ -259,24 +290,28 @@ export async function POST(request: Request) {
             });
             sse(controller, { type: audio.audioUrl ? "audio" : "audio_fallback", text: assistantText, ...audio });
           } else {
-            const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${serverEnv.GROQ_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: serverEnv.GROQ_MODEL,
-                messages: buildGroqMessages({
-                  ...input,
-                  transcript: promptRisk.normalizedMessage,
+            const generateGroqStream = withTracing(async () => {
+              return await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${serverEnv.GROQ_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: serverEnv.GROQ_MODEL,
+                  messages: buildGroqMessages({
+                    ...input,
+                    transcript: promptRisk.normalizedMessage,
+                  }),
+                  stream: true,
+                  temperature: 0.42,
+                  max_tokens: 220,
                 }),
-                stream: true,
-                temperature: 0.42,
-                max_tokens: 220,
-              }),
-              signal: abortController.signal,
-            });
+                signal: abortController.signal,
+              });
+            }, { name: "voice_llm_generation", run_type: "llm" });
+
+            const groqResponse = await generateGroqStream();
 
             if (!groqResponse.ok || !groqResponse.body) {
               const detail = await groqResponse.text().catch(() => "");
@@ -342,8 +377,30 @@ export async function POST(request: Request) {
               userId: auth.session.uid,
               role: "assistant",
               content: finalText,
+              type: "voice",
+              detectedLanguage: input.language,
+              voiceSessionId,
+              clientTurnId: input.clientTurnId,
+              model: { provider: "groq", name: serverEnv.GROQ_MODEL },
               metadata: { source: "voice", provider: "groq", model: serverEnv.GROQ_MODEL },
             }).catch(() => null);
+
+            if (voiceSessionId) {
+              void recordVoiceTurn({
+                sessionId: voiceSessionId,
+                userId: auth.session.uid,
+                conversationId,
+                clientTurnId: input.clientTurnId,
+                transcript: input.transcript,
+                finalTranscript: input.transcript,
+                aiResponse: finalText,
+                generatedSpeechText: finalText,
+                metadata: {
+                  provider: "groq",
+                  model: serverEnv.GROQ_MODEL,
+                },
+              }).catch(() => undefined);
+            }
 
             void persistChatSessionTurn({
               threadId: conversationId,
@@ -353,6 +410,27 @@ export async function POST(request: Request) {
               assistantMessage: finalText,
               fdContextIds: [],
             }).catch(() => undefined);
+            void Promise.all([
+              trackAnalyticsEvent({
+                userId: auth.session.uid,
+                conversationId,
+                voiceSessionId,
+                eventType: "voice_turn_completed",
+                source: "voice",
+                language: input.language,
+                metadata: {
+                  clientTurnId: input.clientTurnId,
+                  provider: "groq",
+                  model: serverEnv.GROQ_MODEL,
+                },
+              }),
+              updateAssistantState(auth.session.uid, {
+                activeConversationId: conversationId,
+                activeVoiceSessionId: voiceSessionId,
+                lastInteractionMode: "voice",
+                contextSummary: finalText.slice(0, 600),
+              }),
+            ]).catch(() => undefined);
           }
 
           sse(controller, {
@@ -360,6 +438,7 @@ export async function POST(request: Request) {
             reply: finalText,
             conversationId,
             threadId: conversationId,
+            voiceSessionId,
           });
         } catch (error) {
           if (!abortController.signal.aborted) {

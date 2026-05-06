@@ -1,4 +1,5 @@
 import type { AppLanguage } from "@/lib/server/advisor-schemas";
+import { withTracing } from "@/lib/server/langsmith";
 import {
   canFallbackToFirebase,
   readsFirebaseFirst,
@@ -19,6 +20,10 @@ import {
   upsertMongoUserProfile,
 } from "@/lib/server/mongo-repositories";
 import { logServerError, logServerInfo } from "@/lib/server/telemetry";
+import {
+  upsertAssistantMemory,
+  upsertUserPreferences,
+} from "@/lib/server/assistant-memory";
 import {
   buildCompactMemorySummary,
   sanitizeMemoryForFirestore,
@@ -498,7 +503,7 @@ export async function persistFlaggedMessage(input: {
   }
 }
 
-export async function getUserMemory(uid: string): Promise<UserMemory | null> {
+export const getUserMemory = withTracing(async function getUserMemory(uid: string): Promise<UserMemory | null> {
   if (!uid) return null;
 
   if (readsMongoFirst()) {
@@ -524,9 +529,9 @@ export async function getUserMemory(uid: string): Promise<UserMemory | null> {
     logFallback("user_memory_read_from_mongo_after_firebase_miss", { uid });
   }
   return mongoMemory;
-}
+}, { name: "mongodb_memory_retrieval", run_type: "retriever" });
 
-export async function updateUserMemory(uid: string, updates: Partial<UserMemory>) {
+export const updateUserMemory = withTracing(async function updateUserMemory(uid: string, updates: Partial<UserMemory>) {
   if (!uid) return;
 
   try {
@@ -557,13 +562,63 @@ export async function updateUserMemory(uid: string, updates: Partial<UserMemory>
     if (writesFirebase()) {
       await updateFirebaseUserMemory(uid, payload);
     }
+
+    void Promise.all([
+      upsertUserPreferences(uid, {
+        languagePreference: payload.languagePreference,
+        themePreference: payload.themePreference,
+        financialPreferences: {
+          investmentGoals: payload.investmentGoals,
+          amount: payload.amount,
+          preferredTenorMonths: payload.preferredTenorMonths,
+          riskTolerance: payload.riskTolerance,
+          bankTypePreference: payload.bankTypePreference,
+          pastBanksConsidered: payload.pastBanksConsidered,
+          seniorCitizen: payload.seniorCitizen,
+          lastRecommendedBanks: payload.lastRecommendedBanks,
+        },
+      }),
+      payload.compactSummary
+        ? upsertAssistantMemory({
+            userId: uid,
+            memoryType: "long_term",
+            key: "compact_profile_summary",
+            value: payload.compactSummary,
+            sanitizedValue: payload.compactSummary,
+            language: payload.languagePreference,
+            priority: 95,
+            confidence: 0.9,
+            conversationId: payload.lastThreadId,
+            metadata: { source: "rolling_user_memory" },
+          })
+        : Promise.resolve(null),
+      payload.lastUserMessage
+        ? upsertAssistantMemory({
+            userId: uid,
+            memoryType: "short_term",
+            key: "last_user_ask",
+            value: payload.lastUserMessage,
+            sanitizedValue: payload.lastUserMessage,
+            language: payload.languagePreference,
+            priority: 70,
+            confidence: 0.8,
+            conversationId: payload.lastThreadId,
+            metadata: { source: "rolling_user_memory" },
+          })
+        : Promise.resolve(null),
+    ]).catch((error) => {
+      logServerError("assistant_memory_sync_failed", {
+        uid,
+        error: error instanceof Error ? error.message : "unknown",
+      });
+    });
   } catch (error) {
     logServerError("update_user_memory_failed", {
       uid,
       error: error instanceof Error ? error.message : "unknown",
     });
   }
-}
+}, { name: "mongodb_memory_update", run_type: "tool" });
 
 export async function persistSharedResponse(input: {
   userId?: string;

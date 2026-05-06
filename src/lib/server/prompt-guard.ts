@@ -52,7 +52,7 @@ export function assessPromptRisk(message: string): PromptGuardResult {
   };
 }
 
-export function buildBlockedPromptResponse(language: "en" | "hi" | "hinglish" | "ta" | "bn") {
+export function buildBlockedPromptResponse(language: "en" | "hi" | "hinglish" | "ta" | "te") {
   if (language === "hi" || language === "hinglish") {
     return "Main sirf FD, suraksha, return aur jargon samjhane mein madad kar sakta hoon. Kripya apna nivesh sawal seedhe tarike se poochhiye.";
   }
@@ -61,8 +61,8 @@ export function buildBlockedPromptResponse(language: "en" | "hi" | "hinglish" | 
     return "Naan FD, paadhukaappu, returns matrum finance terms-ai thelivaga puriya vaikkum udhavi mattum seyyuven. Dayavu seithu ungal nivesh kelviyai neradiyaga kelunga.";
   }
 
-  if (language === "bn") {
-    return "Ami shudhu FD, nirapotta, return ebong finance term sohoje bojhate shahajjo korte pari. Doya kore apnar proshno ta sohoje kore bolun.";
+  if (language === "te") {
+    return "Nenu FD choices, safety, returns, mariyu finance terms explain cheyyadaniki matrame help chestanu. Mee investment question direct ga adagandi.";
   }
 
   return "I can only help with FD choices, safety, returns, and simple financial explanations. Please ask your investment question directly.";

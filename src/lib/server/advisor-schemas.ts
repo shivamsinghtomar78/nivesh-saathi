@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const appLanguageSchema = z.enum(["en", "hi", "hinglish", "ta", "bn"]);
+export const appLanguageSchema = z.enum(["en", "hi", "hinglish", "ta", "te"]);
 export type AppLanguage = z.infer<typeof appLanguageSchema>;
 
 export const bankTypeFilterSchema = z.enum([

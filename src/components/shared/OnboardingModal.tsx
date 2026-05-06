@@ -12,7 +12,7 @@ const STEPS = [
   {
     icon: Languages,
     title: "Choose your language",
-    body: "Nivesh Saathi speaks English, Hindi, Tamil, and Bengali. Pick the one you're most comfortable with.",
+    body: "Nivesh Saathi speaks English, Hindi, Tamil, and Telugu. Pick the one you're most comfortable with.",
   },
   {
     icon: TrendingUp,

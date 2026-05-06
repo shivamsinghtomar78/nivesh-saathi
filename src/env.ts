@@ -20,6 +20,10 @@ export const env = createEnv({
     FIREBASE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
     FIREBASE_VAPID_KEY: z.string().min(1).optional(),
     MONGODB_URI: z.string().url().optional(),
+    MONGODB_ENCRYPTION_KEY: z.string().min(32).optional(),
+    MEMORY_EMBEDDING_MODEL: z.string().min(1).default("text-embedding-004"),
+    MEMORY_RETENTION_DAYS: z.coerce.number().int().positive().default(365),
+    ANALYTICS_RETENTION_DAYS: z.coerce.number().int().positive().default(180),
     DATASTORE_MODE: z
       .enum(["dual_firebase_primary", "mongo_primary_fallback", "mongo_only"])
       .default("dual_firebase_primary"),

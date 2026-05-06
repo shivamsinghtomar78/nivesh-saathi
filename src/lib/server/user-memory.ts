@@ -223,6 +223,20 @@ export function buildMemoryRecallLine(memory: UserMemory, language: AppLanguage)
       .join(" ");
   }
 
+  if (language === "te") {
+    return [
+      "Welcome back.",
+      amount || tenor
+        ? `Meeru ${amount ?? "mee saved amount"} ni ${tenor ?? "mee preferred tenor"} kosam chustunnaru ani naaku gurthu undi.`
+        : "Mee previous FD context naaku gurthu undi.",
+      topBank
+        ? `Last time, ${topBank.bankName}${topBank.rate ? ` at ${topBank.rate}` : ""} top option ga discuss chesam.`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+
   return [
     "Welcome back.",
     amount || tenor

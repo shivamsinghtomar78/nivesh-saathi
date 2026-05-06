@@ -11,6 +11,7 @@
  *   - Response formatting
  */
 
+import { withTracing } from "@/lib/server/langsmith";
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -97,7 +98,7 @@ export function toN8nLanguage(
  * - Retries on transient errors.
  * - Returns a discriminated union so the caller can handle success/error.
  */
-export async function sendToN8nVoiceAgent(
+export const sendToN8nVoiceAgent = withTracing(async function sendToN8nVoiceAgent(
   request: N8nVoiceRequest
 ): Promise<N8nResult> {
   if (!N8N_WEBHOOK_URL) {
@@ -192,7 +193,7 @@ export async function sendToN8nVoiceAgent(
       message: lastError,
     },
   };
-}
+}, { name: "n8n_webhook_agent", run_type: "chain" });
 
 /**
  * Convenience: build a fully-formed N8nVoiceRequest from the typical

@@ -153,8 +153,8 @@ const initialMessages = (language: AppLanguage): ConversationMessage[] => [
           ? "Namaste. Main Nivesh Saathi hoon. FD rates, safety, maturity aur booking ke next steps ke liye bolkar poochhiye."
         : language === "ta"
           ? "Vanakkam. Naan Nivesh Saathi. FD rates, safety, maturity matrum simple explainers kaaga kelunga."
-          : language === "bn"
-            ? "Nomoskar. Ami Nivesh Saathi. FD rate, safety, maturity ebong shohoj byakhyar jonno jiggesh korun."
+          : language === "te"
+            ? "Namaskaram. Nenu Nivesh Saathi. FD rates, safety, maturity, simple explainers kosam adagandi."
             : "Hello. I am Nivesh Saathi. Ask about FD rates, safety, maturity, or any jargon you want explained.",
     timestamp: "10:31 AM",
     language: language.toUpperCase(),

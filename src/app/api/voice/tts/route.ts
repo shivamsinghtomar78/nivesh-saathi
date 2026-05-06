@@ -11,7 +11,7 @@ export const preferredRegion = "bom1";
 
 const ttsRequestSchema = z.object({
   text: z.string().trim().min(1).max(900),
-  language: z.enum(["en", "hi", "hinglish", "ta", "bn"]).default("en"),
+  language: z.enum(["en", "hi", "hinglish", "ta", "te"]).default("en"),
 });
 
 function preferredVoiceId(language: string) {

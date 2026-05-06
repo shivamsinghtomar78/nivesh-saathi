@@ -30,6 +30,7 @@ vi.mock("@/lib/server/rate-limit", () => ({
 
 vi.mock("@/lib/server/env", () => ({
   serverEnv: mockRouteState.serverEnv,
+  hasLangSmithConfig: false,
 }));
 
 vi.mock("@/lib/server/cache", () => ({
@@ -49,6 +50,13 @@ vi.mock("@/lib/server/chat-repository", () => ({
   createConversation: vi.fn(async () => ({ id: "voice-conv-1" })),
   getConversationOwner: vi.fn(async () => "user-1"),
   insertMessage: vi.fn(async () => ({ id: "msg-1" })),
+}));
+
+vi.mock("@/lib/server/assistant-memory", () => ({
+  recordVoiceTurn: vi.fn(async () => true),
+  startVoiceSession: vi.fn(async () => ({ sessionId: "voice-session-1" })),
+  trackAnalyticsEvent: vi.fn(async () => true),
+  updateAssistantState: vi.fn(async () => true),
 }));
 
 import { PATCH as patchBooking, POST as postBooking } from "@/app/api/voice/booking/route";

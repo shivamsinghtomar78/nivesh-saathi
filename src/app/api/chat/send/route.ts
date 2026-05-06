@@ -18,6 +18,10 @@ import {
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { logServerWarn } from "@/lib/server/telemetry";
 import { ROUTES } from "@/lib/routes";
+import {
+  trackAnalyticsEvent,
+  updateAssistantState,
+} from "@/lib/server/assistant-memory";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -85,6 +89,9 @@ export async function POST(request: Request) {
       const conversation = await createConversation({
         userId,
         firstMessage: input.message,
+        language: input.language,
+        conversationType: input.mode === "voice" ? "voice" : "chat",
+        interactionMode: input.mode,
       });
       if (!conversation) {
         return jsonError("Database unavailable", 503);
@@ -98,6 +105,13 @@ export async function POST(request: Request) {
       userId,
       role: "user",
       content: input.message,
+      type: input.mode === "voice" ? "voice" : "text",
+      detectedLanguage: input.language,
+      metadata: {
+        amount: input.amount,
+        tenorMonths: input.tenorMonths,
+        bankType: input.bankType,
+      },
     });
 
     // Check prompt safety
@@ -125,8 +139,19 @@ export async function POST(request: Request) {
         userId,
         role: "assistant",
         content: blockedText,
+        type: "text",
+        detectedLanguage: input.language,
         metadata: { blocked: true },
       });
+
+      void trackAnalyticsEvent({
+        userId,
+        conversationId,
+        eventType: "chat_prompt_blocked",
+        source: "chat",
+        language: input.language,
+        metadata: { reasons: promptRisk.reasons },
+      }).catch(() => undefined);
 
       return jsonSuccess({
         conversationId,
@@ -153,12 +178,14 @@ export async function POST(request: Request) {
     }
 
     // Step 3: Generate AI response
+    const startedAt = Date.now();
     const result = await invokeFdAdvisor({
       ...input,
       userId,
       threadId: conversationId,
       message: promptRisk.normalizedMessage,
     });
+    const latencyMs = Date.now() - startedAt;
 
     // Step 4: Insert AI response as assistant message
     await insertMessage({
@@ -166,12 +193,37 @@ export async function POST(request: Request) {
       userId,
       role: "assistant",
       content: result.response.text,
+      type: input.mode === "voice" ? "voice" : "text",
+      detectedLanguage: input.language,
+      latency: { totalMs: latencyMs },
+      model: { provider: "advisor", name: "fd-advisor-agent" },
       metadata: {
         rateCardCount: result.response.rateCards.length,
         glossaryCount: result.response.glossary.length,
         tone: result.response.tone,
+        suggestedChips: result.response.suggestedChips,
       },
     });
+
+    void Promise.all([
+      trackAnalyticsEvent({
+        userId,
+        conversationId,
+        eventType: "chat_turn_completed",
+        source: input.mode === "voice" ? "voice" : "chat",
+        language: input.language,
+        latencyMs,
+        metadata: {
+          rateCardCount: result.response.rateCards.length,
+          glossaryCount: result.response.glossary.length,
+        },
+      }),
+      updateAssistantState(userId, {
+        activeConversationId: conversationId,
+        lastInteractionMode: input.mode,
+        contextSummary: result.response.text.slice(0, 600),
+      }),
+    ]).catch(() => undefined);
 
     // Step 5-6: Also persist to legacy collection for backward compatibility
     void persistChatSessionTurn({

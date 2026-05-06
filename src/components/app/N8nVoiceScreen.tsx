@@ -34,19 +34,17 @@ import {
   type N8nAgentResponse,
 } from "@/hooks/useN8nVoiceAgent";
 import { LANGUAGE_LABELS } from "@/lib/copy";
-import { LANGUAGE_META } from "@/lib/languages";
 import { ROUTES } from "@/lib/routes";
 import type { AppLanguage } from "@/lib/server/advisor-schemas";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/stores/authStore";
 import { useConversationStore } from "@/stores/conversationStore";
 
 /* ------------------------------------------------------------------ */
 /*  Supported languages                                                */
 /* ------------------------------------------------------------------ */
 
-const CALL_LANGUAGES: AppLanguage[] = ["en", "hi", "hinglish"];
-type CallLanguage = "en" | "hi" | "hinglish";
+const CALL_LANGUAGES: AppLanguage[] = ["en", "hi", "hinglish", "ta", "te"];
+type CallLanguage = "en" | "hi" | "hinglish" | "ta" | "te";
 
 /* ------------------------------------------------------------------ */
 /*  Copy map                                                           */
@@ -127,6 +125,42 @@ const COPY: Record<
     lastHeard: "Last heard",
     poweredBy: "n8n AI Workflow se powered",
   },
+  ta: {
+    eyebrow: "AI Voice Agent",
+    title: "Nivesh Saathi Voice",
+    description: "Tamil-la pesunga. AI unga FD query process panni voice-la answer pannum.",
+    openChat: "Open chat",
+    authTitle: "Voice advisor use panna sign in pannunga",
+    authBody: "Ungal conversation history secure profile-oda linked irukkum.",
+    ready: "Ungal kelvikku ready",
+    prompt: "Mic tap pannitu FD rates, investments, safety pathi kelunga.",
+    listening: "Listening. Neenga natural-aa pesalam.",
+    thinking: "AI unga request process pannudhu...",
+    speaking: "Answer pesaren. Stop panna tap pannunga.",
+    retry: "Clear-aa ketkala. Innum oru murai sollunga.",
+    tryAgain: "Try again",
+    replay: "Replay",
+    lastHeard: "Last heard",
+    poweredBy: "Powered by n8n AI Workflow",
+  },
+  te: {
+    eyebrow: "AI Voice Agent",
+    title: "Nivesh Saathi Voice",
+    description: "Telugu lo natural ga maatladandi. AI mee FD query process chesi voice lo answer istundi.",
+    openChat: "Open chat",
+    authTitle: "Voice advisor use cheyyadaniki sign in cheyyandi",
+    authBody: "Mee conversation history mee secure profile ki linked untundi.",
+    ready: "Mee question ki ready",
+    prompt: "Mic tap chesi FD rates, investments, safety gurinchi adagandi.",
+    listening: "Listening. Meeru natural ga maatladandi.",
+    thinking: "AI mee request process chestondi...",
+    speaking: "Answer cheptunnanu. Stop cheyyadaniki tap cheyyandi.",
+    retry: "Clear ga vinipinchaledu. Malli try cheyyandi.",
+    tryAgain: "Try again",
+    replay: "Replay",
+    lastHeard: "Last heard",
+    poweredBy: "Powered by n8n AI Workflow",
+  },
 };
 
 function normalizeCallLanguage(language: AppLanguage): CallLanguage {
@@ -150,7 +184,6 @@ type N8nPhase =
 /* ------------------------------------------------------------------ */
 
 export default function N8nVoiceScreen() {
-  const user = useAuthStore((state) => state.user);
   const storedLanguage = useConversationStore((state) => state.language);
   const setLanguage = useConversationStore((state) => state.setLanguage);
   const language = normalizeCallLanguage(storedLanguage);

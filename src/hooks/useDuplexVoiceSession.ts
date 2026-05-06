@@ -50,7 +50,7 @@ type DeepgramResultEvent = {
 };
 
 type VoiceRespondEvent =
-  | { type: "meta"; threadId?: string; conversationId?: string }
+  | { type: "meta"; threadId?: string; conversationId?: string; voiceSessionId?: string }
   | { type: "user"; transcript: string }
   | { type: "token"; token: string }
   | {
@@ -66,7 +66,7 @@ type VoiceRespondEvent =
       provider: string;
       fallbackLanguage?: string;
     }
-  | { type: "done"; reply: string; threadId?: string; conversationId?: string }
+  | { type: "done"; reply: string; threadId?: string; conversationId?: string; voiceSessionId?: string }
   | { type: "error"; error: string };
 
 type PlaybackItem =
@@ -122,6 +122,7 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
   const finalSegmentsRef = useRef<string[]>([]);
   const lastSentTranscriptRef = useRef("");
   const reconnectAttemptsRef = useRef(0);
+  const voiceSessionIdRef = useRef<string | null>(null);
   const activeRef = useRef(false);
   const startRef = useRef<() => void>(() => undefined);
   const playNextRef = useRef<() => void>(() => undefined);
@@ -242,6 +243,7 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
           if (event.type === "meta") {
             const nextThreadId = event.threadId ?? event.conversationId;
             if (nextThreadId) optionsRef.current.onThreadId?.(nextThreadId);
+            if (event.voiceSessionId) voiceSessionIdRef.current = event.voiceSessionId;
           } else if (event.type === "token") {
             assistantAccumulatedRef.current += event.token;
             setAssistantText(assistantAccumulatedRef.current);
@@ -261,6 +263,7 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
             responseDoneRef.current = true;
             const nextThreadId = event.threadId ?? event.conversationId;
             if (nextThreadId) optionsRef.current.onThreadId?.(nextThreadId);
+            if (event.voiceSessionId) voiceSessionIdRef.current = event.voiceSessionId;
             const reply = (event.reply || assistantAccumulatedRef.current).trim();
             if (reply) optionsRef.current.onAssistantReply?.(reply);
             if (playbackQueueRef.current.length === 0 && !currentAudioRef.current && !currentUtteranceRef.current) {
@@ -302,6 +305,7 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
             language: voiceLanguage,
             threadId: optionsRef.current.threadId ?? undefined,
             conversationId: optionsRef.current.threadId ?? undefined,
+            voiceSessionId: voiceSessionIdRef.current ?? undefined,
             clientTurnId: createClientTurnId(),
             recentMessages: optionsRef.current.recentMessages ?? [],
           }),

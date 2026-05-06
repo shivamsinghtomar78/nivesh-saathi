@@ -19,7 +19,7 @@ export type BookingConfirmationState = z.infer<typeof bookingConfirmationStateSc
 export const voiceBookingDraftSchema = z.object({
   draftId: z.string(),
   userId: z.string(),
-  language: z.enum(["en", "hi", "hinglish", "ta", "bn"]).default("en"),
+  language: z.enum(["en", "hi", "hinglish", "ta", "te"]).default("en"),
   selectedOption: z.number().int().min(1).max(3).default(1),
   confirmationState: bookingConfirmationStateSchema.default("needs_confirmation"),
   selectedBank: z.object({
@@ -67,7 +67,7 @@ export const voiceBookingDraftSchema = z.object({
 export type VoiceBookingDraft = z.infer<typeof voiceBookingDraftSchema>;
 
 export const createBookingDraftRequestSchema = z.object({
-  language: z.enum(["en", "hi", "hinglish", "ta", "bn"]).default("en"),
+  language: z.enum(["en", "hi", "hinglish", "ta", "te"]).default("en"),
   selectedOption: z.number().int().min(1).max(3).default(1),
   rateCard: z.object({
     bankId: z.string(),

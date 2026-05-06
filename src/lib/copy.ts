@@ -5,7 +5,7 @@ export const LANGUAGE_LABELS: Record<AppLanguage, string> = {
   hi: "Hindi",
   hinglish: "Hinglish",
   ta: "Tamil",
-  bn: "Bengali",
+  te: "Telugu",
 };
 
 export const APP_COPY: Record<
@@ -201,8 +201,8 @@ export const APP_COPY: Record<
       send: "Send",
     },
   },
-  bn: {
-    tagline: "Apnar bharoshar FD guide",
+  te: {
+    tagline: "Mee nammakamaina FD guide",
     nav: {
       home: "Home",
       compare: "Compare",
@@ -215,27 +215,27 @@ export const APP_COPY: Record<
       profile: "Profile",
     },
     auth: {
-      title: "Apnar shortlist nirapod rakhun",
-      subtitle: "Phone diye sign in kore rate save korun ebong pore abar ekhanei theke cholun.",
+      title: "Mee shortlist secure ga unchandi",
+      subtitle: "Phone tho sign in chesi rates save cheskoni taruvata continue cheyyandi.",
       phoneLabel: "Phone number",
-      sendOtp: "OTP pathan",
+      sendOtp: "OTP pampandi",
       otpLabel: "OTP",
-      verifyOtp: "OTP verify korun",
+      verifyOtp: "OTP verify cheyyandi",
       signOut: "Sign out",
     },
     compare: {
-      title: "FD option gulo sohoje tulona korun",
-      subtitle: "Filter korun, shortlist banan, tarpor Saathi-ke jiggesh korun kon ta bhalo.",
+      title: "FD options ni easy ga compare cheyyandi",
+      subtitle: "Filter cheyyandi, shortlist create cheyyandi, taruvata Saathi ni adugandi.",
       shortlist: "Shortlist",
-      askSaathi: "Saathi-ke bolun",
-      emptyTitle: "Ei filter-e kono rate pelam na",
-      emptyBody: "Poriman, meyad ba bank category bodle abar dekhen.",
-      stickyTitle: "Shortlist niye Saathi-r sathe kotha bolben?",
-      stickyCta: "Chat khulun",
+      askSaathi: "Saathi ni adugandi",
+      emptyTitle: "Ee filter ki rate dorakaledu",
+      emptyBody: "Amount, tenure, leka bank category marchi chudandi.",
+      stickyTitle: "Shortlist ni Saathi tho discuss cheyyala?",
+      stickyCta: "Chat open cheyyandi",
     },
     voice: {
       title: "Saathi Advisor",
-      subtitle: "Ek-i secure conversation-e type korun ba mic use korun.",
+      subtitle: "Oke secure conversation lo type cheyyandi leka mic use cheyyandi.",
       send: "Send",
     },
   },

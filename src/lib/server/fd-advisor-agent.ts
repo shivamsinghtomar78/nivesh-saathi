@@ -20,6 +20,7 @@ import {
 import { buildDeterministicAdvisorResponse } from "@/lib/server/fd-service";
 import { hasLlmConfig } from "@/lib/server/env";
 import { buildAdvisorAppContext } from "@/lib/server/advisor-context";
+import { buildAssistantRetrievalContext } from "@/lib/server/assistant-memory";
 import { getFdDashboard } from "@/lib/server/fd-tracker-service";
 import { invokeLlm, type LlmMessage } from "@/lib/server/llm-client";
 import { withTracing } from "@/lib/server/langsmith";
@@ -62,7 +63,7 @@ const narrativeSchema = z.object({
 
 const agentState = new StateSchema({
   messages: MessagesValue,
-  language: z.enum(["en", "hi", "hinglish", "ta", "bn"]).optional(),
+  language: z.enum(["en", "hi", "hinglish", "ta", "te"]).optional(),
   mode: z.enum(["chat", "voice"]).optional(),
   requestedAmount: z.number().optional(),
   requestedTenorMonths: z.number().optional(),
@@ -143,16 +144,16 @@ function detectTerms(message: string) {
   const normalized = message.toLowerCase();
   const terms: string[] = [];
 
-  if (/(p\.a\.|per annum|prati varsh|oru aandukku|proti bochor)/i.test(message)) {
+  if (/(p\.a\.|per annum|prati varsh|oru aandukku|samvatsaraniki)/i.test(message)) {
     terms.push("pa");
   }
-  if (/(tenor|tenure|avadhi|meyad|kaalam)/i.test(message)) {
+  if (/(tenor|tenure|avadhi|kaalam|avadhi|gaduvu)/i.test(message)) {
     terms.push("tenor");
   }
   if (/(tds|tax deducted)/i.test(normalized)) {
     terms.push("tds");
   }
-  if (/(dicgc|insured|insurance|safe|surakshit|nirapod|paadhukaappu)/i.test(message)) {
+  if (/(dicgc|insured|insurance|safe|surakshit|paadhukaappu|rakshana)/i.test(message)) {
     terms.push("dicgc");
   }
   if (/(small finance|small-finance)/i.test(message)) {
@@ -229,12 +230,12 @@ function extractInvestmentAmount(message: string) {
 }
 
 function extractTenorMonths(message: string) {
-  const monthMatch = message.match(/(\d+)\s*(?:month|months|mo|mahine|maadham|mash)/i);
+  const monthMatch = message.match(/(\d+)\s*(?:month|months|mo|mahine|maadham|nelalu)/i);
   if (monthMatch) {
     return Number(monthMatch[1]);
   }
 
-  const yearMatch = message.match(/(\d+)\s*(?:year|years|yr|yrs|saal|aandu|bochor)/i);
+  const yearMatch = message.match(/(\d+)\s*(?:year|years|yr|yrs|saal|aandu|samvatsaram|samvatsaralu)/i);
   if (yearMatch) {
     return Number(yearMatch[1]) * 12;
   }
@@ -246,13 +247,13 @@ function inferObjective(message: string, terms: string[]) {
   const normalized = message.toLowerCase();
 
   if (
-    /(what is|explain|samjhao|vilakk|bujhiye|meaning|matlab)/i.test(message) &&
+    /(what is|explain|samjhao|vilakk|cheppandi|meaning|matlab)/i.test(message) &&
     terms.length > 0
   ) {
     return "understand_term" as const;
   }
 
-  if (/(safe|safety|insured|surakshit|nirapod|paadhukaappu)/i.test(message)) {
+  if (/(safe|safety|insured|surakshit|paadhukaappu|rakshana)/i.test(message)) {
     return "check_safety" as const;
   }
 
@@ -273,7 +274,7 @@ function getClarificationChips(language: AppLanguage) {
   if (language === "ta") {
     return ["Best 1 year FD", "Safest bank", "Rs 5 lakh split plan"];
   }
-  if (language === "bn") {
+  if (language === "te") {
     return ["Best 1 year FD", "Safest bank", "Rs 5 lakh split plan"];
   }
   return ["Best 1 year FD", "Safest bank", "Split Rs 5 lakh safely"];
@@ -437,8 +438,8 @@ function getClarificationPrompt(language: AppLanguage) {
   if (language === "ta") {
     return "Highest return, safest bank, or amount-tenure recommendation - edhai paarkkalam?";
   }
-  if (language === "bn") {
-    return "Highest return, safest bank, na amount-tenure recommendation - konta dekhben?";
+  if (language === "te") {
+    return "Highest return, safest bank, or amount-tenure recommendation - emi chudali?";
   }
   return "Choose a direction: highest return, safest bank, or a recommendation based on your amount and tenure.";
 }
@@ -603,7 +604,7 @@ const narrateNode = withTracing(async function narrateNode(state: typeof agentSt
   if (language === "hi") languagePrompt = "You MUST answer entirely in conversational Hindi.";
   if (language === "hinglish") languagePrompt = "You MUST answer in natural Hinglish: simple English financial words with Hindi sentence flow, written in Latin script.";
   if (language === "ta") languagePrompt = "You MUST answer entirely in conversational Tamil.";
-  if (language === "bn") languagePrompt = "You MUST answer entirely in conversational Bengali.";
+  if (language === "te") languagePrompt = "You MUST answer entirely in conversational Telugu.";
 
   // P0: Response length adaptation — voice gets concise, chat gets rich
   const modeInstruction = mode === "voice"
@@ -731,11 +732,18 @@ export const invokeFdAdvisor = withTracing(async function invokeFdAdvisor(input:
   const historyKey = `chat_history:${threadId}`;
   const prefsKey = `chat_prefs:${threadId}`;
   
-  const [rawHistory, cachedPrefs, userMemory, dashboard] = await Promise.all([
+  const [rawHistory, cachedPrefs, userMemory, dashboard, assistantContext] = await Promise.all([
     cacheGet<Array<{ role: string; content: string }>>(historyKey),
     cacheGet<ThreadPreferences>(prefsKey),
     input.userId ? getUserMemory(input.userId) : Promise.resolve(null),
     getSafeFdDashboard(input.userId),
+    input.userId
+      ? buildAssistantRetrievalContext({
+          userId: input.userId,
+          conversationId: threadId,
+          query: input.message,
+        }).catch(() => null)
+      : Promise.resolve(null),
   ]);
   
   const prefs = cachedPrefs || {};
@@ -755,11 +763,18 @@ export const invokeFdAdvisor = withTracing(async function invokeFdAdvisor(input:
     msg.role === "user" ? new HumanMessage(msg.content) : new AIMessage(msg.content)
   );
 
-  const appContext = buildAdvisorAppContext({
-    dashboard,
-    ladderPlan: input.ladderPlan,
-    compareSnapshot: input.compareSnapshot,
-  });
+  const appContext = [
+    buildAdvisorAppContext({
+      dashboard,
+      ladderPlan: input.ladderPlan,
+      compareSnapshot: input.compareSnapshot,
+    }),
+    assistantContext?.context
+      ? `Assistant retrieval context:\n${assistantContext.context}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const result = await advisorGraph.invoke(
     {

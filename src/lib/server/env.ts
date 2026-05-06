@@ -18,6 +18,7 @@ export const hasFirebaseAdminConfig = Boolean(
       serverEnv.FIREBASE_ADMIN_PRIVATE_KEY)
 );
 export const hasMongoConfig = Boolean(serverEnv.MONGODB_URI);
+export const hasMongoEncryptionKey = Boolean(serverEnv.MONGODB_ENCRYPTION_KEY);
 export const hasFirebaseVapidConfig = Boolean(serverEnv.FIREBASE_VAPID_KEY);
 export const hasFdAlertCronSecret = Boolean(
   serverEnv.FD_ALERT_CRON_SECRET || serverEnv.CRON_SECRET

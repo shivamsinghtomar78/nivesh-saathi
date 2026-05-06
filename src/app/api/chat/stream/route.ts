@@ -10,6 +10,15 @@ import {
   persistChatSessionTurn,
   persistFlaggedMessage,
 } from "@/lib/server/persistence";
+import {
+  createConversation,
+  getConversationOwner,
+  insertMessage,
+} from "@/lib/server/chat-repository";
+import {
+  trackAnalyticsEvent,
+  updateAssistantState,
+} from "@/lib/server/assistant-memory";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { logServerWarn } from "@/lib/server/telemetry";
 import { ROUTES } from "@/lib/routes";
@@ -83,8 +92,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (input.threadId) {
-      const ownerId = await getChatSessionOwner(input.threadId);
+    let conversationId = input.threadId;
+    if (conversationId) {
+      const ownerId =
+        (await getConversationOwner(conversationId)) ??
+        (await getChatSessionOwner(conversationId));
       if (ownerId && ownerId !== sessionResult.session.uid) {
         return new Response(
           JSON.stringify({ ok: false, error: "Thread does not belong to user" }),
@@ -93,8 +105,44 @@ export async function POST(request: Request) {
       }
     }
 
-    const authenticatedInput = { ...input, userId: sessionResult.session.uid };
+    if (!conversationId) {
+      const conversation = await createConversation({
+        userId: sessionResult.session.uid,
+        firstMessage: input.message,
+        language: input.language,
+        conversationType: input.mode === "voice" ? "voice" : "chat",
+        interactionMode: input.mode,
+      });
+      if (!conversation) {
+        return new Response(
+          JSON.stringify({ ok: false, error: "Database unavailable" }),
+          { status: 503, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      conversationId = conversation.id;
+    }
+
+    const authenticatedInput = {
+      ...input,
+      userId: sessionResult.session.uid,
+      threadId: conversationId,
+    };
     const promptRisk = assessPromptRisk(input.message);
+
+    await insertMessage({
+      conversationId,
+      userId: sessionResult.session.uid,
+      role: "user",
+      content: promptRisk.normalizedMessage,
+      type: input.mode === "voice" ? "voice" : "text",
+      detectedLanguage: input.language,
+      metadata: {
+        requestId: input.requestId,
+        amount: input.amount,
+        tenorMonths: input.tenorMonths,
+        bankType: input.bankType,
+      },
+    }).catch(() => null);
 
     if (promptRisk.blocked) {
       logServerWarn("chat_prompt_blocked", {
@@ -111,12 +159,30 @@ export async function POST(request: Request) {
       });
 
       const blockedText = buildBlockedPromptResponse(authenticatedInput.language);
+      await insertMessage({
+        conversationId,
+        userId: sessionResult.session.uid,
+        role: "assistant",
+        content: blockedText,
+        type: "text",
+        detectedLanguage: input.language,
+        metadata: { blocked: true },
+      }).catch(() => null);
+      void trackAnalyticsEvent({
+        userId: sessionResult.session.uid,
+        conversationId,
+        eventType: "chat_prompt_blocked",
+        source: input.mode === "voice" ? "voice" : "chat",
+        language: input.language,
+        metadata: { reasons: promptRisk.reasons },
+      }).catch(() => undefined);
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         start(controller) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: "meta",
-            threadId: authenticatedInput.threadId ?? crypto.randomUUID(),
+            threadId: conversationId,
+            conversationId,
             rateCards: [],
             actions: [{ label: authenticatedInput.language === "hi" || authenticatedInput.language === "hinglish" ? "Rates compare kijiye" : "Compare rates", type: "primary", action: "open_compare", url: ROUTES.COMPARE }],
             glossary: [],
@@ -143,10 +209,29 @@ export async function POST(request: Request) {
     }
 
     // Invoke the advisor agent
+    const startedAt = Date.now();
     const result = await invokeFdAdvisor({
       ...authenticatedInput,
       message: promptRisk.normalizedMessage,
     });
+    const latencyMs = Date.now() - startedAt;
+
+    await insertMessage({
+      conversationId: result.threadId,
+      userId: authenticatedInput.userId,
+      role: "assistant",
+      content: result.response.text,
+      type: input.mode === "voice" ? "voice" : "text",
+      detectedLanguage: input.language,
+      streamingState: "complete",
+      latency: { totalMs: latencyMs },
+      model: { provider: "advisor", name: "fd-advisor-agent" },
+      metadata: {
+        rateCardCount: result.response.rateCards.length,
+        glossaryCount: result.response.glossary.length,
+        tone: result.response.tone,
+      },
+    }).catch(() => null);
 
     // Persist asynchronously
     void persistChatSessionTurn({
@@ -157,6 +242,25 @@ export async function POST(request: Request) {
       assistantMessage: result.response.text,
       fdContextIds: result.response.rateCards.map((card) => card.bankId),
     });
+    void Promise.all([
+      trackAnalyticsEvent({
+        userId: authenticatedInput.userId,
+        conversationId: result.threadId,
+        eventType: "chat_stream_completed",
+        source: input.mode === "voice" ? "voice" : "chat",
+        language: input.language,
+        latencyMs,
+        metadata: {
+          rateCardCount: result.response.rateCards.length,
+          glossaryCount: result.response.glossary.length,
+        },
+      }),
+      updateAssistantState(authenticatedInput.userId, {
+        activeConversationId: result.threadId,
+        lastInteractionMode: input.mode,
+        contextSummary: result.response.text.slice(0, 600),
+      }),
+    ]).catch(() => undefined);
 
     // Stream the response
     const fullText = result.response.text;
@@ -171,6 +275,7 @@ export async function POST(request: Request) {
             `data: ${JSON.stringify({
               type: "meta",
               threadId: result.threadId,
+              conversationId: result.threadId,
               rateCards: result.response.rateCards,
               actions: result.response.actions,
               glossary: result.response.glossary,

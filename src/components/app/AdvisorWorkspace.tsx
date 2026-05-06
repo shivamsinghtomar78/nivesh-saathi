@@ -66,10 +66,10 @@ const SAMPLE_PROMPTS: Record<AppLanguage, string[]> = {
     "Small finance bank FD safe-aa",
     "Rs 500000-ku 2 years maturity calculate pannunga",
   ],
-  bn: [
-    "Rs 100000 er jonno 12 month FD best konta",
-    "Small finance bank FD nirapod naki",
-    "Rs 500000 er 2 bochor maturity calculate korun",
+  te: [
+    "Rs 100000 ki 12 month FD best edi",
+    "Small finance bank FD safe aa",
+    "Rs 500000 ki 2 years maturity calculate cheyyandi",
   ],
 };
 
@@ -78,7 +78,7 @@ const ACKNOWLEDGMENTS: Record<AppLanguage, string[]> = {
   hi: ["Dekhta hoon.", "Ek minute.", "Dhundh raha hoon."],
   hinglish: ["Dekhta hoon.", "Ek minute.", "Options check kar raha hoon."],
   ta: ["Paarkkiren.", "Oru nimidam.", "Check pannuren."],
-  bn: ["Dekhchi.", "Ek moment.", "Khujchi."],
+  te: ["Chustunnanu.", "Oka nimisham.", "Options check chestunnanu."],
 };
 
 type JargonPayload = {
@@ -177,8 +177,10 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const language = useConversationStore((state) => state.language);
   const messages = useConversationStore((state) => state.messages);
   const threadId = useConversationStore((state) => state.threadId);
+  const activeConversationId = useConversationStore((state) => state.activeConversationId);
   const isTyping = useConversationStore((state) => state.isTyping);
   const addMessage = useConversationStore((state) => state.addMessage);
+  const setMessages = useConversationStore((state) => state.setMessages);
   const markLastFailed = useConversationStore((state) => state.markLastFailed);
   const retryLastMessage = useConversationStore((state) => state.retryLastMessage);
   const setActiveMode = useConversationStore((state) => state.setActiveMode);
@@ -257,7 +259,13 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const { sendStreamingMessage, isStreaming } = useStreamingChat({
     onMeta: (meta) => {
       latestStreamMeta.current = meta;
-      if (meta.threadId) setThreadId(meta.threadId);
+      if (meta.threadId) {
+        setThreadId(meta.threadId);
+        setActiveConversationId(meta.threadId);
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("nivesh-active-conversation", meta.threadId);
+        }
+      }
     },
     onToken: (_token, accumulated) => {
       const id = streamingMessageId.current ?? createMessageId();
@@ -285,6 +293,14 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       );
 
       addMessage(botMessage);
+      if (meta?.threadId && typeof window !== "undefined") {
+        const channel = new BroadcastChannel("nivesh-conversations");
+        channel.postMessage({
+          type: "conversation-updated",
+          conversationId: meta.threadId,
+        });
+        channel.close();
+      }
       if (source === "voice") {
         speakReply(botMessage.content, botMessage.tone);
         void fetch("/api/voice/summary", {
@@ -424,6 +440,50 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     router.replace(ROUTES.CHAT);
     void sendAdvisorMessage(prompt, "chat");
   }, [router, sendAdvisorMessage, user]);
+
+  useEffect(() => {
+    if (!user || activeConversationId || messages.length > 1) return;
+    if (typeof window === "undefined") return;
+
+    const savedConversationId = window.localStorage.getItem("nivesh-active-conversation");
+    if (!savedConversationId) return;
+
+    let cancelled = false;
+    void fetch(`/api/chat/conversations/${encodeURIComponent(savedConversationId)}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (cancelled || !payload?.ok || !Array.isArray(payload.messages)) return;
+        const restoredMessages: ConversationMessage[] = payload.messages.map(
+          (msg: { id?: string; role: "assistant" | "user" | "system"; content: string; createdAt: string }, index: number) => ({
+            id: msg.id || `${savedConversationId}-${index}`,
+            role: msg.role === "assistant" ? "bot" : "user",
+            content: msg.content,
+            timestamp: new Intl.DateTimeFormat("en-IN", {
+              hour: "numeric",
+              minute: "2-digit",
+            }).format(new Date(msg.createdAt)),
+            language: LANGUAGE_LABELS[language],
+            source: "chat",
+          })
+        );
+        setMessages(restoredMessages);
+        setThreadId(savedConversationId);
+        setActiveConversationId(savedConversationId);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeConversationId,
+    language,
+    messages.length,
+    setActiveConversationId,
+    setMessages,
+    setThreadId,
+    user,
+  ]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({

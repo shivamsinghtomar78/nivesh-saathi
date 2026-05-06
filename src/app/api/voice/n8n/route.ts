@@ -24,6 +24,16 @@ import {
   buildN8nVoiceRequest,
   sendToN8nVoiceAgent,
 } from "@/lib/server/n8n-webhook";
+import {
+  createConversation,
+  getConversationOwner,
+  insertMessage,
+} from "@/lib/server/chat-repository";
+import {
+  recordVoiceTurn,
+  startVoiceSession,
+  trackAnalyticsEvent,
+} from "@/lib/server/assistant-memory";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,10 +45,15 @@ export const preferredRegion = "bom1";
 
 const n8nVoiceRequestSchema = z.object({
   message: z.string().trim().min(1).max(2000),
-  language: z.enum(["en", "hi", "hinglish"]).default("en"),
+  language: z.enum(["en", "hi", "hinglish", "ta", "te"]).default("en"),
   conversationId: z.string().optional(),
   audioUrl: z.string().url().optional(),
 });
+
+function persistedAudioMetadata(audioUrl: string | null | undefined) {
+  if (!audioUrl || audioUrl.startsWith("data:")) return undefined;
+  return { audioUrl, provider: "n8n" };
+}
 
 /* ------------------------------------------------------------------ */
 /*  CORS preflight                                                     */
@@ -88,13 +103,40 @@ export async function POST(request: Request) {
     // ── Validate input ─────────────────────────────────────────────
     const body = await request.json();
     const input = n8nVoiceRequestSchema.parse(body);
+    let conversationId = input.conversationId;
+
+    if (conversationId) {
+      const owner = await getConversationOwner(conversationId);
+      if (owner && owner !== auth.session.uid) {
+        return jsonError("Conversation does not belong to this user.", 403);
+      }
+    }
+
+    if (!conversationId) {
+      const conversation = await createConversation({
+        userId: auth.session.uid,
+        firstMessage: input.message,
+        language: input.language,
+        conversationType: "voice",
+        interactionMode: "voice",
+      });
+      if (!conversation) return jsonError("Database unavailable", 503);
+      conversationId = conversation.id;
+    }
+
+    const voiceSession = await startVoiceSession({
+      userId: auth.session.uid,
+      conversationId,
+      language: input.language,
+      metadata: { provider: "n8n" },
+    }).catch(() => null);
 
     // ── Build & send webhook request ───────────────────────────────
     const webhookRequest = buildN8nVoiceRequest({
       userId: auth.session.uid,
       message: input.message,
       language: input.language,
-      conversationId: input.conversationId,
+      conversationId,
       audioUrl: input.audioUrl,
     });
 
@@ -106,10 +148,60 @@ export async function POST(request: Request) {
         502
       );
     }
+    const finalConversationId = result.data.conversationId || conversationId;
+
+    await Promise.all([
+      insertMessage({
+        conversationId: finalConversationId,
+        userId: auth.session.uid,
+        role: "user",
+        content: input.message,
+        type: "voice",
+        transcript: input.message,
+        detectedLanguage: input.language,
+        voiceSessionId: voiceSession?.sessionId,
+        audio: persistedAudioMetadata(input.audioUrl),
+        metadata: { source: "voice-n8n" },
+      }),
+      insertMessage({
+        conversationId: finalConversationId,
+        userId: auth.session.uid,
+        role: "assistant",
+        content: result.data.reply,
+        type: "voice",
+        detectedLanguage: input.language,
+        voiceSessionId: voiceSession?.sessionId,
+        audio: persistedAudioMetadata(result.data.audioUrl),
+        metadata: { source: "voice-n8n", provider: "n8n" },
+      }),
+    ]).catch(() => undefined);
+
+    if (voiceSession?.sessionId) {
+      void recordVoiceTurn({
+        sessionId: voiceSession.sessionId,
+        userId: auth.session.uid,
+        conversationId: finalConversationId,
+        transcript: input.message,
+        aiResponse: result.data.reply,
+        generatedSpeechText: result.data.reply,
+        metadata: { provider: "n8n" },
+      }).catch(() => undefined);
+    }
+
+    void trackAnalyticsEvent({
+      userId: auth.session.uid,
+      conversationId: finalConversationId,
+      voiceSessionId: voiceSession?.sessionId,
+      eventType: "voice_n8n_turn_completed",
+      source: "voice",
+      language: input.language,
+      metadata: { hasAudio: Boolean(result.data.audioUrl) },
+    }).catch(() => undefined);
 
     // ── Return normalised response ─────────────────────────────────
     return jsonSuccess({
-      conversationId: result.data.conversationId,
+      conversationId: finalConversationId,
+      voiceSessionId: voiceSession?.sessionId,
       reply: result.data.reply,
       audioUrl: result.data.audioUrl,
       timestamp: result.data.timestamp,

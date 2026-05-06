@@ -70,15 +70,15 @@ const LOCALIZED_COPY: Record<
     safety:
       "Oru bank-il Rs 5 lakh varai deposits-ku DICGC paadhukaappu irukkum.",
   },
-  bn: {
-    compareLabel: "Aro rate tulona korun",
-    explainLabel: "Ekta term bujhiye din",
-    officialLabel: "Banker official page",
+  te: {
+    compareLabel: "Inka rates compare cheyyandi",
+    explainLabel: "Oka term explain cheyyandi",
+    officialLabel: "Bank official page",
     followUp:
-      "Poriman, meyad ba safety niye bolun, ami aro bhalo kore chhoto kore option debo.",
-    noMatch: "Ei filter-er jonno current list-e kono matching FD pelam na.",
+      "Amount, tenure, leka safety concern cheppandi, nenu options narrow chestanu.",
+    noMatch: "Ee filter ki current list lo matching FD dorakaledu.",
     safety:
-      "Ek bank-e Rs 5 lakh porjonto deposit-e sadharonoto DICGC cover thake.",
+      "Oka bank lo Rs 5 lakh varaku deposits ki usually DICGC cover untundi.",
   },
 };
 
@@ -216,8 +216,8 @@ export function formatTenorLabel(months: number, language: AppLanguage) {
     if (language === "ta") {
       return `${months} maadham`;
     }
-    if (language === "bn") {
-      return `${months} mash`;
+    if (language === "te") {
+      return `${months} nelalu`;
     }
     return `${months} months`;
   }
@@ -229,8 +229,8 @@ export function formatTenorLabel(months: number, language: AppLanguage) {
     if (language === "ta") {
       return `${years} aandu`;
     }
-    if (language === "bn") {
-      return `${years} bochor`;
+    if (language === "te") {
+      return `${years} samvatsaram${years > 1 ? "lu" : ""}`;
     }
     return `${years} year${years > 1 ? "s" : ""}`;
   }
@@ -375,26 +375,26 @@ Next step:
 - Thogai, tenure, allathu safety concern sollunga; naan options-ai innum narrow seyyuven.`;
   }
 
-  if (language === "bn") {
+  if (language === "te") {
     return `Summary:
 - ${topCard.bankName} ${formatTenorLabel(
       tenorMonths,
       language
-    )} meyader jonno bhalo option mone hocche.
+    )} tenure ki strong option la kanipistondi.
 
 Top options:
 - ${formatCurrency(
       amount
-    )} e maturity prai ${formatCurrency(
+    )} mida maturity approx ${formatCurrency(
       topCard.maturityAmount
-    )} hobe.
-- Niche 3 ta compare option aar shohoj jargon help deya holo.
+    )} avtundi.
+- Kindha 3 compare options mariyu simple jargon help unnayi.
 
 Safety:
-- Ek bank-e Rs 5 lakh porjonto deposit-e sadharonoto DICGC cover thake.
+- Oka bank lo Rs 5 lakh varaku deposits ki usually DICGC cover untundi.
 
 Next step:
-- Poriman, meyad ba safety concern bolun; ami options aro narrow kore debo.`;
+- Amount, tenure, leka safety concern cheppandi; nenu options inka narrow chestanu.`;
   }
 
   return `Summary:

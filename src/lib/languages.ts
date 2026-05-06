@@ -35,11 +35,11 @@ export const LANGUAGE_META = {
     speechSynthesis: "ta-IN",
     deepgram: "ta",
   },
-  bn: {
-    label: "Bengali",
-    speechRecognition: "bn-IN",
-    speechSynthesis: "bn-IN",
-    deepgram: "bn",
+  te: {
+    label: "Telugu",
+    speechRecognition: "te-IN",
+    speechSynthesis: "te-IN",
+    deepgram: "te",
   },
 } as const;
 

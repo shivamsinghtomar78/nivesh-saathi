@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Plus,
   MessageSquare,
   Trash2,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LANGUAGE_LABELS } from "@/lib/copy";
@@ -71,12 +72,15 @@ export function HistoryDrawer({
   const language = useConversationStore((s) => s.language);
 
   const hasFetchedRef = useRef(false);
+  const [query, setQuery] = useState("");
 
   const fetchConversations = useCallback(async () => {
     if (!user) return;
     setConversationsLoading(true);
     try {
-      const res = await fetch("/api/chat/conversations");
+      const params = new URLSearchParams();
+      if (query.trim()) params.set("q", query.trim());
+      const res = await fetch(`/api/chat/conversations?${params.toString()}`);
       if (res.ok) {
         const data = (await res.json()) as {
           conversations?: ConversationSummaryPayload[];
@@ -99,7 +103,7 @@ export function HistoryDrawer({
     } finally {
       setConversationsLoading(false);
     }
-  }, [user, setConversations, setConversationsLoading]);
+  }, [query, user, setConversations, setConversationsLoading]);
 
   useEffect(() => {
     if (!open) return;
@@ -114,6 +118,20 @@ export function HistoryDrawer({
       void fetchConversations();
     }
   }, [user, fetchConversations]);
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = new BroadcastChannel("nivesh-conversations");
+    channel.onmessage = () => {
+      void fetchConversations();
+    };
+    const onFocus = () => void fetchConversations();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      channel.close();
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [fetchConversations, user]);
 
   const handleSelectConversation = async (conversationId: string) => {
     try {
@@ -150,16 +168,19 @@ export function HistoryDrawer({
       setMessages(messages);
       setActiveConversationId(conversationId);
       setThreadId(conversationId);
+      window.localStorage.setItem("nivesh-active-conversation", conversationId);
       onClose();
     } catch {
       setActiveConversationId(conversationId);
       setThreadId(conversationId);
+      window.localStorage.setItem("nivesh-active-conversation", conversationId);
       onClose();
     }
   };
 
   const handleNewChat = () => {
     startNewChat();
+    window.localStorage.removeItem("nivesh-active-conversation");
     onClose();
   };
 
@@ -177,7 +198,18 @@ export function HistoryDrawer({
         }
       );
       if (res.ok) {
+        if (typeof window !== "undefined") {
+          const channel = new BroadcastChannel("nivesh-conversations");
+          channel.postMessage({
+            type: "conversation-deleted",
+            conversationId,
+          });
+          channel.close();
+        }
         removeConversation(conversationId);
+        if (activeConversationId === conversationId) {
+          window.localStorage.removeItem("nivesh-active-conversation");
+        }
       }
     } catch {
       // Silent fail
@@ -251,6 +283,18 @@ export function HistoryDrawer({
               >
                 <X className="h-4 w-4" />
               </Button>
+            </div>
+
+            <div className="border-b border-[#1F1F1F]/60 px-3 py-3">
+              <label className="flex h-9 items-center gap-2 rounded-lg border border-[#1F1F1F] bg-[#161616] px-3 text-[#9CA3AF]">
+                <Search className="h-4 w-4" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search conversations"
+                  className="min-w-0 flex-1 bg-transparent text-sm text-[#EAEAEA] outline-none placeholder:text-[#9CA3AF]/55"
+                />
+              </label>
             </div>
 
             {/* Conversation list */}
