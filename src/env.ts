@@ -5,6 +5,8 @@ export const env = createEnv({
   server: {
     GEMINI_API_KEY: z.string().min(1),
     GEMINI_MODEL: z.string().min(1).default("gemini-2.5-flash-lite"),
+    GROQ_API_KEY: z.string().min(1).optional(),
+    GROQ_MODEL: z.string().min(1).default("llama-3.3-70b-versatile"),
     OPENROUTER_API_KEY: z.string().min(1).optional(),
     OPENROUTER_MODEL: z.string().min(1).default("openrouter/free"),
     DEEPGRAM_API_KEY: z.string().min(1).optional(),
@@ -42,7 +44,6 @@ export const env = createEnv({
 
     // n8n webhook integration for voice agent
     N8N_WEBHOOK_URL: z.string().url().optional(),
-    N8N_WEBHOOK_API_KEY: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),

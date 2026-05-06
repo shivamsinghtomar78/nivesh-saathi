@@ -226,9 +226,17 @@ export default function ConversationTimeline({
                   </div>
                 ) : null}
 
-                {message.actions && message.actions.length > 0 ? (
+                {message.actions?.filter(
+                  (action) => action.action !== "open_voice" && action.action !== "switch_to_voice"
+                ).length ? (
                   <div className="custom-scrollbar -mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 tablet:mx-0 tablet:flex-wrap tablet:overflow-visible tablet:px-0 tablet:pb-0">
-                    {message.actions.slice(0, 2).map((action) => {
+                    {message.actions
+                      .filter(
+                        (action) =>
+                          action.action !== "open_voice" && action.action !== "switch_to_voice"
+                      )
+                      .slice(0, 2)
+                      .map((action) => {
                       const Icon = getActionIcon(action);
 
                       return (

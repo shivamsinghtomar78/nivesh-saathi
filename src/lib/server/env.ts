@@ -3,6 +3,7 @@ import { env } from "@/env";
 export const serverEnv = env;
 
 export const hasGeminiConfig = Boolean(serverEnv.GEMINI_API_KEY);
+export const hasGroqConfig = Boolean(serverEnv.GROQ_API_KEY);
 export const hasOpenRouterConfig = Boolean(serverEnv.OPENROUTER_API_KEY);
 export const hasLlmConfig = hasGeminiConfig || hasOpenRouterConfig;
 export const hasDeepgramConfig = Boolean(serverEnv.DEEPGRAM_API_KEY);

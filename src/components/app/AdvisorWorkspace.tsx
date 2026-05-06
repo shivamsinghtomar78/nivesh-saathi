@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -33,13 +34,16 @@ import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import type { AppLanguage, ConversationMode } from "@/lib/server/advisor-schemas";
 import { useStreamingChat, type StreamMeta } from "@/hooks/useStreamingChat";
-import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { useAuthStore } from "@/stores/authStore";
 import { type ConversationMessage, useConversationStore } from "@/stores/conversationStore";
 import { useCompareStore } from "@/stores/compareStore";
 import { useLadderStore } from "@/stores/ladderStore";
 
 type VoiceVisualState = "idle" | "listening" | "processing" | "speaking" | "error";
+
+const VoiceAgentLayer = dynamic(() => import("@/components/voice/VoiceAgentLayer"), {
+  ssr: false,
+});
 
 const SAMPLE_PROMPTS: Record<AppLanguage, string[]> = {
   en: [
@@ -178,6 +182,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const markLastFailed = useConversationStore((state) => state.markLastFailed);
   const retryLastMessage = useConversationStore((state) => state.retryLastMessage);
   const setActiveMode = useConversationStore((state) => state.setActiveMode);
+  const setActiveConversationId = useConversationStore((state) => state.setActiveConversationId);
   const setThreadId = useConversationStore((state) => state.setThreadId);
   const setTyping = useConversationStore((state) => state.setTyping);
   const setVoiceAcknowledgment = useConversationStore((state) => state.setVoiceAcknowledgment);
@@ -193,6 +198,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [voiceLayerOpen, setVoiceLayerOpen] = useState(initialMode === "voice");
   const [streamingMessage, setStreamingMessage] = useState<ConversationMessage | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [spokenSummary, setSpokenSummary] = useState<string | null>(null);
@@ -395,12 +401,17 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     ]
   );
 
-  const voice = useVoiceInput({
-    language,
-    onTranscript: (transcript) => {
-      void sendAdvisorMessage(transcript, "voice");
+  const voice = {
+    error: null as string | null,
+    isListening: voiceLayerOpen,
+    isProcessing: false,
+    transcript: "",
+    resetTranscript: () => undefined,
+    startListening: async () => {
+      setVoiceLayerOpen(true);
     },
-  });
+    stopListening: () => setVoiceLayerOpen(false),
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -413,13 +424,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     router.replace(ROUTES.CHAT);
     void sendAdvisorMessage(prompt, "chat");
   }, [router, sendAdvisorMessage, user]);
-
-  useEffect(() => {
-    if (voice.isListening) {
-      const frame = window.requestAnimationFrame(cancelSpeech);
-      return () => window.cancelAnimationFrame(frame);
-    }
-  }, [cancelSpeech, voice.isListening]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -438,11 +442,11 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
 
   const voiceState: VoiceVisualState = useMemo(() => {
     if (voice.error) return "error";
-    if (voice.isListening) return "listening";
+    if (voiceLayerOpen) return "listening";
     if (voice.isProcessing || (isTyping && pendingSource === "voice")) return "processing";
     if (isSpeaking) return "speaking";
     return "idle";
-  }, [isSpeaking, isTyping, pendingSource, voice.error, voice.isListening, voice.isProcessing]);
+  }, [isSpeaking, isTyping, pendingSource, voice.error, voice.isProcessing, voiceLayerOpen]);
   const voiceStatusLabel =
     voiceState === "listening"
       ? "Listening"
@@ -521,24 +525,54 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
 
   const handleMicPress = () => {
     setActiveMode("voice");
-    if (isSpeaking) {
-      cancelSpeech();
-      setSpokenSummary(null);
-      return;
-    }
-    if (voice.isListening) {
-      voice.stopListening();
-      return;
-    }
-    voice.resetTranscript();
-    void voice.startListening();
+    cancelSpeech();
+    setSpokenSummary(null);
+    setVoiceLayerOpen(true);
   };
 
   const resetConversation = () => {
     cancelSpeech();
+    setVoiceLayerOpen(false);
     startNewChat();
     setShowMenu(false);
   };
+
+  const addVoiceUserTranscript = useCallback(
+    (transcript: string) => {
+      setActiveMode("voice");
+      addMessage({
+        id: createMessageId(),
+        role: "user",
+        content: transcript,
+        timestamp: getTimestamp(),
+        language: LANGUAGE_LABELS[language],
+        source: "voice",
+      });
+    },
+    [addMessage, language, setActiveMode]
+  );
+
+  const addVoiceAssistantReply = useCallback(
+    (reply: string) => {
+      addMessage({
+        id: createMessageId(),
+        role: "bot",
+        content: reply,
+        timestamp: getTimestamp(),
+        language: LANGUAGE_LABELS[language],
+        source: "voice",
+      });
+    },
+    [addMessage, language]
+  );
+
+  const handleVoiceThreadId = useCallback(
+    (nextThreadId: string) => {
+      setThreadId(nextThreadId);
+      setActiveConversationId(nextThreadId);
+    },
+    [setActiveConversationId, setThreadId]
+  );
 
   return (
     <AppShell
@@ -790,7 +824,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                 showPrompts={showPromptChips}
                 spokenSummary={spokenSummary}
                 voiceAcknowledgment={voiceAcknowledgment}
-                voiceDisabled={voice.isProcessing || isStreaming || isTyping}
+                voiceDisabled={isStreaming || isTyping}
                 voiceError={voice.error}
                 voiceState={voiceState}
                 voiceTranscript={voice.transcript}
@@ -804,8 +838,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                 onSubmit={() => void sendAdvisorMessage(draft, "chat")}
                 onVoiceRetry={() => {
                   setActiveMode("voice");
-                  voice.resetTranscript();
-                  void voice.startListening();
+                  setVoiceLayerOpen(true);
                 }}
               />
             </section>
@@ -821,6 +854,18 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
             />
           ) : null}
         </AnimatePresence>
+
+        <VoiceAgentLayer
+          open={voiceLayerOpen}
+          language={language}
+          threadId={threadId}
+          messages={messages}
+          onClose={() => setVoiceLayerOpen(false)}
+          onMinimize={() => setVoiceLayerOpen(false)}
+          onThreadId={handleVoiceThreadId}
+          onUserTranscript={addVoiceUserTranscript}
+          onAssistantReply={addVoiceAssistantReply}
+        />
 
       </AuthGate>
     </AppShell>

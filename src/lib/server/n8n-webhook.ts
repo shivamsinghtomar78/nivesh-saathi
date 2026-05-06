@@ -11,8 +11,6 @@
  *   - Response formatting
  */
 
-import { serverEnv } from "@/lib/server/env";
-
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -53,8 +51,6 @@ export type N8nResult =
 const N8N_WEBHOOK_URL =
   process.env.N8N_WEBHOOK_URL ??
   "https://shivamsinghtomar7838.app.n8n.cloud/webhook/voice-agent";
-
-const N8N_API_KEY = process.env.N8N_WEBHOOK_API_KEY ?? "";
 
 /** Maximum time (ms) to wait for the n8n workflow to respond. */
 const N8N_TIMEOUT_MS = 30_000;
@@ -117,10 +113,6 @@ export async function sendToN8nVoiceAgent(
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-
-  if (N8N_API_KEY) {
-    headers["x-api-key"] = N8N_API_KEY;
-  }
 
   let lastError: string = "Unknown error";
 

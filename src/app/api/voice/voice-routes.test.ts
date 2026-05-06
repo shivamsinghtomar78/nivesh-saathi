@@ -3,8 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockRouteState = vi.hoisted(() => ({
   bookingStore: new Map<string, unknown>(),
   serverEnv: {
+    DEEPGRAM_API_KEY: "",
     ELEVENLABS_API_KEY: "",
     ELEVENLABS_VOICE_ID: undefined as string | undefined,
+    GROQ_API_KEY: "",
+    GROQ_MODEL: "llama-3.3-70b-versatile",
   },
 }));
 
@@ -37,11 +40,21 @@ vi.mock("@/lib/server/cache", () => ({
 }));
 
 vi.mock("@/lib/server/persistence", () => ({
+  persistChatSessionTurn: vi.fn(async () => undefined),
+  persistFlaggedMessage: vi.fn(async () => undefined),
   updateUserMemory: vi.fn(async () => undefined),
+}));
+
+vi.mock("@/lib/server/chat-repository", () => ({
+  createConversation: vi.fn(async () => ({ id: "voice-conv-1" })),
+  getConversationOwner: vi.fn(async () => "user-1"),
+  insertMessage: vi.fn(async () => ({ id: "msg-1" })),
 }));
 
 import { PATCH as patchBooking, POST as postBooking } from "@/app/api/voice/booking/route";
 import { POST as postKyc } from "@/app/api/voice/booking/kyc/route";
+import { POST as postRespond } from "@/app/api/voice/respond/route";
+import { POST as postSession } from "@/app/api/voice/session/route";
 import { POST as postTranscribe } from "@/app/api/voice/transcribe/route";
 import { POST as postTts } from "@/app/api/voice/tts/route";
 
@@ -73,8 +86,12 @@ function jsonRequest(url: string, body: unknown) {
 
 describe("voice API routes", () => {
   beforeEach(() => {
+    vi.unstubAllGlobals();
     mockRouteState.bookingStore.clear();
+    mockRouteState.serverEnv.DEEPGRAM_API_KEY = "";
     mockRouteState.serverEnv.ELEVENLABS_API_KEY = "";
+    mockRouteState.serverEnv.GROQ_API_KEY = "";
+    mockRouteState.serverEnv.GROQ_MODEL = "llama-3.3-70b-versatile";
   });
 
   it("returns browser fallback metadata when neural TTS is not configured", async () => {
@@ -105,6 +122,71 @@ describe("voice API routes", () => {
 
     expect(response.status).toBe(503);
     expect(body.error).toBe("Deepgram is not configured");
+  });
+
+  it("mints a temporary Deepgram browser token for duplex voice", async () => {
+    mockRouteState.serverEnv.DEEPGRAM_API_KEY = "dg-key";
+    const fetchMock = vi.fn(async () =>
+      Response.json({ access_token: "dg-temp-token", expires_in: 120 })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await postSession(
+      new Request("http://localhost/api/voice/session", { method: "POST" })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.accessToken).toBe("dg-temp-token");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.deepgram.com/v1/auth/grant",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Token dg-key",
+        }),
+      })
+    );
+  });
+
+  it("streams a Groq voice response with browser TTS fallback events", async () => {
+    mockRouteState.serverEnv.GROQ_API_KEY = "groq-key";
+    const encoder = new TextEncoder();
+    const groqStream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            'data: {"choices":[{"delta":{"content":"Namaste, "}}]}\n\n'
+          )
+        );
+        controller.enqueue(
+          encoder.encode(
+            'data: {"choices":[{"delta":{"content":"main dekh raha hoon."}}]}\n\n'
+          )
+        );
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(groqStream, { status: 200 }))
+    );
+
+    const response = await postRespond(
+      jsonRequest("http://localhost/api/voice/respond", {
+        transcript: "FD rate batao",
+        language: "hinglish",
+        threadId: "voice-conv-1",
+      })
+    );
+    const text = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(text).toContain('"type":"token"');
+    expect(text).toContain('"type":"audio_fallback"');
+    expect(text).toContain('"type":"done"');
+    expect(text).toContain("Namaste");
   });
 
   it("creates, confirms, and completes a mock KYC handoff draft", async () => {

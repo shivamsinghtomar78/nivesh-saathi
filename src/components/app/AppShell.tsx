@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Landmark, UserRound, Settings, ChevronDown, Home, BarChart3, MessageCircleMore, WalletCards, Lightbulb, Mic } from "lucide-react";
+import { LogOut, Landmark, UserRound, Settings, ChevronDown, Home, BarChart3, MessageCircleMore, WalletCards, Lightbulb } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ReactNode } from "react";
@@ -24,7 +24,6 @@ const NAV_ITEMS = [
   { href: ROUTES.FDS, key: "fds" as const, icon: WalletCards },
   { href: ROUTES.INSIGHTS, key: "insights" as const, icon: Lightbulb },
   { href: ROUTES.CHAT, key: "chat" as const, icon: MessageCircleMore },
-  { href: ROUTES.VOICE, key: "voice" as const, icon: Mic },
 ];
 
 type AppShellProps = {
@@ -278,7 +277,7 @@ export default function AppShell({
 
       {!workspace ? (
         <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-outline bg-panel-glass/94 pb-[env(safe-area-inset-bottom)] shadow-[0_-16px_48px_rgba(0,0,0,0.42)] backdrop-blur-2xl laptop:hidden">
-          <div className="mx-auto grid max-w-3xl grid-cols-6 gap-1 px-1.5 py-2">
+          <div className="mx-auto grid max-w-3xl grid-cols-5 gap-1 px-1.5 py-2">
             {NAV_ITEMS.map((item) => {
               const active =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
