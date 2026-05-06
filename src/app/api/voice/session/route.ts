@@ -47,7 +47,12 @@ export async function POST(request: Request) {
 
     if (!grantResponse.ok) {
       const detail = await grantResponse.text();
-      return jsonError("Unable to create a secure voice session", 502, {
+      console.error(
+        `[voice/session] Deepgram grant failed: ${grantResponse.status} ${grantResponse.statusText}`,
+        detail.slice(0, 500)
+      );
+      return jsonError("Unable to create a secure voice session", 503, {
+        upstream: grantResponse.status,
         detail: detail.slice(0, 240),
       });
     }
@@ -55,7 +60,7 @@ export async function POST(request: Request) {
     const payload = (await grantResponse.json()) as DeepgramGrantResponse;
 
     if (!payload.access_token) {
-      return jsonError("Deepgram did not return a session token", 502);
+      return jsonError("Deepgram did not return a session token", 503);
     }
 
     return jsonSuccess({
