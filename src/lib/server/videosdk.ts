@@ -19,6 +19,17 @@ type VideoSdkRoomResponse = {
   disabled?: boolean;
 };
 
+export class VideoSdkApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly details?: Record<string, unknown>
+  ) {
+    super(message);
+    this.name = "VideoSdkApiError";
+  }
+}
+
 export type VoiceAgentWorkerDispatch =
   | {
       ok: true;
@@ -118,12 +129,27 @@ export async function createVideoSdkRoom(input?: {
     }),
   });
 
-  const payload = (await response.json().catch(() => ({}))) as VideoSdkRoomResponse & {
+  const rawPayload = await response.text();
+  let payload: VideoSdkRoomResponse & {
     message?: string;
-  };
+    error?: string;
+  } = {};
+  try {
+    payload = rawPayload ? JSON.parse(rawPayload) : {};
+  } catch {
+    payload = { message: rawPayload.slice(0, 240) };
+  }
 
   if (!response.ok || !payload.roomId) {
-    throw new Error(payload.message || "VideoSDK room creation failed.");
+    throw new VideoSdkApiError(
+      payload.message || payload.error || "VideoSDK room creation failed.",
+      response.status,
+      {
+        upstreamStatus: response.status,
+        upstreamStatusText: response.statusText,
+        providerDetail: rawPayload.slice(0, 500),
+      }
+    );
   }
 
   return {
@@ -149,25 +175,34 @@ export async function dispatchVoiceAgentWorker(input: {
   }
 
   const endpoint = new URL("/sessions", serverEnv.VOICE_AGENT_WORKER_URL);
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(serverEnv.VOICE_AGENT_WORKER_SECRET
-        ? { "x-worker-secret": serverEnv.VOICE_AGENT_WORKER_SECRET }
-        : {}),
-    },
-    body: JSON.stringify(input),
-  });
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(serverEnv.VOICE_AGENT_WORKER_SECRET
+          ? { "x-worker-secret": serverEnv.VOICE_AGENT_WORKER_SECRET }
+          : {}),
+      },
+      body: JSON.stringify(input),
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      return {
+        ok: false,
+        status: "failed",
+        error: detail.slice(0, 500) || response.statusText,
+      };
+    }
+
+    return { ok: true, status: "dispatched" };
+  } catch (error) {
     return {
       ok: false,
       status: "failed",
-      error: detail.slice(0, 500) || response.statusText,
+      error: error instanceof Error ? error.message.slice(0, 500) : "Worker dispatch failed",
     };
   }
-
-  return { ok: true, status: "dispatched" };
 }

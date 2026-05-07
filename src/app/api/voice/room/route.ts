@@ -12,6 +12,7 @@ import {
   dispatchVoiceAgentWorker,
   generateVideoSdkToken,
   hasVideoSdkServerConfig,
+  VideoSdkApiError,
 } from "@/lib/server/videosdk";
 import { appLanguageSchema } from "@/lib/server/advisor-schemas";
 
@@ -46,8 +47,25 @@ function redactWorkerDispatch(dispatch: Awaited<ReturnType<typeof dispatchVoiceA
 }
 
 function getVideoSdkWebhookUrl(request: Request) {
-  if (serverEnv.VIDEOSDK_ROOM_WEBHOOK_URL) {
-    return serverEnv.VIDEOSDK_ROOM_WEBHOOK_URL;
+  const configuredUrl = serverEnv.VIDEOSDK_ROOM_WEBHOOK_URL?.trim();
+  const isVercelRuntime = process.env.VERCEL === "1";
+
+  if (configuredUrl) {
+    try {
+      const configured = new URL(configuredUrl);
+      const isLocalhost =
+        configured.hostname === "localhost" ||
+        configured.hostname === "127.0.0.1" ||
+        configured.hostname === "::1";
+
+      if (!isVercelRuntime || !isLocalhost) {
+        return configured.toString();
+      }
+    } catch {
+      logServerWarn("videosdk_webhook_url_invalid", {
+        reason: "VIDEOSDK_ROOM_WEBHOOK_URL must be an absolute HTTPS URL in production.",
+      });
+    }
   }
 
   const origin = new URL(request.url).origin;
@@ -171,6 +189,20 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof VideoSdkApiError) {
+      logServerError("videosdk_room_create_failed", {
+        upstreamStatus: error.status,
+        message: error.message,
+        details: error.details,
+      });
+
+      return jsonError("Unable to create VideoSDK room", 502, {
+        code: "videosdk_room_create_failed",
+        upstream: error.status,
+        message: error.message,
+      });
+    }
+
     return handleRouteError(error, "Unable to create VideoSDK voice room", {
       zodMessage: "Invalid VideoSDK voice room request",
     });

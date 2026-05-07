@@ -75,7 +75,7 @@ import { POST as postDiagnostics } from "@/app/api/voice/diagnostics/route";
 import { PATCH as patchBooking, POST as postBooking } from "@/app/api/voice/booking/route";
 import { POST as postKyc } from "@/app/api/voice/booking/kyc/route";
 import { POST as postRoom } from "@/app/api/voice/room/route";
-import { logServerInfo } from "@/lib/server/telemetry";
+import { logServerError, logServerInfo } from "@/lib/server/telemetry";
 
 const sampleRateCard = {
   bankId: "sbi",
@@ -147,6 +147,42 @@ describe("voice API routes", () => {
         headers: expect.objectContaining({
           Authorization: expect.any(String),
         }),
+      })
+    );
+  });
+
+  it("surfaces VideoSDK room creation failures without returning an opaque 500", async () => {
+    mockRouteState.serverEnv.VIDEOSDK_API_KEY = "videosdk-key";
+    mockRouteState.serverEnv.VIDEOSDK_SECRET_KEY = "videosdk-secret";
+    mockRouteState.serverEnv.VIDEOSDK_ROOM_WEBHOOK_URL =
+      "http://localhost:3000/api/voice/videosdk-webhook";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json(
+          { message: "Webhook endpoint must be reachable over HTTPS." },
+          { status: 400, statusText: "Bad Request" }
+        )
+      )
+    );
+
+    const response = await postRoom(
+      jsonRequest("https://nivesh-saathi-seven.vercel.app/api/voice/room", {
+        language: "hinglish",
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body.error).toBe("Unable to create VideoSDK room");
+    expect(body.details).toMatchObject({
+      code: "videosdk_room_create_failed",
+      upstream: 400,
+    });
+    expect(logServerError).toHaveBeenCalledWith(
+      "videosdk_room_create_failed",
+      expect.objectContaining({
+        upstreamStatus: 400,
       })
     );
   });
