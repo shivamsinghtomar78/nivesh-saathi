@@ -56,7 +56,8 @@ export async function POST(request: Request) {
     const auth = await requireFirebaseSession(request);
     if (!auth.ok) return auth.response;
 
-    if (!serverEnv.GEMINI_API_KEY) {
+    const apiKey = serverEnv.GEMINI_API_KEY;
+    if (!apiKey) {
       return jsonError("OCR is not configured", 503);
     }
 
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
       const endpoint = new URL(
         `https://generativelanguage.googleapis.com/v1beta/models/${OCR_MODEL}:generateContent`
       );
-      endpoint.searchParams.set("key", serverEnv.GEMINI_API_KEY);
+      endpoint.searchParams.set("key", apiKey);
 
       const response = await fetch(endpoint, {
         method: "POST",

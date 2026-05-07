@@ -125,12 +125,13 @@ function toMemoryDto(memory: MemoryLean): MemoryRecordDto {
 }
 
 async function embedMemoryText(text: string) {
-  if (!serverEnv.GEMINI_API_KEY || !text.trim()) return null;
+  const apiKey = serverEnv.GEMINI_API_KEY;
+  if (!apiKey || !text.trim()) return null;
 
   const endpoint = new URL(
     `https://generativelanguage.googleapis.com/v1beta/models/${serverEnv.MEMORY_EMBEDDING_MODEL}:embedContent`
   );
-  endpoint.searchParams.set("key", serverEnv.GEMINI_API_KEY);
+  endpoint.searchParams.set("key", apiKey);
 
   const response = await fetch(endpoint, {
     method: "POST",

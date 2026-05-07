@@ -89,7 +89,8 @@ export async function POST(request: Request) {
     const auth = await requireFirebaseSession(request);
     if (!auth.ok) return auth.response;
 
-    if (!serverEnv.GEMINI_API_KEY) {
+    const apiKey = serverEnv.GEMINI_API_KEY;
+    if (!apiKey) {
       return jsonError("Gemini is not configured", 503);
     }
 
@@ -131,7 +132,7 @@ export async function POST(request: Request) {
       : serverEnv.GEMINI_MODEL;
 
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${serverEnv.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

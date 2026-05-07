@@ -58,8 +58,6 @@ The app runs at [http://localhost:3000](http://localhost:3000).
 
 | Variable | Purpose |
 | --- | --- |
-| `GEMINI_API_KEY` | Primary Gemini API key for the advisor. |
-| `GEMINI_MODEL` | Defaults to `gemini-2.5-flash-lite`. |
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase browser SDK config. |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase browser SDK config. |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project id. |
@@ -72,6 +70,8 @@ The app runs at [http://localhost:3000](http://localhost:3000).
 
 | Variable | Purpose |
 | --- | --- |
+| `GEMINI_API_KEY` | Primary Gemini API key for the advisor and document/OCR features. If omitted, deterministic advisor fallbacks still work and Gemini-only APIs return a 503. |
+| `GEMINI_MODEL` | Defaults to `gemini-2.5-flash-lite`. |
 | `OPENROUTER_API_KEY` | Fallback LLM key if Gemini fails or times out. |
 | `OPENROUTER_MODEL` | Defaults to `openrouter/free`. |
 | `DEEPGRAM_API_KEY` | Speech-to-text fallback for browsers without reliable native STT. |
@@ -138,3 +138,19 @@ Known runtime note:
 
 - `next build` emits a `punycode` deprecation warning from a dependency during static generation. The build still completes successfully.
 - Firebase auth depends on the Email/Password, Phone, and Google providers being enabled in the Firebase console for the deployment domain.
+
+## Render Deployment Notes
+
+Render does not read `.env.local`, so add the required variables in **Render Dashboard > Service > Environment** before deploying:
+
+```text
+NEXT_PUBLIC_FIREBASE_API_KEY
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+NEXT_PUBLIC_FIREBASE_PROJECT_ID
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+NEXT_PUBLIC_FIREBASE_APP_ID
+NEXT_PUBLIC_APP_URL
+```
+
+Set `NEXT_PUBLIC_APP_URL` to the Render service URL, and add that same domain in **Firebase Console > Authentication > Settings > Authorized domains** for production sign-in.

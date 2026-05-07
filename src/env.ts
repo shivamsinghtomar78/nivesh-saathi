@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export const env = createEnv({
   server: {
-    GEMINI_API_KEY: z.string().min(1),
+    GEMINI_API_KEY: z.string().min(1).optional(),
     GEMINI_MODEL: z.string().min(1).default("gemini-2.5-flash-lite"),
     GROQ_API_KEY: z.string().min(1).optional(),
     GROQ_MODEL: z.string().min(1).default("llama-3.3-70b-versatile"),
@@ -77,4 +77,5 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
   },
   emptyStringAsUndefined: true,
+  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });

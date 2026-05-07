@@ -47,11 +47,16 @@ async function fetchWithTimeout(
 }
 
 const invokeGemini = withTracing(async function invokeGemini(messages: LlmMessage[], options: InvokeLlmOptions) {
+  const apiKey = serverEnv.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Gemini is not configured");
+  }
+
   const { system, conversation } = splitSystemPrompt(messages);
   const endpoint = new URL(
     `https://generativelanguage.googleapis.com/v1beta/models/${serverEnv.GEMINI_MODEL}:generateContent`
   );
-  endpoint.searchParams.set("key", serverEnv.GEMINI_API_KEY);
+  endpoint.searchParams.set("key", apiKey);
 
   const response = await fetchWithTimeout(
     endpoint,
