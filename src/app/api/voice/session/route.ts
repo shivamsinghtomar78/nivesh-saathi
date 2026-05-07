@@ -2,6 +2,7 @@ import { getRequestIp, handleRouteError, jsonError, jsonSuccess } from "@/lib/se
 import { requireCsrfProtection, requireFirebaseSession } from "@/lib/server/auth";
 import { serverEnv } from "@/lib/server/env";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
+import { logServerError } from "@/lib/server/telemetry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +12,16 @@ type DeepgramGrantResponse = {
   access_token?: string;
   expires_in?: number | null;
 };
+
+const DEEPGRAM_MEMBER_ROLE_ERROR = "deepgram_key_requires_member_role";
+
+function getDeepgramGrantErrorCode(status: number, detail: string) {
+  if (status === 403 && /insufficient permissions|forbidden/i.test(detail)) {
+    return DEEPGRAM_MEMBER_ROLE_ERROR;
+  }
+
+  return "deepgram_grant_failed";
+}
 
 export async function POST(request: Request) {
   try {
@@ -47,13 +58,21 @@ export async function POST(request: Request) {
 
     if (!grantResponse.ok) {
       const detail = await grantResponse.text();
-      console.error(
-        `[voice/session] Deepgram grant failed: ${grantResponse.status} ${grantResponse.statusText}`,
-        detail.slice(0, 500)
-      );
+      const code = getDeepgramGrantErrorCode(grantResponse.status, detail);
+
+      logServerError("voice_deepgram_grant_failed", {
+        code,
+        upstreamStatus: grantResponse.status,
+        upstreamStatusText: grantResponse.statusText,
+        providerDetail: detail.slice(0, 500),
+      });
+
       return jsonError("Unable to create a secure voice session", 503, {
+        code,
         upstream: grantResponse.status,
-        detail: detail.slice(0, 240),
+        ...(code === DEEPGRAM_MEMBER_ROLE_ERROR
+          ? { requiredDeepgramRole: "member" }
+          : {}),
       });
     }
 

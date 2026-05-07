@@ -28,6 +28,8 @@ import AppShell from "@/components/app/AppShell";
 import AuthGate from "@/components/auth/AuthGate";
 import { FDCalculatorCard } from "@/components/chat/FDCalculatorCard";
 import { FdCharts } from "@/components/fds/FdCharts";
+import DocumentScanner from "@/components/insights/DocumentScanner";
+import WealthSimulator3D from "@/components/insights/WealthSimulator3D";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -555,6 +557,10 @@ export default function InsightsScreen() {
             ) : (
               <EmptyAnalyticsState />
             )}
+
+            <WealthSimulator3D />
+            
+            <DocumentScanner />
 
             <div className="grid gap-6 laptop:grid-cols-[minmax(0,1fr)_420px]">
               <LadderPlanner defaultRate={defaultRate} />

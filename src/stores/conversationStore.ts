@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 
-import type { AppLanguage } from "@/lib/server/advisor-schemas";
+import type { AdvisorUi, AppLanguage } from "@/lib/server/advisor-schemas";
 
 /**
  * Shared Conversation Store — Context Engine
@@ -34,12 +34,19 @@ export interface ConversationMessage {
     bankId?: string;
     bankName?: string;
     bankNameLocal?: string;
+    bankType?: "public" | "private" | "small-finance";
     tenor: string;
+    tenorMonths?: number;
     rate: string;
+    rateValue?: number;
+    maturityAmount?: number;
+    interestEarned?: number;
     maturityPreview?: string;
     safetyNote?: string;
     badge?: string;
     officialUrl?: string;
+    sourceLabel?: string;
+    asOf?: string;
   }[];
   actions?: {
     label: string;
@@ -84,6 +91,7 @@ export interface ConversationMessage {
   };
   showCalculator?: boolean;
   showTimeMachine?: boolean;
+  ui?: AdvisorUi;
 }
 
 export interface ConversationSummary {

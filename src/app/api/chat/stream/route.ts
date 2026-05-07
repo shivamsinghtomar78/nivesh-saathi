@@ -141,6 +141,8 @@ export async function POST(request: Request) {
         amount: input.amount,
         tenorMonths: input.tenorMonths,
         bankType: input.bankType,
+        prefetchKey: input.prefetchKey,
+        uiIntentHint: input.uiIntentHint,
       },
     }).catch(() => null);
 
@@ -189,6 +191,15 @@ export async function POST(request: Request) {
             warnings: ["Guarded prompt rejected"],
             tone: "cautionary",
             suggestedChips: [],
+            ui: {
+              mode: "conversational",
+              expand: false,
+              entities: [],
+              dataType: "general",
+              visualizations: [],
+              componentHints: [],
+              actionButtons: [],
+            },
           })}\n\n`));
           // Stream blocked text character by character
           for (let i = 0; i < blockedText.length; i++) {
@@ -230,6 +241,7 @@ export async function POST(request: Request) {
         rateCardCount: result.response.rateCards.length,
         glossaryCount: result.response.glossary.length,
         tone: result.response.tone,
+        ui: result.response.ui,
       },
     }).catch(() => null);
 
@@ -287,6 +299,7 @@ export async function POST(request: Request) {
               portfolioSplit: result.response.portfolioSplit,
               showCalculator: result.response.showCalculator,
               showTimeMachine: result.response.showTimeMachine,
+              ui: result.response.ui,
             })}\n\n`
           )
         );

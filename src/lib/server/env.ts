@@ -26,4 +26,3 @@ export const hasFdAlertCronSecret = Boolean(
 export const hasLangSmithConfig = Boolean(
   serverEnv.LANGSMITH_API_KEY || serverEnv.LANGCHAIN_API_KEY
 );
-export const hasN8nConfig = Boolean(serverEnv.N8N_WEBHOOK_URL);

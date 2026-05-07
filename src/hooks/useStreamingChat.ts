@@ -21,6 +21,7 @@ export type StreamMeta = {
   portfolioSplit?: AdvisorResponse["portfolioSplit"];
   showCalculator?: boolean;
   showTimeMachine?: boolean;
+  ui?: AdvisorResponse["ui"];
 };
 
 type StreamEvent =
@@ -72,6 +73,8 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
       shortlistBankIds?: string[];
       ladderPlan?: ChatLadderPlanContext;
       compareSnapshot?: ChatCompareSnapshotContext;
+      prefetchKey?: string;
+      uiIntentHint?: AdvisorResponse["ui"];
       mode?: "chat" | "voice";
     }) => {
       // Cancel any existing stream

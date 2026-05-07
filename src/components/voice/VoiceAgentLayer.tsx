@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { LoaderCircle, Mic, Minus, RefreshCw, Volume2, VolumeX, X } from "lucide-react";
 
@@ -8,8 +8,16 @@ import {
   useDuplexVoiceSession,
   type DuplexVoiceStatus,
 } from "@/hooks/useDuplexVoiceSession";
+import {
+  usePredictivePrefetch,
+  type PredictivePrefetchClientResult,
+} from "@/hooks/usePredictivePrefetch";
 import { LANGUAGE_LABELS } from "@/lib/copy";
-import type { AppLanguage } from "@/lib/server/advisor-schemas";
+import type {
+  AppLanguage,
+  ChatCompareSnapshotContext,
+  ChatLadderPlanContext,
+} from "@/lib/server/advisor-schemas";
 import { cn } from "@/lib/utils";
 import type { ConversationMessage } from "@/stores/conversationStore";
 
@@ -18,11 +26,16 @@ type VoiceAgentLayerProps = {
   language: AppLanguage;
   threadId?: string | null;
   messages: ConversationMessage[];
+  shortlistBankIds?: string[];
+  ladderPlan?: ChatLadderPlanContext | null;
+  compareSnapshot?: ChatCompareSnapshotContext | null;
   onClose: () => void;
   onMinimize: () => void;
   onThreadId: (threadId: string) => void;
   onUserTranscript: (transcript: string) => void;
   onAssistantReply: (reply: string) => void;
+  onPrediction?: (result: PredictivePrefetchClientResult | null) => void;
+  onPredictionStatus?: (status: "idle" | "loading" | "ready" | "error") => void;
 };
 
 const statusCopy: Record<DuplexVoiceStatus, { label: string; body: string }> = {
@@ -76,14 +89,19 @@ function StatusIcon({
 }
 
 export default function VoiceAgentLayer({
+  compareSnapshot,
   open,
   language,
+  ladderPlan,
   messages,
   onAssistantReply,
   onClose,
   onMinimize,
+  onPrediction,
+  onPredictionStatus,
   onThreadId,
   onUserTranscript,
+  shortlistBankIds,
   threadId,
 }: VoiceAgentLayerProps) {
   const recentMessages = useMemo(
@@ -98,6 +116,25 @@ export default function VoiceAgentLayer({
     [messages]
   );
 
+  const predictive = usePredictivePrefetch({
+    language,
+    threadId,
+    shortlistBankIds,
+    ladderPlan,
+    compareSnapshot,
+    enabled: open,
+    onResult: onPrediction,
+  });
+  const latestPredictiveRef = useRef<PredictivePrefetchClientResult | null>(null);
+
+  useEffect(() => {
+    latestPredictiveRef.current = predictive.result;
+  }, [predictive.result]);
+
+  useEffect(() => {
+    onPredictionStatus?.(predictive.status);
+  }, [onPredictionStatus, predictive.status]);
+
   const voice = useDuplexVoiceSession({
     language,
     threadId,
@@ -105,12 +142,28 @@ export default function VoiceAgentLayer({
     onThreadId,
     onUserTranscript,
     onAssistantReply,
+    onInterimTranscript: predictive.schedulePrediction,
+    getPredictiveContext: () => {
+      const latest = latestPredictiveRef.current;
+      return latest
+        ? {
+            prefetchKey: latest.prefetchKey,
+            uiIntentHint: latest.ui,
+          }
+        : null;
+    },
   });
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      predictive.reset();
+      return;
+    }
     void voice.start();
-    return () => voice.stop();
+    return () => {
+      voice.stop();
+      predictive.reset();
+    };
     // The session should start exactly when the layer opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -125,9 +178,16 @@ export default function VoiceAgentLayer({
   const subtitle =
     voice.error ||
     voice.interimTranscript ||
+    (predictive.status === "loading" ? "Predicting the workspace..." : "") ||
     voice.assistantText ||
     voice.lastUserTranscript ||
     copy.body;
+  const predictionLabel =
+    predictive.status === "loading"
+      ? "Predicting"
+      : predictive.result && predictive.result.prediction.confidence !== "low"
+        ? predictive.result.ui.mode.replace("-", " ")
+        : null;
 
   return (
     <AnimatePresence>
@@ -278,6 +338,14 @@ export default function VoiceAgentLayer({
                     {copy.label}
                     <span className="text-[#8D949E]">·</span>
                     <span className="text-[#B8BDC5]">{LANGUAGE_LABELS[language]}</span>
+                    {predictionLabel ? (
+                      <>
+                        <span className="text-[#8D949E]">·</span>
+                        <span className="max-w-[9rem] truncate text-success">
+                          {predictionLabel}
+                        </span>
+                      </>
+                    ) : null}
                   </div>
                   <p
                     className={cn(

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { withTracing } from "@/lib/server/langsmith";
 import type { AppLanguage } from "@/lib/server/advisor-schemas";
-import { appLanguageSchema } from "@/lib/server/advisor-schemas";
+import { advisorUiSchema, appLanguageSchema } from "@/lib/server/advisor-schemas";
 import { getRequestIp, handleRouteError, jsonError } from "@/lib/server/api";
 import { requireCsrfProtection, requireFirebaseSession } from "@/lib/server/auth";
 import {
@@ -24,6 +24,7 @@ import {
   trackAnalyticsEvent,
   updateAssistantState,
 } from "@/lib/server/assistant-memory";
+import { getCachedPredictivePrefetch } from "@/lib/server/predictive-prefetch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,6 +37,8 @@ const voiceRespondSchema = z.object({
   threadId: z.string().trim().optional(),
   voiceSessionId: z.string().trim().optional(),
   clientTurnId: z.string().trim().optional(),
+  prefetchKey: z.string().trim().optional(),
+  uiIntentHint: advisorUiSchema.partial().optional(),
   recentMessages: z
     .array(
       z.object({
@@ -91,15 +94,67 @@ function voiceSystemPrompt(language: AppLanguage) {
   ].join(" ");
 }
 
-function buildGroqMessages(input: VoiceRespondInput) {
+type CachedVoicePrefetch = Awaited<ReturnType<typeof getCachedPredictivePrefetch>>;
+
+function buildGroqMessages(input: VoiceRespondInput, prefetch: CachedVoicePrefetch) {
+  const predictiveContext = prefetch
+    ? [
+        "Verified predictive FD context is already prepared from the user's interim speech.",
+        `Intent: ${prefetch.prediction.intent}. Confidence: ${prefetch.prediction.confidence}.`,
+        `Filters: ${JSON.stringify(prefetch.data.filters)}.`,
+        `Top FD cards: ${JSON.stringify(
+          prefetch.data.rateCards.slice(0, 3).map((card) => ({
+            bankName: card.bankName,
+            rate: card.rate,
+            maturityAmount: card.maturityAmount,
+            tenorLabel: card.tenorLabel,
+          }))
+        )}.`,
+        "Use only this verified context for rates and maturity math. Do not invent banks, rates, or eligibility facts.",
+      ].join(" ")
+    : "";
+
   return [
-    { role: "system" as const, content: voiceSystemPrompt(input.language) },
+    {
+      role: "system" as const,
+      content: `${voiceSystemPrompt(input.language)} ${predictiveContext}`,
+    },
     ...(input.recentMessages ?? []).map((message) => ({
       role: message.role,
       content: message.content,
     })),
     { role: "user" as const, content: input.transcript },
   ];
+}
+
+/* ─── Empathetic Thinking Fillers ─── */
+const THINKING_FILLERS: Record<string, string[]> = {
+  en: [
+    "Hmm, let me check that for you.",
+    "One moment, let me look into this.",
+    "Let me calculate that.",
+    "Good question, let me think.",
+    "Right, let me pull up the details.",
+  ],
+  hi: [
+    "हम्म, मैं देखता हूँ।",
+    "एक सेकंड, मैं चेक करता हूँ।",
+    "अच्छा सवाल, सोचने दीजिए।",
+    "रुकिए, मैं calculate करता हूँ।",
+  ],
+  hinglish: [
+    "Hmm, ek second, dekh leta hoon.",
+    "Achha, let me check karta hoon.",
+    "Good question, sochne do.",
+    "Ek moment, calculate karta hoon.",
+    "Hmm, thoda check karta hoon.",
+  ],
+};
+
+function pickThinkingFiller(language: AppLanguage): string {
+  const lang = language === "hi" ? "hi" : language === "hinglish" ? "hinglish" : "en";
+  const fillers = THINKING_FILLERS[lang];
+  return fillers[Math.floor(Math.random() * fillers.length)];
 }
 
 function shouldFlushVoiceChunk(text: string) {
@@ -225,6 +280,9 @@ export async function POST(request: Request) {
     if (!conversation.ok) return conversation.response;
 
     const conversationId = conversation.conversationId;
+    const cachedPrefetch = input.prefetchKey
+      ? await getCachedPredictivePrefetch(input.prefetchKey).catch(() => null)
+      : null;
     const voiceSession =
       input.voiceSessionId
         ? { sessionId: input.voiceSessionId }
@@ -252,6 +310,9 @@ export async function POST(request: Request) {
             threadId: conversationId,
             voiceSessionId,
             clientTurnId: input.clientTurnId,
+            prefetchKey: input.prefetchKey,
+            ui: input.uiIntentHint ?? cachedPrefetch?.ui,
+            prediction: cachedPrefetch?.prediction,
           });
           sse(controller, { type: "user", transcript: input.transcript });
 
@@ -265,7 +326,12 @@ export async function POST(request: Request) {
               detectedLanguage: input.language,
               voiceSessionId,
               clientTurnId: input.clientTurnId,
-              metadata: { source: "voice", clientTurnId: input.clientTurnId },
+              metadata: {
+                source: "voice",
+                clientTurnId: input.clientTurnId,
+                prefetchKey: input.prefetchKey,
+                uiIntentHint: input.uiIntentHint,
+              },
             }).catch(() => null);
 
           const promptRisk = assessPromptRisk(input.transcript);
@@ -290,6 +356,27 @@ export async function POST(request: Request) {
             });
             sse(controller, { type: audio.audioUrl ? "audio" : "audio_fallback", text: assistantText, ...audio });
           } else {
+            // ── Empathetic thinking filler: emit a short human-like phrase
+            //    while the LLM generates a response (hides latency) ──
+            const fillerText = pickThinkingFiller(input.language);
+            sse(controller, { type: "thinking", text: fillerText });
+
+            const fillerPromise = synthesizeChunk({
+              text: fillerText,
+              language: input.language,
+              signal: abortController.signal,
+            }).then((audio) => {
+              sse(controller, {
+                type: audio.audioUrl ? "audio" : "audio_fallback",
+                text: fillerText,
+                isFiller: true,
+                ...audio,
+              });
+            }).catch(() => {
+              // Filler is best-effort — don't block on failure
+            });
+
+            // Fire LLM request in parallel with filler TTS
             const generateGroqStream = withTracing(async () => {
               return await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
@@ -302,7 +389,7 @@ export async function POST(request: Request) {
                   messages: buildGroqMessages({
                     ...input,
                     transcript: promptRisk.normalizedMessage,
-                  }),
+                  }, cachedPrefetch),
                   stream: true,
                   temperature: 0.42,
                   max_tokens: 220,
@@ -311,7 +398,11 @@ export async function POST(request: Request) {
               });
             }, { name: "voice_llm_generation", run_type: "llm" });
 
-            const groqResponse = await generateGroqStream();
+            // Wait for both filler TTS and LLM response to start
+            const [groqResponse] = await Promise.all([
+              generateGroqStream(),
+              fillerPromise,
+            ]);
 
             if (!groqResponse.ok || !groqResponse.body) {
               const detail = await groqResponse.text().catch(() => "");
@@ -382,7 +473,13 @@ export async function POST(request: Request) {
               voiceSessionId,
               clientTurnId: input.clientTurnId,
               model: { provider: "groq", name: serverEnv.GROQ_MODEL },
-              metadata: { source: "voice", provider: "groq", model: serverEnv.GROQ_MODEL },
+              metadata: {
+                source: "voice",
+                provider: "groq",
+                model: serverEnv.GROQ_MODEL,
+                prefetchKey: input.prefetchKey,
+                ui: input.uiIntentHint ?? cachedPrefetch?.ui,
+              },
             }).catch(() => null);
 
             if (voiceSessionId) {
@@ -398,6 +495,7 @@ export async function POST(request: Request) {
                 metadata: {
                   provider: "groq",
                   model: serverEnv.GROQ_MODEL,
+                  prefetchKey: input.prefetchKey,
                 },
               }).catch(() => undefined);
             }
@@ -422,6 +520,7 @@ export async function POST(request: Request) {
                   clientTurnId: input.clientTurnId,
                   provider: "groq",
                   model: serverEnv.GROQ_MODEL,
+                  prefetchKey: input.prefetchKey,
                 },
               }),
               updateAssistantState(auth.session.uid, {
@@ -439,6 +538,8 @@ export async function POST(request: Request) {
             conversationId,
             threadId: conversationId,
             voiceSessionId,
+            prefetchKey: input.prefetchKey,
+            ui: input.uiIntentHint ?? cachedPrefetch?.ui,
           });
         } catch (error) {
           if (!abortController.signal.aborted) {

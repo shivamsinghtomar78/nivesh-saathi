@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import {
   History,
   ListChecks,
@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 
 import AdvisorComposer from "@/components/app/AdvisorComposer";
+import AdaptiveCuiWorkspace from "@/components/app/AdaptiveCuiWorkspace";
 import AppShell from "@/components/app/AppShell";
 import ConversationTimeline from "@/components/app/ConversationTimeline";
 import AuthGate from "@/components/auth/AuthGate";
@@ -32,7 +33,8 @@ import { withCsrfHeaders } from "@/lib/csrf";
 import { LANGUAGE_META } from "@/lib/languages";
 import { ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
-import type { AppLanguage, ConversationMode } from "@/lib/server/advisor-schemas";
+import type { AdvisorUi, AppLanguage, ConversationMode } from "@/lib/server/advisor-schemas";
+import type { PredictivePrefetchClientResult } from "@/hooks/usePredictivePrefetch";
 import { useStreamingChat, type StreamMeta } from "@/hooks/useStreamingChat";
 import { useAuthStore } from "@/stores/authStore";
 import { type ConversationMessage, useConversationStore } from "@/stores/conversationStore";
@@ -123,16 +125,24 @@ function createBotMessageFromStream(
     suggestedChips: meta?.suggestedChips ?? [],
     modeSwitchSuggested: !!meta?.modeSwitchSuggestion,
     tone: meta?.tone,
+    ui: meta?.ui,
     rateCards: meta?.rateCards?.map((card) => ({
       bankId: card.bankId,
       bankName: card.bankName,
       bankNameLocal: card.bankNameLocal,
+      bankType: card.bankType,
       tenor: card.tenorLabel,
+      tenorMonths: card.tenorMonths,
       rate: card.rate,
+      rateValue: card.rateValue,
+      maturityAmount: card.maturityAmount,
+      interestEarned: card.interestEarned,
       maturityPreview: card.maturityPreview,
       safetyNote: card.safetyNote,
       badge: card.badge,
       officialUrl: card.officialUrl,
+      sourceLabel: card.sourceLabel,
+      asOf: card.asOf,
     })),
     actions: meta?.actions,
     glossary: meta?.glossary?.map((item) => ({
@@ -202,6 +212,11 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const [showMenu, setShowMenu] = useState(false);
   const [voiceLayerOpen, setVoiceLayerOpen] = useState(initialMode === "voice");
   const [streamingMessage, setStreamingMessage] = useState<ConversationMessage | null>(null);
+  const [predictivePreview, setPredictivePreview] =
+    useState<PredictivePrefetchClientResult | null>(null);
+  const [predictiveStatus, setPredictiveStatus] =
+    useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [workspaceCollapsed, setWorkspaceCollapsed] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [spokenSummary, setSpokenSummary] = useState<string | null>(null);
   const [voiceSummary, setVoiceSummary] = useState<{
@@ -259,6 +274,9 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const { sendStreamingMessage, isStreaming } = useStreamingChat({
     onMeta: (meta) => {
       latestStreamMeta.current = meta;
+      if (meta.ui?.expand) {
+        setWorkspaceCollapsed(false);
+      }
       if (meta.threadId) {
         setThreadId(meta.threadId);
         setActiveConversationId(meta.threadId);
@@ -381,6 +399,11 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       setDraft("");
       setTyping(true);
       setStreamingMessage(null);
+      setWorkspaceCollapsed(false);
+      if (source === "chat") {
+        setPredictivePreview(null);
+        setPredictiveStatus("idle");
+      }
       latestStreamMeta.current = null;
       streamingMessageId.current = null;
       pendingSourceRef.current = source;
@@ -499,6 +522,63 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const visibleMessages = streamingMessage ? [...messages, streamingMessage] : messages;
   const meaningfulMessages = messages.filter((message) => message.id !== "welcome");
   const showPromptChips = meaningfulMessages.length === 0;
+  const latestWorkspaceMessage = useMemo(
+    () =>
+      [...visibleMessages]
+        .reverse()
+        .find(
+          (message) =>
+            message.role === "bot" &&
+            (message.ui?.expand ||
+              (message.rateCards?.length ?? 0) > 0 ||
+              Boolean(message.portfolioSplit) ||
+              message.showCalculator ||
+              message.showTimeMachine)
+        ) ?? null,
+    [visibleMessages]
+  );
+  const activeUi: AdvisorUi | null =
+    streamingMessage?.ui ??
+    predictivePreview?.ui ??
+    latestWorkspaceMessage?.ui ??
+    (latestWorkspaceMessage
+      ? {
+          mode: latestWorkspaceMessage.showCalculator
+            ? "calculator"
+            : latestWorkspaceMessage.portfolioSplit || latestWorkspaceMessage.showTimeMachine
+              ? "analytics"
+              : (latestWorkspaceMessage.rateCards?.length ?? 0) > 1
+                ? "comparison"
+                : "recommendation",
+          expand: true,
+          entities: latestWorkspaceMessage.rateCards?.map((card) => card.bankName ?? "FD") ?? [],
+          dataType: latestWorkspaceMessage.showCalculator
+            ? "maturity_projection"
+            : latestWorkspaceMessage.portfolioSplit
+              ? "portfolio"
+              : "fd_rates",
+          visualizations:
+            ((latestWorkspaceMessage.rateCards?.length ?? 0) > 1
+              ? ["comparison_table", "rate_cards", "maturity_chart"]
+              : ["recommendation_cards", "rate_cards"]) as AdvisorUi["visualizations"],
+          componentHints: [],
+          actionButtons: [],
+        }
+      : predictiveStatus === "loading"
+        ? {
+            mode: "exploration",
+            expand: true,
+            entities: [],
+            dataType: "general",
+            visualizations: ["insight_panel"] as AdvisorUi["visualizations"],
+            componentHints: ["preloading workspace"],
+            actionButtons: [],
+            confidence: "low",
+          }
+      : null);
+  const workspaceExpanded = Boolean(
+    activeUi?.expand && activeUi.mode !== "conversational" && !workspaceCollapsed
+  );
 
   const voiceState: VoiceVisualState = useMemo(() => {
     if (voice.error) return "error";
@@ -583,6 +663,22 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     }
   };
 
+  const handleUiAction = (action: NonNullable<AdvisorUi["actionButtons"]>[number]) => {
+    if (action.action === "open_compare") {
+      router.push(action.url ?? ROUTES.COMPARE);
+      return;
+    }
+
+    if (action.action === "open_voice") {
+      handleMicPress();
+      return;
+    }
+
+    if (action.prompt) {
+      void sendAdvisorMessage(action.prompt, "chat");
+    }
+  };
+
   const handleMicPress = () => {
     setActiveMode("voice");
     cancelSpeech();
@@ -593,6 +689,9 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const resetConversation = () => {
     cancelSpeech();
     setVoiceLayerOpen(false);
+    setPredictivePreview(null);
+    setPredictiveStatus("idle");
+    setWorkspaceCollapsed(false);
     startNewChat();
     setShowMenu(false);
   };
@@ -614,16 +713,35 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
 
   const addVoiceAssistantReply = useCallback(
     (reply: string) => {
-      addMessage({
-        id: createMessageId(),
-        role: "bot",
-        content: reply,
-        timestamp: getTimestamp(),
-        language: LANGUAGE_LABELS[language],
-        source: "voice",
-      });
+      const predictiveResponse = predictivePreview?.advisorResponse;
+      const predictiveMeta: StreamMeta | null = predictiveResponse
+        ? {
+            threadId: threadId ?? undefined,
+            rateCards: predictiveResponse.rateCards,
+            actions: predictiveResponse.actions,
+            glossary: predictiveResponse.glossary,
+            warnings: predictiveResponse.warnings,
+            tone: predictiveResponse.tone,
+            suggestedChips: predictiveResponse.suggestedChips,
+            modeSwitchSuggestion: predictiveResponse.modeSwitchSuggestion,
+            followUpPrompt: predictiveResponse.followUpPrompt,
+            portfolioSplit: predictiveResponse.portfolioSplit,
+            showCalculator: predictiveResponse.showCalculator,
+            showTimeMachine: predictiveResponse.showTimeMachine,
+            ui: predictivePreview.ui,
+          }
+        : null;
+
+      addMessage(
+        createBotMessageFromStream(
+          LANGUAGE_LABELS[language],
+          reply,
+          predictiveMeta,
+          "voice"
+        )
+      );
     },
-    [addMessage, language]
+    [addMessage, language, predictivePreview, threadId]
   );
 
   const handleVoiceThreadId = useCallback(
@@ -632,6 +750,17 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       setActiveConversationId(nextThreadId);
     },
     [setActiveConversationId, setThreadId]
+  );
+
+  const handlePredictivePreview = useCallback(
+    (result: PredictivePrefetchClientResult | null) => {
+      setPredictivePreview(result);
+      setPredictiveStatus(result ? "ready" : "idle");
+      if (result?.ui.expand) {
+        setWorkspaceCollapsed(false);
+      }
+    },
+    []
   );
 
   return (
@@ -652,14 +781,45 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
             className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_50%_0%,rgba(215,182,109,0.07),transparent_34rem)]"
             aria-hidden="true"
           />
-          <div className="relative flex h-full min-h-0 min-w-0">
-            <aside
-              aria-hidden="true"
-              className="hidden w-0 shrink-0 border-r border-[#1F1F1F]/70 laptop:block"
-            />
-            <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <LayoutGroup id="advisor-cui">
+            <div
+              className={cn(
+                "relative grid h-full min-h-0 min-w-0 grid-cols-1",
+                workspaceExpanded &&
+                  "laptop:grid-cols-[minmax(0,1fr)_minmax(360px,430px)]"
+              )}
+            >
+              {workspaceExpanded ? (
+                <motion.div
+                  layout
+                  className="hidden min-h-0 p-4 pr-0 laptop:block"
+                >
+                  <AdaptiveCuiWorkspace
+                    ui={activeUi}
+                    message={streamingMessage ?? latestWorkspaceMessage}
+                    prefetch={predictivePreview}
+                    predictiveStatus={predictiveStatus}
+                    onAction={handleUiAction}
+                    onCollapse={() => setWorkspaceCollapsed(true)}
+                  />
+                </motion.div>
+              ) : null}
+              <motion.section
+                layout
+                className={cn(
+                  "flex min-w-0 flex-col overflow-hidden",
+                  workspaceExpanded && "laptop:border-l laptop:border-[#1F1F1F]/70"
+                )}
+              >
               <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
-                <div className="mx-auto flex min-h-full w-full max-w-[900px] flex-col px-3 pb-6 pt-4 tablet:px-5 tablet:pt-6 laptop:px-8">
+                <div
+                  className={cn(
+                    "mx-auto flex min-h-full w-full flex-col px-3 pb-6 pt-4 tablet:px-5 tablet:pt-6",
+                    workspaceExpanded
+                      ? "max-w-none laptop:px-4"
+                      : "max-w-[900px] laptop:px-8"
+                  )}
+                >
                   <header className="sticky top-0 z-20 -mx-3 mb-5 flex flex-wrap items-center justify-between gap-3 bg-[#0A0A0A]/95 px-3 pb-3 pt-3 backdrop-blur-xl tablet:-mx-5 tablet:mb-7 tablet:px-5 tablet:pb-4 laptop:-mx-8 laptop:px-8">
                     <div className="flex min-w-0 flex-1 items-center gap-3">
                       <button
@@ -839,6 +999,19 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                     </motion.section>
                   ) : null}
 
+                  {workspaceExpanded ? (
+                    <div className="mb-5 laptop:hidden">
+                      <AdaptiveCuiWorkspace
+                        ui={activeUi}
+                        message={streamingMessage ?? latestWorkspaceMessage}
+                        prefetch={predictivePreview}
+                        predictiveStatus={predictiveStatus}
+                        onAction={handleUiAction}
+                        onCollapse={() => setWorkspaceCollapsed(true)}
+                      />
+                    </div>
+                  ) : null}
+
                   <ConversationTimeline
                     messages={visibleMessages}
                     onAction={handleAction}
@@ -850,7 +1023,7 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                     onChipSelect={(chip) => void sendAdvisorMessage(chip, "chat")}
                     showSmartChips={!isTyping && !streamingMessage}
                     isTyping={isTyping || !!streamingMessage}
-                    richContent="hidden"
+                    richContent={workspaceExpanded ? "hidden" : "inline"}
                   />
 
                   <AnimatePresence>
@@ -901,8 +1074,9 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
                   setVoiceLayerOpen(true);
                 }}
               />
-            </section>
-          </div>
+              </motion.section>
+            </div>
+          </LayoutGroup>
         </div>
 
         <AnimatePresence>
@@ -920,11 +1094,16 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
           language={language}
           threadId={threadId}
           messages={messages}
+          shortlistBankIds={shortlist}
+          ladderPlan={latestLadderPlan ?? null}
+          compareSnapshot={lastCompareSnapshot ?? null}
           onClose={() => setVoiceLayerOpen(false)}
           onMinimize={() => setVoiceLayerOpen(false)}
           onThreadId={handleVoiceThreadId}
           onUserTranscript={addVoiceUserTranscript}
           onAssistantReply={addVoiceAssistantReply}
+          onPrediction={handlePredictivePreview}
+          onPredictionStatus={setPredictiveStatus}
         />
 
       </AuthGate>

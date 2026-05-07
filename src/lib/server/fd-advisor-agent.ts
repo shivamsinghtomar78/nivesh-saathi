@@ -10,6 +10,7 @@ import { z } from "zod";
 
 import { cacheGet, cacheSet } from "@/lib/server/cache";
 import {
+  advisorUiSchema,
   advisorResponseSchema,
   type AdvisorResponse,
   type AppLanguage,
@@ -18,6 +19,10 @@ import {
   type ConversationMode,
 } from "@/lib/server/advisor-schemas";
 import { buildDeterministicAdvisorResponse } from "@/lib/server/fd-service";
+import {
+  buildAdvisorUiFromResponse,
+  getCachedPredictivePrefetch,
+} from "@/lib/server/predictive-prefetch";
 import { hasLlmConfig } from "@/lib/server/env";
 import { buildAdvisorAppContext } from "@/lib/server/advisor-context";
 import { buildAssistantRetrievalContext } from "@/lib/server/assistant-memory";
@@ -59,6 +64,7 @@ const narrativeSchema = z.object({
   showCalculator: z.boolean().optional(),
   showTimeMachine: z.boolean().optional(),
   tone: z.enum(["informative", "celebratory", "cautionary"]).optional(),
+  ui: advisorUiSchema.partial().optional(),
 });
 
 const agentState = new StateSchema({
@@ -73,6 +79,8 @@ const agentState = new StateSchema({
   appContext: z.string().optional(),
   intent: detectedIntentSchema.optional(),
   response: advisorResponseSchema.optional(),
+  prefetchKey: z.string().optional(),
+  uiIntentHint: advisorUiSchema.partial().optional(),
   userMemory: z.any().optional(),
 });
 
@@ -367,6 +375,10 @@ const detectIntentNode = withTracing(async function detectIntentNode(state: type
 }, { name: "detect_intent", run_type: "chain" });
 
 const assembleResponseNode = withTracing(async function assembleResponseNode(state: typeof agentState.State) {
+  if (state.response) {
+    return { response: state.response };
+  }
+
   const intent = state.intent ?? detectIntentHeuristically({ message: "" });
   const amount = intent.amount ?? state.requestedAmount ?? DEFAULT_AMOUNT;
   const tenorMonths =
@@ -477,15 +489,26 @@ function enrichResponse(params: {
   mode: ConversationMode;
   messageText: string;
   intent?: z.infer<typeof detectedIntentSchema>;
+  prefetchKey?: string;
+  uiIntentHint?: Partial<NonNullable<AdvisorResponse["ui"]>>;
   userMemory?: UserMemory | null;
 }) {
-  const { response, language, mode, messageText, intent, userMemory } = params;
+  const {
+    response,
+    language,
+    mode,
+    messageText,
+    intent,
+    prefetchKey,
+    uiIntentHint,
+    userMemory,
+  } = params;
   const clarificationChips =
     intent?.needsClarification && intent.clarificationChips.length > 0
       ? intent.clarificationChips
       : null;
 
-  return {
+  const baseResponse: AdvisorResponse = {
     ...response,
     text: applyMemoryRecall({
       text: response.text,
@@ -507,6 +530,16 @@ function enrichResponse(params: {
         : response.portfolioSplit
           ? ("celebratory" as const)
           : response.tone,
+  };
+
+  return {
+    ...baseResponse,
+    ui: buildAdvisorUiFromResponse({
+      message: messageText,
+      response: baseResponse,
+      hint: uiIntentHint ?? response.ui,
+      prefetchKey: prefetchKey ?? response.ui?.prefetchKey,
+    }),
   } satisfies AdvisorResponse;
 }
 
@@ -570,6 +603,8 @@ const narrateNode = withTracing(async function narrateNode(state: typeof agentSt
       mode,
       messageText,
       intent: state.intent,
+      prefetchKey: state.prefetchKey,
+      uiIntentHint: state.uiIntentHint,
       userMemory,
     });
 
@@ -586,6 +621,8 @@ const narrateNode = withTracing(async function narrateNode(state: typeof agentSt
       mode,
       messageText,
       intent: state.intent,
+      prefetchKey: state.prefetchKey,
+      uiIntentHint: state.uiIntentHint,
       userMemory,
     });
 
@@ -620,7 +657,7 @@ const narrateNode = withTracing(async function narrateNode(state: typeof agentSt
     {
       role: "system",
       content:
-        `You are Nivesh Saathi, a warm fixed deposit guide for India. ${memoryContext ? `${memoryContext} ` : ""}${appContext ? `${appContext} ` : ""}Keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings, showCalculator, showTimeMachine, tone. Use plain text only: no markdown bold markers, no asterisks, and no tables. ${modeInstruction} ${languagePrompt}\nSet showCalculator=true if the user asks to calculate returns, maturity, or uses words like 'calculator' or 'calculate'. Set showTimeMachine=true if the user asks for historical rate trends, past rates, or 'time machine'. Tone must be one of informative, celebratory, cautionary.`,
+        `You are Nivesh Saathi, a warm fixed deposit guide for India. ${memoryContext ? `${memoryContext} ` : ""}${appContext ? `${appContext} ` : ""}Keep the tone simple, do not invent rates, do not mention internal tools, and return raw JSON only with keys text, followUpPrompt, warnings, showCalculator, showTimeMachine, tone, ui. The optional ui object may only describe layout intent, entities, visualizations, component hints, and actions; rates and math come only from structuredResponse. Use plain text only: no markdown bold markers, no asterisks, and no tables. ${modeInstruction} ${languagePrompt}\nSet showCalculator=true if the user asks to calculate returns, maturity, or uses words like 'calculator' or 'calculate'. Set showTimeMachine=true if the user asks for historical rate trends, past rates, or 'time machine'. Tone must be one of informative, celebratory, cautionary.`,
     },
     {
       role: "user",
@@ -672,11 +709,14 @@ const narrateNode = withTracing(async function narrateNode(state: typeof agentSt
         showCalculator: parsed.showCalculator ?? false,
         showTimeMachine: parsed.showTimeMachine ?? false,
         tone: parsed.tone ?? response.tone,
+        ui: parsed.ui ? advisorUiSchema.parse({ ...response.ui, ...parsed.ui }) : response.ui,
       },
       language,
       mode,
       messageText,
       intent: state.intent,
+      prefetchKey: state.prefetchKey,
+      uiIntentHint: state.uiIntentHint,
       userMemory,
     });
 
@@ -691,6 +731,8 @@ const narrateNode = withTracing(async function narrateNode(state: typeof agentSt
       mode,
       messageText,
       intent: state.intent,
+      prefetchKey: state.prefetchKey,
+      uiIntentHint: state.uiIntentHint,
       userMemory,
     });
     return {
@@ -732,7 +774,14 @@ export const invokeFdAdvisor = withTracing(async function invokeFdAdvisor(input:
   const historyKey = `chat_history:${threadId}`;
   const prefsKey = `chat_prefs:${threadId}`;
   
-  const [rawHistory, cachedPrefs, userMemory, dashboard, assistantContext] = await Promise.all([
+  const [
+    rawHistory,
+    cachedPrefs,
+    userMemory,
+    dashboard,
+    assistantContext,
+    cachedPrefetch,
+  ] = await Promise.all([
     cacheGet<Array<{ role: string; content: string }>>(historyKey),
     cacheGet<ThreadPreferences>(prefsKey),
     input.userId ? getUserMemory(input.userId) : Promise.resolve(null),
@@ -743,6 +792,9 @@ export const invokeFdAdvisor = withTracing(async function invokeFdAdvisor(input:
           conversationId: threadId,
           query: input.message,
         }).catch(() => null)
+      : Promise.resolve(null),
+    input.prefetchKey
+      ? getCachedPredictivePrefetch(input.prefetchKey).catch(() => null)
       : Promise.resolve(null),
   ]);
   
@@ -772,6 +824,14 @@ export const invokeFdAdvisor = withTracing(async function invokeFdAdvisor(input:
     assistantContext?.context
       ? `Assistant retrieval context:\n${assistantContext.context}`
       : "",
+    cachedPrefetch
+      ? `Predictive prefetch context already prepared from interim speech. Intent: ${cachedPrefetch.prediction.intent}; confidence: ${cachedPrefetch.prediction.confidence}; filters: ${JSON.stringify(cachedPrefetch.data.filters)}; topCards: ${JSON.stringify(cachedPrefetch.data.rateCards.slice(0, 3).map((card) => ({
+          bankName: card.bankName,
+          rate: card.rate,
+          maturityAmount: card.maturityAmount,
+          tenorLabel: card.tenorLabel,
+        })))}. Use this only as verified deterministic FD context.`
+      : "",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -781,12 +841,28 @@ export const invokeFdAdvisor = withTracing(async function invokeFdAdvisor(input:
       messages: [...history, new HumanMessage(input.message)],
       language: input.language,
       mode: input.mode ?? "chat",
-      requestedAmount: input.amount ?? prefs.amount ?? userMemory?.amount,
-      requestedTenorMonths: input.tenorMonths ?? prefs.tenorMonths ?? userMemory?.preferredTenorMonths,
-      seniorCitizen: input.seniorCitizen ?? prefs.seniorCitizen ?? userMemory?.seniorCitizen,
-      bankType: input.bankType ?? prefs.bankType ?? userMemory?.bankTypePreference,
+      requestedAmount:
+        input.amount ?? cachedPrefetch?.data.filters.amount ?? prefs.amount ?? userMemory?.amount,
+      requestedTenorMonths:
+        input.tenorMonths ??
+        cachedPrefetch?.data.filters.tenorMonths ??
+        prefs.tenorMonths ??
+        userMemory?.preferredTenorMonths,
+      seniorCitizen:
+        input.seniorCitizen ??
+        cachedPrefetch?.data.filters.seniorCitizen ??
+        prefs.seniorCitizen ??
+        userMemory?.seniorCitizen,
+      bankType:
+        input.bankType ??
+        cachedPrefetch?.data.filters.bankType ??
+        prefs.bankType ??
+        userMemory?.bankTypePreference,
       shortlistBankIds: input.shortlistBankIds ?? userMemory?.pastBanksConsidered,
       appContext,
+      response: cachedPrefetch?.advisorResponse,
+      prefetchKey: input.prefetchKey ?? cachedPrefetch?.prefetchKey,
+      uiIntentHint: input.uiIntentHint ?? cachedPrefetch?.ui,
       userMemory,
     },
     {
@@ -838,11 +914,9 @@ export const invokeFdAdvisor = withTracing(async function invokeFdAdvisor(input:
     );
   }
 
-  return {
-    threadId,
-    response:
-      result.response ??
-      (await buildDeterministicAdvisorResponse({
+  const response =
+    result.response ??
+    (await buildDeterministicAdvisorResponse({
         language: input.language,
         amount: input.amount ?? newPrefs.amount ?? userMemory?.amount ?? DEFAULT_AMOUNT,
         tenorMonths:
@@ -855,6 +929,20 @@ export const invokeFdAdvisor = withTracing(async function invokeFdAdvisor(input:
         bankType: input.bankType ?? newPrefs.bankType ?? userMemory?.bankTypePreference,
         preferredBankIds: input.shortlistBankIds ?? userMemory?.pastBanksConsidered,
         glossaryTermIds: ["pa", "tenor", "dicgc"],
-      })),
+      }));
+
+  return {
+    threadId,
+    response: response.ui
+      ? response
+      : {
+          ...response,
+          ui: buildAdvisorUiFromResponse({
+            message: input.message,
+            response,
+            hint: input.uiIntentHint ?? cachedPrefetch?.ui,
+            prefetchKey: input.prefetchKey ?? cachedPrefetch?.prefetchKey,
+          }),
+        },
   };
 }, { name: "invokeFdAdvisor", run_type: "chain" });

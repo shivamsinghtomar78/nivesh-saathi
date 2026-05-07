@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { withCsrfHeaders } from "@/lib/csrf";
 import { LANGUAGE_META } from "@/lib/languages";
-import type { AppLanguage } from "@/lib/server/advisor-schemas";
+import type { AdvisorUi, AppLanguage } from "@/lib/server/advisor-schemas";
 
 export type DuplexVoiceStatus =
   | "idle"
@@ -27,8 +27,15 @@ type VoiceSessionOptions = {
   recentMessages?: VoiceHistoryMessage[];
   onThreadId?: (threadId: string) => void;
   onUserTranscript?: (transcript: string) => void;
+  onInterimTranscript?: (transcript: string) => void;
   onAssistantReply?: (reply: string) => void;
   onError?: (message: string) => void;
+  getPredictiveContext?: () =>
+    | {
+        prefetchKey?: string;
+        uiIntentHint?: AdvisorUi;
+      }
+    | null;
 };
 
 type SessionResponse = {
@@ -50,28 +57,46 @@ type DeepgramResultEvent = {
 };
 
 type VoiceRespondEvent =
-  | { type: "meta"; threadId?: string; conversationId?: string; voiceSessionId?: string }
+  | {
+      type: "meta";
+      threadId?: string;
+      conversationId?: string;
+      voiceSessionId?: string;
+      prefetchKey?: string;
+      ui?: AdvisorUi;
+    }
   | { type: "user"; transcript: string }
   | { type: "token"; token: string }
+  | { type: "thinking"; text: string }
   | {
       type: "audio";
       text: string;
       audioUrl: string;
       provider: string;
       fallbackLanguage?: string;
+      isFiller?: boolean;
     }
   | {
       type: "audio_fallback";
       text: string;
       provider: string;
       fallbackLanguage?: string;
+      isFiller?: boolean;
     }
-  | { type: "done"; reply: string; threadId?: string; conversationId?: string; voiceSessionId?: string }
+  | {
+      type: "done";
+      reply: string;
+      threadId?: string;
+      conversationId?: string;
+      voiceSessionId?: string;
+      prefetchKey?: string;
+      ui?: AdvisorUi;
+    }
   | { type: "error"; error: string };
 
 type PlaybackItem =
-  | { kind: "audio"; audioUrl: string; text: string }
-  | { kind: "speech"; text: string; language: string };
+  | { kind: "audio"; audioUrl: string; text: string; isFiller?: boolean }
+  | { kind: "speech"; text: string; language: string; isFiller?: boolean };
 
 function normalizeVoiceLanguage(language: AppLanguage): "en" | "hi" | "hinglish" {
   if (language === "en" || language === "hi" || language === "hinglish") return language;
@@ -244,6 +269,8 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
             const nextThreadId = event.threadId ?? event.conversationId;
             if (nextThreadId) optionsRef.current.onThreadId?.(nextThreadId);
             if (event.voiceSessionId) voiceSessionIdRef.current = event.voiceSessionId;
+          } else if (event.type === "thinking") {
+            setAssistantText(event.text);
           } else if (event.type === "token") {
             assistantAccumulatedRef.current += event.token;
             setAssistantText(assistantAccumulatedRef.current);
@@ -252,12 +279,14 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
               kind: "audio",
               audioUrl: event.audioUrl,
               text: event.text,
+              isFiller: event.isFiller,
             });
           } else if (event.type === "audio_fallback") {
             enqueuePlayback({
               kind: "speech",
               text: event.text,
               language: event.fallbackLanguage ?? "en-IN",
+              isFiller: event.isFiller,
             });
           } else if (event.type === "done") {
             responseDoneRef.current = true;
@@ -295,6 +324,7 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
       const controller = new AbortController();
       responseAbortRef.current = controller;
       const voiceLanguage = normalizeVoiceLanguage(optionsRef.current.language);
+      const predictiveContext = optionsRef.current.getPredictiveContext?.() ?? null;
 
       try {
         const response = await fetch("/api/voice/respond", {
@@ -307,6 +337,8 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
             conversationId: optionsRef.current.threadId ?? undefined,
             voiceSessionId: voiceSessionIdRef.current ?? undefined,
             clientTurnId: createClientTurnId(),
+            prefetchKey: predictiveContext?.prefetchKey,
+            uiIntentHint: predictiveContext?.uiIntentHint,
             recentMessages: optionsRef.current.recentMessages ?? [],
           }),
           signal: controller.signal,
@@ -352,6 +384,7 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
         finalSegmentsRef.current.push(transcript);
       } else {
         setInterimTranscript(transcript);
+        optionsRef.current.onInterimTranscript?.(transcript);
       }
 
       if (event.speech_final) {

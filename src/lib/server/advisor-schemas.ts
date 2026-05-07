@@ -63,6 +63,71 @@ export type AdvisorAction = z.infer<typeof advisorActionSchema>;
 export const conversationModeSchema = z.enum(["chat", "voice"]);
 export type ConversationMode = z.infer<typeof conversationModeSchema>;
 
+export const conversationalUiModeSchema = z.enum([
+  "conversational",
+  "comparison",
+  "calculator",
+  "recommendation",
+  "analytics",
+  "exploration",
+  "onboarding",
+]);
+export type ConversationalUiMode = z.infer<typeof conversationalUiModeSchema>;
+
+export const advisorUiDataTypeSchema = z.enum([
+  "fd_rates",
+  "maturity_projection",
+  "bank_safety",
+  "portfolio",
+  "tax",
+  "general",
+]);
+export type AdvisorUiDataType = z.infer<typeof advisorUiDataTypeSchema>;
+
+export const advisorUiVisualizationSchema = z.enum([
+  "comparison_table",
+  "rate_cards",
+  "maturity_chart",
+  "timeline",
+  "calculator",
+  "recommendation_cards",
+  "portfolio_split",
+  "trend_chart",
+  "insight_panel",
+]);
+export type AdvisorUiVisualization = z.infer<typeof advisorUiVisualizationSchema>;
+
+export const advisorUiSchema = z.object({
+  mode: conversationalUiModeSchema.default("conversational"),
+  expand: z.boolean().default(false),
+  entities: z.array(z.string().trim().min(1)).max(8).default([]),
+  dataType: advisorUiDataTypeSchema.default("general"),
+  visualizations: z.array(advisorUiVisualizationSchema).max(8).default([]),
+  componentHints: z.array(z.string().trim().min(1)).max(8).default([]),
+  actionButtons: z
+    .array(
+      z.object({
+        label: z.string().trim().min(1).max(80),
+        type: z.enum(["primary", "secondary"]).default("secondary"),
+        action: z.enum([
+          "ask_followup",
+          "adjust_amount",
+          "adjust_tenor",
+          "run_calculator",
+          "open_compare",
+          "open_voice",
+        ]),
+        prompt: z.string().trim().max(220).optional(),
+        url: z.string().url().optional(),
+      })
+    )
+    .max(4)
+    .default([]),
+  prefetchKey: z.string().trim().optional(),
+  confidence: z.enum(["low", "medium", "high"]).optional(),
+});
+export type AdvisorUi = z.infer<typeof advisorUiSchema>;
+
 export const portfolioSplitAllocationSchema = z.object({
   bankId: z.string(),
   bankName: z.string(),
@@ -98,6 +163,7 @@ export const advisorResponseSchema = z.object({
   portfolioSplit: portfolioSplitSchema.optional(),
   showCalculator: z.boolean().optional(),
   showTimeMachine: z.boolean().optional(),
+  ui: advisorUiSchema.optional(),
 });
 export type AdvisorResponse = z.infer<typeof advisorResponseSchema>;
 
@@ -111,7 +177,7 @@ const chatLadderBlockSchema = z.object({
   sequence: z.number().int().positive(),
 });
 
-const chatLadderPlanSchema = z.object({
+export const chatLadderPlanSchema = z.object({
   totalAmount: z.number(),
   goalLabel: z.string(),
   assumedRatePercent: z.number(),
@@ -120,7 +186,7 @@ const chatLadderPlanSchema = z.object({
   blocks: z.array(chatLadderBlockSchema).max(6),
 });
 
-const chatCompareSnapshotSchema = z.object({
+export const chatCompareSnapshotSchema = z.object({
   amount: z.number(),
   tenorMonths: z.number().int().positive(),
   bankType: bankTypeFilterSchema,
@@ -152,6 +218,8 @@ export const chatRequestSchema = z.object({
   shortlistBankIds: z.array(z.string().trim().min(1)).max(10).optional(),
   ladderPlan: chatLadderPlanSchema.optional(),
   compareSnapshot: chatCompareSnapshotSchema.optional(),
+  prefetchKey: z.string().trim().optional(),
+  uiIntentHint: advisorUiSchema.partial().optional(),
   /** Current interaction mode — voice responses are shortened automatically */
   mode: conversationModeSchema.default("chat"),
 });

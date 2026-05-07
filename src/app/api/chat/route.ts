@@ -132,7 +132,12 @@ export async function POST(request: Request) {
           content: authInput.message,
           type: authInput.mode === "voice" ? "voice" : "text",
           detectedLanguage: authInput.language,
-          metadata: { blocked: true, requestId },
+          metadata: {
+            blocked: true,
+            requestId,
+            prefetchKey: authInput.prefetchKey,
+            uiIntentHint: authInput.uiIntentHint,
+          },
         }).catch(() => null);
         const blockedText = buildBlockedPromptResponse(authInput.language);
         await insertMessage({
@@ -183,7 +188,11 @@ export async function POST(request: Request) {
         content: promptRisk.normalizedMessage,
         type: authInput.mode === "voice" ? "voice" : "text",
         detectedLanguage: authInput.language,
-        metadata: { requestId },
+        metadata: {
+          requestId,
+          prefetchKey: authInput.prefetchKey,
+          uiIntentHint: authInput.uiIntentHint,
+        },
       }).catch(() => null);
 
       const startedAt = Date.now();
@@ -206,6 +215,7 @@ export async function POST(request: Request) {
           rateCardCount: result.response.rateCards.length,
           glossaryCount: result.response.glossary.length,
           tone: result.response.tone,
+          ui: result.response.ui,
         },
       }).catch(() => null);
 

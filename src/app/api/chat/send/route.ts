@@ -111,6 +111,8 @@ export async function POST(request: Request) {
         amount: input.amount,
         tenorMonths: input.tenorMonths,
         bankType: input.bankType,
+        prefetchKey: input.prefetchKey,
+        uiIntentHint: input.uiIntentHint,
       },
     });
 
@@ -202,6 +204,7 @@ export async function POST(request: Request) {
         glossaryCount: result.response.glossary.length,
         tone: result.response.tone,
         suggestedChips: result.response.suggestedChips,
+        ui: result.response.ui,
       },
     });
 

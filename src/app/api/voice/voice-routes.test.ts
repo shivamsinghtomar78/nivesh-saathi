@@ -59,6 +59,11 @@ vi.mock("@/lib/server/assistant-memory", () => ({
   updateAssistantState: vi.fn(async () => true),
 }));
 
+vi.mock("@/lib/server/telemetry", () => ({
+  logServerError: vi.fn(),
+  logServerWarn: vi.fn(),
+}));
+
 import { PATCH as patchBooking, POST as postBooking } from "@/app/api/voice/booking/route";
 import { POST as postKyc } from "@/app/api/voice/booking/kyc/route";
 import { POST as postRespond } from "@/app/api/voice/respond/route";
@@ -155,6 +160,40 @@ describe("voice API routes", () => {
         }),
       })
     );
+  });
+
+  it("returns a clear setup code when the Deepgram key lacks Member role", async () => {
+    mockRouteState.serverEnv.DEEPGRAM_API_KEY = "dg-default-role-key";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            err_code: "FORBIDDEN",
+            err_msg: "Insufficient permissions.",
+          }),
+          {
+            status: 403,
+            statusText: "Forbidden",
+            headers: { "Content-Type": "application/json" },
+          }
+        )
+      )
+    );
+
+    const response = await postSession(
+      new Request("http://localhost/api/voice/session", { method: "POST" })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.error).toBe("Unable to create a secure voice session");
+    expect(body.details).toMatchObject({
+      code: "deepgram_key_requires_member_role",
+      upstream: 403,
+      requiredDeepgramRole: "member",
+    });
+    expect(JSON.stringify(body)).not.toContain("Insufficient permissions");
   });
 
   it("streams a Groq voice response with browser TTS fallback events", async () => {
