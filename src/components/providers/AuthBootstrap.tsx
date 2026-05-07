@@ -52,6 +52,12 @@ export default function AuthBootstrap() {
 
   useEffect(() => {
     setStatus("loading");
+
+    if (!firebaseAuth) {
+      clearUser();
+      return;
+    }
+
     void getFirebaseAnalytics();
 
     return onAuthStateChanged(firebaseAuth, (user) => {

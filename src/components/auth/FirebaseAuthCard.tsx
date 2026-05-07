@@ -26,6 +26,9 @@ import { firebaseAuth } from "@/lib/firebase";
 import { ROUTES } from "@/lib/routes";
 import { useAuthStore } from "@/stores/authStore";
 
+const AUTH_UNAVAILABLE_MESSAGE =
+  "Firebase authentication is not configured for this deployment.";
+
 function readableAuthError(error: unknown) {
   if (!(error instanceof Error)) {
     return "Authentication failed. Please try again.";
@@ -84,8 +87,14 @@ export default function FirebaseAuthCard({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const authDisabled = !firebaseAuth;
 
   const handleEmailAuth = async () => {
+    if (!firebaseAuth) {
+      toast.error(AUTH_UNAVAILABLE_MESSAGE);
+      return;
+    }
+
     if (!email.trim() || password.length < 6) {
       toast.error("Enter a valid email and a 6+ character password.");
       return;
@@ -107,6 +116,11 @@ export default function FirebaseAuthCard({
   };
 
   const handleGoogleAuth = async () => {
+    if (!firebaseAuth) {
+      toast.error(AUTH_UNAVAILABLE_MESSAGE);
+      return;
+    }
+
     setBusyAction("google");
     try {
       const provider = new GoogleAuthProvider();
@@ -124,7 +138,9 @@ export default function FirebaseAuthCard({
 
   const handleSignOut = async () => {
     setBusyAction("sign-out");
-    await signOut(firebaseAuth).catch(() => undefined);
+    if (firebaseAuth) {
+      await signOut(firebaseAuth).catch(() => undefined);
+    }
     await fetch("/api/auth/session", {
       method: "DELETE",
       headers: withCsrfHeaders(),
@@ -218,6 +234,12 @@ export default function FirebaseAuthCard({
         </AnimatePresence>
       </div>
 
+      {authDisabled ? (
+        <div className="mt-8 rounded-[var(--radius-input)] border border-danger/25 bg-danger/10 px-4 py-3 text-sm leading-6 text-text-strong">
+          {AUTH_UNAVAILABLE_MESSAGE}
+        </div>
+      ) : null}
+
       <motion.form
         className="mt-8 grid gap-5 tablet:mt-10"
         onSubmit={(event) => {
@@ -247,8 +269,9 @@ export default function FirebaseAuthCard({
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              disabled={authDisabled}
               placeholder="me@example.com"
-              className="w-full bg-transparent px-3 text-base text-text-strong outline-none placeholder:text-text-muted/70"
+              className="w-full bg-transparent px-3 text-base text-text-strong outline-none placeholder:text-text-muted/70 disabled:cursor-not-allowed disabled:opacity-60"
               autoComplete="email"
             />
           </div>
@@ -269,15 +292,16 @@ export default function FirebaseAuthCard({
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            disabled={authDisabled}
             placeholder="********"
-            className="min-h-14 rounded-[var(--radius-input)] border border-outline bg-panel px-4 text-base text-text-strong outline-none transition placeholder:text-text-muted/70 focus:border-accent"
+            className="min-h-14 rounded-[var(--radius-input)] border border-outline bg-panel px-4 text-base text-text-strong outline-none transition placeholder:text-text-muted/70 focus:border-accent disabled:cursor-not-allowed disabled:opacity-60"
             autoComplete={isSignUp ? "new-password" : "current-password"}
           />
         </motion.label>
 
         <motion.button
           type="submit"
-          disabled={busyAction !== null}
+          disabled={authDisabled || busyAction !== null}
           className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] bg-accent px-4 text-sm font-bold uppercase tracking-[0.04em] text-on-accent shadow-[0_18px_42px_rgba(215,182,109,0.2)] transition hover:bg-accent-hover disabled:opacity-60 tablet:px-5 tablet:tracking-[0.08em]"
           variants={{
             hidden: { opacity: 0, y: 12 },
@@ -308,7 +332,7 @@ export default function FirebaseAuthCard({
         <motion.button
           type="button"
           onClick={() => void handleGoogleAuth()}
-          disabled={busyAction !== null}
+          disabled={authDisabled || busyAction !== null}
           className="inline-flex min-h-14 items-center justify-center gap-3 rounded-[var(--radius-input)] border border-outline bg-panel px-4 text-sm font-bold uppercase tracking-[0.03em] text-text-strong transition hover:border-accent/35 hover:text-accent disabled:opacity-60 tablet:px-5 tablet:tracking-[0.06em]"
           whileHover={reduceMotion ? undefined : { y: -2 }}
           whileTap={reduceMotion ? undefined : { scale: 0.97 }}

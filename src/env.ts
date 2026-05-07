@@ -1,6 +1,16 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+const appUrlSchema = z.preprocess((value) => {
+  if (typeof value !== "string" || value.length === 0) {
+    return value;
+  }
+
+  return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+}, z.string().url().default("http://localhost:3000"));
+
+const optionalPublicString = z.string().min(1).optional();
+
 export const env = createEnv({
   server: {
     GEMINI_API_KEY: z.string().min(1).optional(),
@@ -53,14 +63,14 @@ export const env = createEnv({
     LANGCHAIN_CALLBACKS_BACKGROUND: z.string().optional(),
   },
   client: {
-    NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
-    NEXT_PUBLIC_FIREBASE_API_KEY: z.string().min(1),
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string().min(1),
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string().min(1),
-    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: z.string().min(1),
-    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: z.string().min(1),
-    NEXT_PUBLIC_FIREBASE_APP_ID: z.string().min(1),
-    NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: z.string().min(1).optional(),
+    NEXT_PUBLIC_APP_URL: appUrlSchema,
+    NEXT_PUBLIC_FIREBASE_API_KEY: optionalPublicString,
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: optionalPublicString,
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: optionalPublicString,
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: optionalPublicString,
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: optionalPublicString,
+    NEXT_PUBLIC_FIREBASE_APP_ID: optionalPublicString,
+    NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: optionalPublicString,
   },
   experimental__runtimeEnv: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,

@@ -13,14 +13,29 @@ const firebaseConfig = {
   measurementId: env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-export const firebaseApp = getApps().length
-  ? getApp()
-  : initializeApp(firebaseConfig);
+export const hasFirebaseClientConfig = Boolean(
+  firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.storageBucket &&
+    firebaseConfig.messagingSenderId &&
+    firebaseConfig.appId
+);
 
-export const firebaseAuth = getAuth(firebaseApp);
+export const firebaseApp = hasFirebaseClientConfig
+  ? getApps().length
+    ? getApp()
+    : initializeApp(firebaseConfig)
+  : null;
+
+export const firebaseAuth = firebaseApp ? getAuth(firebaseApp) : null;
 
 export async function getFirebaseAnalytics() {
-  if (typeof window === "undefined" || !firebaseConfig.measurementId) {
+  if (
+    typeof window === "undefined" ||
+    !firebaseApp ||
+    !firebaseConfig.measurementId
+  ) {
     return null;
   }
 
@@ -29,7 +44,7 @@ export async function getFirebaseAnalytics() {
 }
 
 export async function getFirebaseMessagingClient() {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || !firebaseApp) {
     return null;
   }
 

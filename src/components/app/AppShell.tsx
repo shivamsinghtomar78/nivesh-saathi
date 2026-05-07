@@ -64,7 +64,9 @@ export default function AppShell({
   }, []);
 
   const handleLogout = async () => {
-    await signOut(firebaseAuth).catch(() => undefined);
+    if (firebaseAuth) {
+      await signOut(firebaseAuth).catch(() => undefined);
+    }
     await fetch("/api/auth/session", {
       method: "DELETE",
       headers: withCsrfHeaders(),
