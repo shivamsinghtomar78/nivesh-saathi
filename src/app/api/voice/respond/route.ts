@@ -17,7 +17,7 @@ import {
 } from "@/lib/server/prompt-guard";
 import { persistChatSessionTurn, persistFlaggedMessage } from "@/lib/server/persistence";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
-import { logServerWarn } from "@/lib/server/telemetry";
+import { logServerError, logServerWarn } from "@/lib/server/telemetry";
 import {
   recordVoiceTurn,
   startVoiceSession,
@@ -200,11 +200,17 @@ async function synthesizeChunk(params: {
   );
 
   if (!response.ok) {
+    const detail = await response.text();
+    logServerWarn("voice_elevenlabs_tts_failed", {
+      upstreamStatus: response.status,
+      upstreamStatusText: response.statusText,
+      providerDetail: detail.slice(0, 500),
+      language: params.language,
+    });
     return {
       provider: "browser-fallback",
       audioUrl: null,
       fallbackLanguage: getFallbackSpeechLanguage(params.language),
-      warning: (await response.text()).slice(0, 220),
     };
   }
 
@@ -406,7 +412,14 @@ export async function POST(request: Request) {
 
             if (!groqResponse.ok || !groqResponse.body) {
               const detail = await groqResponse.text().catch(() => "");
-              throw new Error(detail.slice(0, 220) || `Groq request failed with ${groqResponse.status}`);
+              logServerError("voice_groq_request_failed", {
+                userId: auth.session.uid,
+                conversationId,
+                upstreamStatus: groqResponse.status,
+                upstreamStatusText: groqResponse.statusText,
+                providerDetail: detail.slice(0, 500),
+              });
+              throw new Error("voice_llm_failed");
             }
 
             const reader = groqResponse.body.getReader();
@@ -543,9 +556,20 @@ export async function POST(request: Request) {
           });
         } catch (error) {
           if (!abortController.signal.aborted) {
+            const code =
+              error instanceof Error && error.message === "voice_llm_failed"
+                ? "voice_llm_failed"
+                : "voice_response_failed";
+            logServerError("voice_respond_stream_failed", {
+              userId: auth.session.uid,
+              conversationId,
+              code,
+              message: error instanceof Error ? error.message : "Unknown error",
+            });
             sse(controller, {
               type: "error",
-              error: error instanceof Error ? error.message : "Unable to prepare voice reply",
+              code,
+              error: "Unable to prepare voice reply",
             });
           }
         } finally {

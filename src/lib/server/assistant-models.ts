@@ -285,7 +285,7 @@ export const analyticsSchema = new Schema(
     latencyMs: { type: Number, min: 0 },
     metadata: { type: Mixed, default: {} },
     occurredAt: { type: Date, default: Date.now, index: true },
-    expiresAt: { type: Date, index: true },
+    expiresAt: { type: Date },
   },
   {
     collection: "analytics",

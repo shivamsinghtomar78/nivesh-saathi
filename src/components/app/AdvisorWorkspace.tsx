@@ -32,6 +32,7 @@ import { LANGUAGE_LABELS } from "@/lib/copy";
 import { withCsrfHeaders } from "@/lib/csrf";
 import { LANGUAGE_META } from "@/lib/languages";
 import { ROUTES } from "@/lib/routes";
+import { clearStoredActiveConversation } from "@/lib/chat-session";
 import { cn } from "@/lib/utils";
 import type { AdvisorUi, AppLanguage, ConversationMode } from "@/lib/server/advisor-schemas";
 import type { PredictivePrefetchClientResult } from "@/hooks/usePredictivePrefetch";
@@ -187,10 +188,8 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   const language = useConversationStore((state) => state.language);
   const messages = useConversationStore((state) => state.messages);
   const threadId = useConversationStore((state) => state.threadId);
-  const activeConversationId = useConversationStore((state) => state.activeConversationId);
   const isTyping = useConversationStore((state) => state.isTyping);
   const addMessage = useConversationStore((state) => state.addMessage);
-  const setMessages = useConversationStore((state) => state.setMessages);
   const markLastFailed = useConversationStore((state) => state.markLastFailed);
   const retryLastMessage = useConversationStore((state) => state.retryLastMessage);
   const setActiveMode = useConversationStore((state) => state.setActiveMode);
@@ -280,9 +279,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
       if (meta.threadId) {
         setThreadId(meta.threadId);
         setActiveConversationId(meta.threadId);
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem("nivesh-active-conversation", meta.threadId);
-        }
       }
     },
     onToken: (_token, accumulated) => {
@@ -465,50 +461,6 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
   }, [router, sendAdvisorMessage, user]);
 
   useEffect(() => {
-    if (!user || activeConversationId || messages.length > 1) return;
-    if (typeof window === "undefined") return;
-
-    const savedConversationId = window.localStorage.getItem("nivesh-active-conversation");
-    if (!savedConversationId) return;
-
-    let cancelled = false;
-    void fetch(`/api/chat/conversations/${encodeURIComponent(savedConversationId)}`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload) => {
-        if (cancelled || !payload?.ok || !Array.isArray(payload.messages)) return;
-        const restoredMessages: ConversationMessage[] = payload.messages.map(
-          (msg: { id?: string; role: "assistant" | "user" | "system"; content: string; createdAt: string }, index: number) => ({
-            id: msg.id || `${savedConversationId}-${index}`,
-            role: msg.role === "assistant" ? "bot" : "user",
-            content: msg.content,
-            timestamp: new Intl.DateTimeFormat("en-IN", {
-              hour: "numeric",
-              minute: "2-digit",
-            }).format(new Date(msg.createdAt)),
-            language: LANGUAGE_LABELS[language],
-            source: "chat",
-          })
-        );
-        setMessages(restoredMessages);
-        setThreadId(savedConversationId);
-        setActiveConversationId(savedConversationId);
-      })
-      .catch(() => undefined);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    activeConversationId,
-    language,
-    messages.length,
-    setActiveConversationId,
-    setMessages,
-    setThreadId,
-    user,
-  ]);
-
-  useEffect(() => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
       behavior: "smooth",
@@ -688,10 +640,22 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
 
   const resetConversation = () => {
     cancelSpeech();
+    clearStoredActiveConversation();
     setVoiceLayerOpen(false);
     setPredictivePreview(null);
     setPredictiveStatus("idle");
     setWorkspaceCollapsed(false);
+    setStreamingMessage(null);
+    setVoiceAcknowledgment(null);
+    setSpokenSummary(null);
+    setVoiceSummary(null);
+    setEditingMessageId(null);
+    setDraft("");
+    latestStreamMeta.current = null;
+    streamingMessageId.current = null;
+    pendingSourceRef.current = "chat";
+    setPendingSource("chat");
+    setActiveMode("chat");
     startNewChat();
     setShowMenu(false);
   };

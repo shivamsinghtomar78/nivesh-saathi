@@ -43,10 +43,17 @@ type SessionResponse = {
   accessToken?: string;
   expiresIn?: number;
   error?: string;
+  details?: {
+    code?: string;
+  };
 };
 
 type DeepgramResultEvent = {
   type?: string;
+  request_id?: string;
+  metadata?: {
+    request_id?: string;
+  };
   is_final?: boolean;
   speech_final?: boolean;
   channel?: {
@@ -92,11 +99,77 @@ type VoiceRespondEvent =
       prefetchKey?: string;
       ui?: AdvisorUi;
     }
-  | { type: "error"; error: string };
+  | { type: "error"; error: string; code?: string };
 
 type PlaybackItem =
   | { kind: "audio"; audioUrl: string; text: string; isFiller?: boolean }
   | { kind: "speech"; text: string; language: string; isFiller?: boolean };
+
+type ChunkStats = {
+  count: number;
+  bytes: number;
+  minBytes: number | null;
+  maxBytes: number;
+};
+
+const MAX_TRANSIENT_RECONNECTS = 2;
+const DEEPGRAM_POLICY_CLOSE_CODES = new Set([1002, 1003, 1007, 1008]);
+
+function createVoiceDiagnosticSessionId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `voice-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+}
+
+function createChunkStats(): ChunkStats {
+  return {
+    count: 0,
+    bytes: 0,
+    minBytes: null,
+    maxBytes: 0,
+  };
+}
+
+function summarizeChunkStats(stats: ChunkStats) {
+  return {
+    count: stats.count,
+    bytes: stats.bytes,
+    minBytes: stats.minBytes ?? 0,
+    maxBytes: stats.maxBytes,
+  };
+}
+
+export function isRetriableDeepgramClose(input: {
+  code: number;
+  wasClean?: boolean;
+}) {
+  if (input.code === 1000 || input.code === 1001) return false;
+  if (DEEPGRAM_POLICY_CLOSE_CODES.has(input.code)) return false;
+  if (input.code >= 4000 && input.code < 5000) return false;
+  if (input.code === 1006) return true;
+  if (input.code === 1011 || input.code === 1012 || input.code === 1013) {
+    return true;
+  }
+
+  return !input.wasClean;
+}
+
+export function getDeepgramCloseMessage(input: {
+  code: number;
+  wasClean?: boolean;
+}) {
+  if (input.code === 1008 || (input.code >= 4000 && input.code < 5000)) {
+    return "Live transcription was rejected. Please check the Deepgram key role and voice settings.";
+  }
+
+  if (DEEPGRAM_POLICY_CLOSE_CODES.has(input.code)) {
+    return "Live transcription could not accept the microphone stream. Please try again.";
+  }
+
+  return "Voice connection dropped. Please try again.";
+}
 
 function normalizeVoiceLanguage(language: AppLanguage): "en" | "hi" | "hinglish" {
   if (language === "en" || language === "hi" || language === "hinglish") return language;
@@ -138,6 +211,7 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationRef = useRef<number | null>(null);
   const keepAliveRef = useRef<number | null>(null);
+  const stableConnectionTimerRef = useRef<number | null>(null);
   const responseAbortRef = useRef<AbortController | null>(null);
   const playbackQueueRef = useRef<PlaybackItem[]>([]);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -148,17 +222,67 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
   const lastSentTranscriptRef = useRef("");
   const reconnectAttemptsRef = useRef(0);
   const voiceSessionIdRef = useRef<string | null>(null);
+  const deepgramRequestIdRef = useRef<string | null>(null);
+  const connectionAttemptRef = useRef(0);
+  const diagnosticSessionIdRef = useRef(createVoiceDiagnosticSessionId());
+  const chunkStatsRef = useRef<ChunkStats>(createChunkStats());
+  const previousContextRef = useRef<{
+    language: AppLanguage;
+    threadId: string | null;
+  }>({
+    language: options.language,
+    threadId: options.threadId ?? null,
+  });
   const activeRef = useRef(false);
   const startRef = useRef<() => void>(() => undefined);
   const playNextRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     optionsRef.current = options;
+    const nextContext = {
+      language: options.language,
+      threadId: options.threadId ?? null,
+    };
+
+    if (
+      previousContextRef.current.language !== nextContext.language ||
+      previousContextRef.current.threadId !== nextContext.threadId
+    ) {
+      previousContextRef.current = nextContext;
+      lastSentTranscriptRef.current = "";
+      finalSegmentsRef.current = [];
+      assistantAccumulatedRef.current = "";
+      voiceSessionIdRef.current = null;
+      deepgramRequestIdRef.current = null;
+    }
   }, [options]);
 
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
+
+  const reportDiagnostic = useCallback(
+    (event: string, metadata?: Record<string, unknown>) => {
+      if (typeof window === "undefined") return;
+
+      void fetch("/api/voice/diagnostics", {
+        method: "POST",
+        headers: withCsrfHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          sessionId: diagnosticSessionIdRef.current,
+          attemptId: connectionAttemptRef.current,
+          event,
+          metadata: {
+            status: statusRef.current,
+            deepgramRequestId: deepgramRequestIdRef.current,
+            ...metadata,
+          },
+        }),
+        keepalive: true,
+      }).catch(() => undefined);
+    },
+    []
+  );
 
   const setVoiceError = useCallback((message: string) => {
     setError(message);
@@ -196,12 +320,26 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
       const audio = new Audio(next.audioUrl);
       currentAudioRef.current = audio;
       audio.onended = () => playNextRef.current();
-      audio.onerror = () => playNextRef.current();
-      void audio.play().catch(() => playNextRef.current());
+      audio.onerror = () => {
+        reportDiagnostic("playback_error", {
+          kind: "audio",
+          textLength: next.text.length,
+        });
+        playNextRef.current();
+      };
+      void audio.play().catch((caught) => {
+        reportDiagnostic("playback_error", {
+          kind: "audio_play",
+          message: caught instanceof Error ? caught.message : "Audio play failed",
+          textLength: next.text.length,
+        });
+        playNextRef.current();
+      });
       return;
     }
 
     if (typeof window === "undefined" || !window.speechSynthesis) {
+      reportDiagnostic("playback_unavailable", { kind: "speech_synthesis" });
       playNextRef.current();
       return;
     }
@@ -211,10 +349,16 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
     utterance.rate = 0.96;
     utterance.pitch = 1;
     utterance.onend = () => playNextRef.current();
-    utterance.onerror = () => playNextRef.current();
+    utterance.onerror = () => {
+      reportDiagnostic("playback_error", {
+        kind: "speech_synthesis",
+        textLength: next.text.length,
+      });
+      playNextRef.current();
+    };
     currentUtteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
-  }, []);
+  }, [reportDiagnostic]);
 
   useEffect(() => {
     playNextRef.current = playNext;
@@ -248,6 +392,9 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
       const reader = response.body?.getReader();
       if (!reader) throw new Error("Voice response stream is unavailable.");
 
+      reportDiagnostic("voice_response_stream_start", {
+        contentType: response.headers.get("content-type"),
+      });
       const decoder = new TextDecoder();
       let buffer = "";
 
@@ -295,16 +442,25 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
             if (event.voiceSessionId) voiceSessionIdRef.current = event.voiceSessionId;
             const reply = (event.reply || assistantAccumulatedRef.current).trim();
             if (reply) optionsRef.current.onAssistantReply?.(reply);
+            reportDiagnostic("voice_response_done", {
+              replyLength: reply.length,
+              hasThread: Boolean(nextThreadId),
+              hasVoiceSession: Boolean(event.voiceSessionId),
+            });
             if (playbackQueueRef.current.length === 0 && !currentAudioRef.current && !currentUtteranceRef.current) {
               setStatus("listening");
             }
           } else if (event.type === "error") {
+            reportDiagnostic("voice_response_error", {
+              code: event.code,
+              message: event.error,
+            });
             throw new Error(event.error);
           }
         }
       }
     },
-    [enqueuePlayback]
+    [enqueuePlayback, reportDiagnostic]
   );
 
   const sendUtterance = useCallback(
@@ -313,6 +469,11 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
       if (!trimmed || trimmed === lastSentTranscriptRef.current) return;
 
       lastSentTranscriptRef.current = trimmed;
+      reportDiagnostic("voice_utterance_send", {
+        transcriptLength: trimmed.length,
+        hasThread: Boolean(optionsRef.current.threadId),
+        hasVoiceSession: Boolean(voiceSessionIdRef.current),
+      });
       setLastUserTranscript(trimmed);
       setInterimTranscript("");
       setAssistantText("");
@@ -345,20 +506,30 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
         });
 
         if (!response.ok) {
-          const payload = (await response.json().catch(() => ({}))) as { error?: string };
+          const payload = (await response.json().catch(() => ({}))) as {
+            error?: string;
+            details?: { code?: string };
+          };
+          reportDiagnostic("voice_response_http_error", {
+            status: response.status,
+            code: payload.details?.code,
+          });
           throw new Error(payload.error || "Voice agent could not respond.");
         }
 
         await parseVoiceResponse(response);
       } catch (caught) {
         if ((caught as Error).name === "AbortError") return;
+        reportDiagnostic("voice_utterance_failed", {
+          message: caught instanceof Error ? caught.message : "Voice response failed",
+        });
         setVoiceError(caught instanceof Error ? caught.message : "Voice response failed.");
       } finally {
         responseAbortRef.current = null;
         responseDoneRef.current = true;
       }
     },
-    [parseVoiceResponse, setVoiceError]
+    [parseVoiceResponse, reportDiagnostic, setVoiceError]
   );
 
   const handleDeepgramMessage = useCallback(
@@ -370,7 +541,17 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
         return;
       }
 
+      if (event.type === "Metadata") {
+        const requestId = event.request_id ?? event.metadata?.request_id;
+        if (requestId) {
+          deepgramRequestIdRef.current = requestId;
+          reportDiagnostic("deepgram_metadata", { requestId });
+        }
+        return;
+      }
+
       if (event.type === "SpeechStarted") {
+        reportDiagnostic("deepgram_speech_started");
         if (statusRef.current === "speaking" || statusRef.current === "processing") {
           interruptAssistant();
         }
@@ -382,6 +563,9 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
 
       if (event.is_final) {
         finalSegmentsRef.current.push(transcript);
+        reportDiagnostic("deepgram_transcript_final", {
+          transcriptLength: transcript.length,
+        });
       } else {
         setInterimTranscript(transcript);
         optionsRef.current.onInterimTranscript?.(transcript);
@@ -390,10 +574,15 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
       if (event.speech_final) {
         const utterance = (finalSegmentsRef.current.join(" ") || transcript).trim();
         finalSegmentsRef.current = [];
-        if (utterance) void sendUtterance(utterance);
+        if (utterance) {
+          reportDiagnostic("deepgram_utterance_final", {
+            transcriptLength: utterance.length,
+          });
+          void sendUtterance(utterance);
+        }
       }
     },
-    [interruptAssistant, sendUtterance]
+    [interruptAssistant, reportDiagnostic, sendUtterance]
   );
 
   const stopLevelMeter = useCallback(() => {
@@ -426,16 +615,15 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
     tick();
   }, []);
 
-  const cleanup = useCallback(() => {
-    activeRef.current = false;
-    responseAbortRef.current?.abort();
-    responseAbortRef.current = null;
-    stopPlayback();
-    stopLevelMeter();
-
+  const stopCaptureResources = useCallback(() => {
     if (keepAliveRef.current !== null) {
       window.clearInterval(keepAliveRef.current);
       keepAliveRef.current = null;
+    }
+
+    if (stableConnectionTimerRef.current !== null) {
+      window.clearTimeout(stableConnectionTimerRef.current);
+      stableConnectionTimerRef.current = null;
     }
 
     if (mediaRecorderRef.current?.state === "recording") {
@@ -446,21 +634,60 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
 
-    socketRef.current?.close();
-    socketRef.current = null;
-
     void audioContextRef.current?.close().catch(() => undefined);
     audioContextRef.current = null;
     analyserRef.current = null;
+    stopLevelMeter();
+  }, [stopLevelMeter]);
+
+  const cleanup = useCallback(() => {
+    activeRef.current = false;
+    connectionAttemptRef.current += 1;
+    responseAbortRef.current?.abort();
+    responseAbortRef.current = null;
+    stopPlayback();
+    stopCaptureResources();
+
+    const socket = socketRef.current;
+    socketRef.current = null;
+
+    if (
+      socket &&
+      (socket.readyState === WebSocket.CONNECTING ||
+        socket.readyState === WebSocket.OPEN)
+    ) {
+      socket.close(1000, "client_cleanup");
+    }
+
     finalSegmentsRef.current = [];
     responseDoneRef.current = true;
-  }, [stopLevelMeter, stopPlayback]);
+  }, [stopCaptureResources, stopPlayback]);
 
   const start = useCallback(async () => {
+    const reconnecting = reconnectAttemptsRef.current > 0;
     cleanup();
+    const attemptId = connectionAttemptRef.current + 1;
+    connectionAttemptRef.current = attemptId;
+    if (!reconnecting) {
+      diagnosticSessionIdRef.current = createVoiceDiagnosticSessionId();
+      lastSentTranscriptRef.current = "";
+      voiceSessionIdRef.current = null;
+    }
+    chunkStatsRef.current = createChunkStats();
+    finalSegmentsRef.current = [];
+    assistantAccumulatedRef.current = "";
+    responseDoneRef.current = true;
+    deepgramRequestIdRef.current = null;
     activeRef.current = true;
     setError(null);
-    setStatus(reconnectAttemptsRef.current > 0 ? "reconnecting" : "connecting");
+    setInterimTranscript("");
+    setStatus(reconnecting ? "reconnecting" : "connecting");
+    reportDiagnostic("voice_session_start", {
+      reconnecting,
+      reconnectAttempt: reconnectAttemptsRef.current,
+      language: optionsRef.current.language,
+      hasThread: Boolean(optionsRef.current.threadId),
+    });
 
     try {
       const sessionResponse = await fetch("/api/voice/session", {
@@ -469,8 +696,15 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
       });
       const session = (await sessionResponse.json()) as SessionResponse;
       if (!sessionResponse.ok || !session.accessToken) {
+        reportDiagnostic("voice_session_token_failed", {
+          status: sessionResponse.status,
+          code: session.details?.code,
+        });
         throw new Error(session.error || "Unable to create a voice session.");
       }
+      reportDiagnostic("voice_session_token_ok", {
+        expiresIn: session.expiresIn,
+      });
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -481,6 +715,9 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
       });
       streamRef.current = stream;
       startLevelMeter(stream);
+      reportDiagnostic("microphone_opened", {
+        tracks: stream.getAudioTracks().length,
+      });
 
       const voiceLanguage = normalizeVoiceLanguage(optionsRef.current.language);
       const deepgramLanguage = LANGUAGE_META[voiceLanguage].deepgram;
@@ -491,6 +728,7 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
         punctuate: "true",
         endpointing: "320",
         utterance_end_ms: "900",
+        vad_events: "true",
         language: deepgramLanguage,
       });
       const socket = new WebSocket(`wss://api.deepgram.com/v1/listen?${params}`, [
@@ -500,20 +738,70 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
       socketRef.current = socket;
 
       socket.onopen = () => {
-        reconnectAttemptsRef.current = 0;
+        if (attemptId !== connectionAttemptRef.current) return;
         setStatus("listening");
+        stableConnectionTimerRef.current = window.setTimeout(() => {
+          if (activeRef.current && attemptId === connectionAttemptRef.current) {
+            reconnectAttemptsRef.current = 0;
+          }
+          stableConnectionTimerRef.current = null;
+        }, 5000);
+        reportDiagnostic("ws_open", {
+          deepgramLanguage,
+          readyState: socket.readyState,
+        });
 
-        const recorder = new MediaRecorder(stream, getMediaRecorderOptions());
+        let recorder: MediaRecorder;
+        try {
+          recorder = new MediaRecorder(stream, getMediaRecorderOptions());
+        } catch (caught) {
+          reportDiagnostic("recorder_create_failed", {
+            message:
+              caught instanceof Error
+                ? caught.message
+                : "MediaRecorder could not start",
+          });
+          setVoiceError("Unable to capture microphone audio.");
+          return;
+        }
         mediaRecorderRef.current = recorder;
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
+            const stats = chunkStatsRef.current;
+            stats.count += 1;
+            stats.bytes += event.data.size;
+            stats.minBytes =
+              stats.minBytes === null
+                ? event.data.size
+                : Math.min(stats.minBytes, event.data.size);
+            stats.maxBytes = Math.max(stats.maxBytes, event.data.size);
             socket.send(event.data);
           }
         };
         recorder.onerror = () => {
+          reportDiagnostic("recorder_error", {
+            mimeType: recorder.mimeType,
+            state: recorder.state,
+          });
           setVoiceError("Unable to capture microphone audio.");
         };
-        recorder.start(250);
+        try {
+          recorder.start(250);
+        } catch (caught) {
+          reportDiagnostic("recorder_start_failed", {
+            mimeType: recorder.mimeType,
+            message:
+              caught instanceof Error
+                ? caught.message
+                : "MediaRecorder could not start",
+          });
+          setVoiceError("Unable to capture microphone audio.");
+          return;
+        }
+        reportDiagnostic("recorder_start", {
+          mimeType: recorder.mimeType,
+          state: recorder.state,
+        });
 
         keepAliveRef.current = window.setInterval(() => {
           if (socket.readyState === WebSocket.OPEN) {
@@ -523,25 +811,51 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
       };
 
       socket.onmessage = (event) => {
+        if (attemptId !== connectionAttemptRef.current) return;
         if (typeof event.data === "string") {
           handleDeepgramMessage(event.data);
         }
       };
 
       socket.onerror = () => {
-        setVoiceError("Live transcription connection failed.");
+        if (attemptId !== connectionAttemptRef.current) return;
+        reportDiagnostic("ws_error", {
+          readyState: socket.readyState,
+        });
       };
 
-      socket.onclose = () => {
+      socket.onclose = (event) => {
+        if (attemptId !== connectionAttemptRef.current) return;
+        if (socketRef.current === socket) {
+          socketRef.current = null;
+        }
+        stopCaptureResources();
+        const retriable = isRetriableDeepgramClose(event);
+        reportDiagnostic("ws_close", {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+          retriable,
+          chunks: summarizeChunkStats(chunkStatsRef.current),
+        });
         if (!activeRef.current || statusRef.current === "error") return;
-        if (reconnectAttemptsRef.current < 2) {
+
+        if (
+          retriable &&
+          reconnectAttemptsRef.current < MAX_TRANSIENT_RECONNECTS
+        ) {
           reconnectAttemptsRef.current += 1;
           setStatus("reconnecting");
           window.setTimeout(() => {
-            if (activeRef.current) startRef.current();
+            if (
+              activeRef.current &&
+              attemptId === connectionAttemptRef.current
+            ) {
+              startRef.current();
+            }
           }, 900 * reconnectAttemptsRef.current);
         } else {
-          setVoiceError("Voice connection dropped. Please try again.");
+          setVoiceError(getDeepgramCloseMessage(event));
         }
       };
     } catch (caught) {
@@ -551,10 +865,20 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
           : caught instanceof Error
             ? caught.message
             : "Unable to start voice.";
+      reportDiagnostic("voice_session_start_failed", {
+        message,
+      });
       setVoiceError(message);
       cleanup();
     }
-  }, [cleanup, handleDeepgramMessage, setVoiceError, startLevelMeter]);
+  }, [
+    cleanup,
+    handleDeepgramMessage,
+    reportDiagnostic,
+    setVoiceError,
+    startLevelMeter,
+    stopCaptureResources,
+  ]);
 
   useEffect(() => {
     startRef.current = () => {

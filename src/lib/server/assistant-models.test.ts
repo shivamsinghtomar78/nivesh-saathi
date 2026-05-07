@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getAssistantModels } from "@/lib/server/assistant-models";
+import { analyticsSchema, getAssistantModels } from "@/lib/server/assistant-models";
 import { generateConversationTitle } from "@/lib/server/conversation-title";
 
 describe("assistant persistence models", () => {
@@ -54,5 +54,17 @@ describe("assistant persistence models", () => {
         "Please compare the safest fixed deposit options for a very large emergency corpus"
       )
     ).toBe("Please compare the safest fixed deposit options for a very...");
+  });
+
+  it("keeps a single TTL index for analytics expiresAt", () => {
+    const expiresAtIndexes = analyticsSchema
+      .indexes()
+      .filter(([fields]) => fields.expiresAt === 1);
+
+    expect(expiresAtIndexes).toHaveLength(1);
+    expect(expiresAtIndexes[0][1]).toMatchObject({
+      expireAfterSeconds: 0,
+      sparse: true,
+    });
   });
 });

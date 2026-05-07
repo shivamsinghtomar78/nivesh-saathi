@@ -1,8 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import type { ComponentType } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import {
+  Component,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type ErrorInfo,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -29,7 +39,6 @@ import AuthGate from "@/components/auth/AuthGate";
 import { FDCalculatorCard } from "@/components/chat/FDCalculatorCard";
 import { FdCharts } from "@/components/fds/FdCharts";
 import DocumentScanner from "@/components/insights/DocumentScanner";
-import WealthSimulator3D from "@/components/insights/WealthSimulator3D";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,10 +56,49 @@ import {
 } from "@/lib/fd-ladder";
 import type { FdDashboardDto } from "@/lib/fd-tracker/types";
 import type { FDRate } from "@/lib/fd-data";
+import { loadInsightsData } from "@/lib/insights-loader";
 import { ROUTES } from "@/lib/routes";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import { useLadderStore } from "@/stores/ladderStore";
+
+const WealthSimulator3D = dynamic(
+  () => import("./WealthSimulator3D"),
+  {
+    ssr: false,
+    loading: () => (
+      <Card className="h-80 animate-pulse border-outline bg-panel-glass p-5 shadow-sm">
+        <div className="h-full rounded-[var(--radius-panel)] bg-inner-panel/60" />
+      </Card>
+    ),
+  }
+);
+
+class ClientWidgetBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error(
+      JSON.stringify({
+        event: "insights_widget_crashed",
+        message: error.message,
+        componentStack: errorInfo.componentStack?.slice(0, 600),
+      })
+    );
+  }
+
+  render() {
+    if (this.state.failed) return this.props.fallback;
+    return this.props.children;
+  }
+}
 
 type SummaryCardProps = {
   label: string;
@@ -429,9 +477,15 @@ export default function InsightsScreen() {
   const [topRate, setTopRate] = useState<FDRate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const loadSequenceRef = useRef(0);
 
   const loadInsights = useCallback(async () => {
+    const loadId = loadSequenceRef.current + 1;
+    loadSequenceRef.current = loadId;
+
     if (!user) {
+      setDashboard(null);
+      setTopRate(null);
       setLoading(false);
       return;
     }
@@ -439,30 +493,14 @@ export default function InsightsScreen() {
     setLoading(true);
     setError(null);
 
-    try {
-      const [dashboardResponse, ratesResponse] = await Promise.all([
-        fetch("/api/fds/dashboard"),
-        fetch("/api/fd-rates?limit=1"),
-      ]);
-      const dashboardPayload = (await dashboardResponse.json()) as {
-        dashboard?: FdDashboardDto;
-        error?: string;
-      };
-      const ratesPayload = (await ratesResponse.json()) as { rates?: FDRate[] };
+    const result = await loadInsightsData();
 
-      if (!dashboardResponse.ok || !dashboardPayload.dashboard) {
-        throw new Error(dashboardPayload.error || "Unable to load insights");
-      }
+    if (loadSequenceRef.current !== loadId) return;
 
-      setDashboard(dashboardPayload.dashboard);
-      setTopRate(ratesPayload.rates?.[0] ?? null);
-    } catch (caught) {
-      setDashboard(null);
-      setTopRate(null);
-      setError(caught instanceof Error ? caught.message : "Unable to load insights");
-    } finally {
-      setLoading(false);
-    }
+    setDashboard(result.dashboard);
+    setTopRate(result.topRate);
+    setError(result.error);
+    setLoading(false);
   }, [user]);
 
   useEffect(() => {
@@ -470,7 +508,10 @@ export default function InsightsScreen() {
       void loadInsights();
     }, 0);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      loadSequenceRef.current += 1;
+      window.clearTimeout(timer);
+    };
   }, [loadInsights]);
 
   const defaultRate = topRate?.regularRate ?? 7.5;
@@ -558,7 +599,20 @@ export default function InsightsScreen() {
               <EmptyAnalyticsState />
             )}
 
-            <WealthSimulator3D />
+            <ClientWidgetBoundary
+              fallback={
+                <Card className="border-outline bg-panel-glass p-5 shadow-sm">
+                  <p className="text-sm font-semibold text-text-strong">
+                    Wealth simulator is unavailable
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    Calculator and ladder planning remain available below.
+                  </p>
+                </Card>
+              }
+            >
+              <WealthSimulator3D />
+            </ClientWidgetBoundary>
             
             <DocumentScanner />
 

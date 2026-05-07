@@ -3,6 +3,7 @@ import { appLanguageSchema } from "@/lib/server/advisor-schemas";
 import { getRequestIp, jsonError, jsonSuccess, handleRouteError } from "@/lib/server/api";
 import { LANGUAGE_META } from "@/lib/languages";
 import { enforceRateLimit } from "@/lib/server/rate-limit";
+import { logServerError } from "@/lib/server/telemetry";
 import {
   requireCsrfProtection,
   requireFirebaseSession,
@@ -100,8 +101,15 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const detail = await response.text();
-      return jsonError("Deepgram transcription failed", 502, {
-        detail: detail.slice(0, 300),
+      logServerError("voice_deepgram_transcription_failed", {
+        userId: sessionResult.session.uid,
+        upstreamStatus: response.status,
+        upstreamStatusText: response.statusText,
+        providerDetail: detail.slice(0, 500),
+      });
+      return jsonError("Unable to transcribe audio", 502, {
+        code: "deepgram_transcription_failed",
+        upstream: response.status,
       });
     }
 

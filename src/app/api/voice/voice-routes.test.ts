@@ -61,15 +61,18 @@ vi.mock("@/lib/server/assistant-memory", () => ({
 
 vi.mock("@/lib/server/telemetry", () => ({
   logServerError: vi.fn(),
+  logServerInfo: vi.fn(),
   logServerWarn: vi.fn(),
 }));
 
+import { POST as postDiagnostics } from "@/app/api/voice/diagnostics/route";
 import { PATCH as patchBooking, POST as postBooking } from "@/app/api/voice/booking/route";
 import { POST as postKyc } from "@/app/api/voice/booking/kyc/route";
 import { POST as postRespond } from "@/app/api/voice/respond/route";
 import { POST as postSession } from "@/app/api/voice/session/route";
 import { POST as postTranscribe } from "@/app/api/voice/transcribe/route";
 import { POST as postTts } from "@/app/api/voice/tts/route";
+import { logServerInfo } from "@/lib/server/telemetry";
 
 const sampleRateCard = {
   bankId: "sbi",
@@ -100,6 +103,7 @@ function jsonRequest(url: string, body: unknown) {
 describe("voice API routes", () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
+    vi.clearAllMocks();
     mockRouteState.bookingStore.clear();
     mockRouteState.serverEnv.DEEPGRAM_API_KEY = "";
     mockRouteState.serverEnv.ELEVENLABS_API_KEY = "";
@@ -194,6 +198,41 @@ describe("voice API routes", () => {
       requiredDeepgramRole: "member",
     });
     expect(JSON.stringify(body)).not.toContain("Insufficient permissions");
+  });
+
+  it("records sanitized browser voice diagnostics", async () => {
+    const response = await postDiagnostics(
+      jsonRequest("http://localhost/api/voice/diagnostics", {
+        sessionId: "voice-session-client-1",
+        attemptId: 2,
+        event: "ws_close",
+        metadata: {
+          code: 1006,
+          reason: "",
+          transcript: "raw speech should never be logged",
+          accessToken: "dg-temp-token",
+          chunks: { count: 4, bytes: 12000 },
+        },
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(202);
+    expect(body.accepted).toBe(true);
+    expect(logServerInfo).toHaveBeenCalledWith(
+      "voice_client_diagnostic",
+      expect.objectContaining({
+        sessionId: "voice-session-client-1",
+        attemptId: 2,
+        event: "ws_close",
+        metadata: expect.objectContaining({
+          code: 1006,
+          transcript: "[redacted]",
+          accessToken: "[redacted]",
+          chunks: { count: 4, bytes: 12000 },
+        }),
+      })
+    );
   });
 
   it("streams a Groq voice response with browser TTS fallback events", async () => {
