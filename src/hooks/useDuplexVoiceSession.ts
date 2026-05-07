@@ -690,6 +690,19 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
     });
 
     try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      streamRef.current = stream;
+      startLevelMeter(stream);
+      reportDiagnostic("microphone_opened", {
+        tracks: stream.getAudioTracks().length,
+      });
+
       const sessionResponse = await fetch("/api/voice/session", {
         method: "POST",
         headers: withCsrfHeaders(),
@@ -706,22 +719,10 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
         expiresIn: session.expiresIn,
       });
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-      streamRef.current = stream;
-      startLevelMeter(stream);
-      reportDiagnostic("microphone_opened", {
-        tracks: stream.getAudioTracks().length,
-      });
-
       const voiceLanguage = normalizeVoiceLanguage(optionsRef.current.language);
       const deepgramLanguage = LANGUAGE_META[voiceLanguage].deepgram;
       const params = new URLSearchParams({
+        token: session.accessToken,
         model: "nova-2",
         interim_results: "true",
         smart_format: "true",
@@ -731,10 +732,7 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
         vad_events: "true",
         language: deepgramLanguage,
       });
-      const socket = new WebSocket(`wss://api.deepgram.com/v1/listen?${params}`, [
-        "bearer",
-        session.accessToken,
-      ]);
+      const socket = new WebSocket(`wss://api.deepgram.com/v1/listen?${params}`);
       socketRef.current = socket;
 
       socket.onopen = () => {
@@ -748,6 +746,7 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
         }, 5000);
         reportDiagnostic("ws_open", {
           deepgramLanguage,
+          authMode: "query_token",
           readyState: socket.readyState,
         });
 
@@ -820,6 +819,7 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
       socket.onerror = () => {
         if (attemptId !== connectionAttemptRef.current) return;
         reportDiagnostic("ws_error", {
+          authMode: "query_token",
           readyState: socket.readyState,
         });
       };
@@ -832,6 +832,7 @@ export function useDuplexVoiceSession(options: VoiceSessionOptions) {
         stopCaptureResources();
         const retriable = isRetriableDeepgramClose(event);
         reportDiagnostic("ws_close", {
+          authMode: "query_token",
           code: event.code,
           reason: event.reason,
           wasClean: event.wasClean,

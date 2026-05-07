@@ -162,6 +162,7 @@ describe("voice API routes", () => {
         headers: expect.objectContaining({
           Authorization: "Token dg-key",
         }),
+        body: JSON.stringify({ ttl_seconds: 30 }),
       })
     );
   });

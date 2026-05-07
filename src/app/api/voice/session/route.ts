@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         Authorization: `Token ${serverEnv.DEEPGRAM_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ttl_seconds: 120 }),
+      body: JSON.stringify({ ttl_seconds: 30 }),
     });
 
     if (!grantResponse.ok) {
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
 
     return jsonSuccess({
       accessToken: payload.access_token,
-      expiresIn: payload.expires_in ?? 120,
+      expiresIn: payload.expires_in ?? 30,
     });
   } catch (error) {
     return handleRouteError(error, "Unable to start voice session");
