@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { withCsrfHeaders } from "@/lib/csrf";
 import type { SupportedLanguage } from "@/lib/languages";
 import { LANGUAGE_META } from "@/lib/languages";
 
@@ -66,25 +65,11 @@ export function useVoiceInput(options: VoiceHookOptions) {
   const [error, setError] = useState<string | null>(null);
   const transcriptRef = useRef("");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
 
   const speechRecognitionSupported = Boolean(getSpeechRecognitionConstructor());
-  const recorderSupported =
-    typeof window !== "undefined" &&
-    "MediaRecorder" in window &&
-    typeof navigator !== "undefined" &&
-    Boolean(navigator.mediaDevices?.getUserMedia);
-
-  const isSupported = speechRecognitionSupported || recorderSupported;
+  const isSupported = speechRecognitionSupported;
   const isListening = status === "listening";
   const isProcessing = status === "processing";
-
-  const stopMediaTracks = () => {
-    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
-    mediaStreamRef.current = null;
-  };
 
   const resetTranscript = () => {
     transcriptRef.current = "";
@@ -93,90 +78,6 @@ export function useVoiceInput(options: VoiceHookOptions) {
     if (status !== "processing") {
       setStatus("idle");
     }
-  };
-
-  const transcribeWithDeepgram = async (audioBlob: Blob) => {
-    const formData = new FormData();
-    formData.append("audio", audioBlob, "voice-input.webm");
-    formData.append("language", language);
-
-    const response = await fetch("/api/voice/transcribe", {
-      method: "POST",
-      headers: withCsrfHeaders(),
-      body: formData,
-    });
-    const payload = await response.json();
-
-    if (!response.ok) {
-      throw new Error(payload.error || "Unable to transcribe audio");
-    }
-
-    const nextTranscript = String(payload.transcript ?? "").trim();
-    transcriptRef.current = nextTranscript;
-    setTranscript(nextTranscript);
-    setStatus("idle");
-    setError(null);
-    onTranscript?.(nextTranscript);
-  };
-
-  const startRecorderFallback = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaStreamRef.current = stream;
-    chunksRef.current = [];
-
-    const preferredMimeType =
-      MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/mp4")
-          ? "audio/mp4"
-          : "";
-    const recorder = new MediaRecorder(
-      stream,
-      preferredMimeType ? { mimeType: preferredMimeType } : undefined
-    );
-
-    recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        chunksRef.current.push(event.data);
-      }
-    };
-
-    recorder.onerror = () => {
-      setError("Unable to capture audio from the microphone.");
-      setStatus("error");
-      stopMediaTracks();
-    };
-
-    recorder.onstop = async () => {
-      stopMediaTracks();
-      const audioBlob = new Blob(chunksRef.current, {
-        type: recorder.mimeType || "audio/webm",
-      });
-      chunksRef.current = [];
-
-      if (audioBlob.size === 0) {
-        setError("No audio was captured. Please try again.");
-        setStatus("error");
-        return;
-      }
-
-      try {
-        setStatus("processing");
-        await transcribeWithDeepgram(audioBlob);
-      } catch (transcriptionError) {
-        setError(
-          transcriptionError instanceof Error
-            ? transcriptionError.message
-            : "Unable to transcribe audio."
-        );
-        setStatus("error");
-      }
-    };
-
-    mediaRecorderRef.current = recorder;
-    recorder.start();
-    setStatus("listening");
-    setError(null);
   };
 
   const startListening = async () => {
@@ -228,38 +129,17 @@ export function useVoiceInput(options: VoiceHookOptions) {
       return;
     }
 
-    if (!recorderSupported) {
-      setError("Voice input is not supported in this browser.");
-      setStatus("error");
-      return;
-    }
-
-    transcriptRef.current = "";
-    setTranscript("");
-    try {
-      await startRecorderFallback();
-    } catch {
-      setError("Microphone blocked. Allow mic access in your browser, or continue in chat.");
-      setStatus("error");
-      stopMediaTracks();
-    }
+    setError("Voice input is not supported in this browser.");
+    setStatus("error");
   };
 
   const stopListening = () => {
     recognitionRef.current?.stop();
-
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
   };
 
   useEffect(() => {
     return () => {
       recognitionRef.current?.stop();
-      if (mediaRecorderRef.current?.state === "recording") {
-        mediaRecorderRef.current.stop();
-      }
-      stopMediaTracks();
     };
   }, []);
 

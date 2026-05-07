@@ -1,10 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ConversationMessage } from "@/stores/conversationStore";
 
-vi.mock("@/hooks/useDuplexVoiceSession", () => ({
-  useDuplexVoiceSession: vi.fn(() => ({
+vi.mock("@/components/voice/VideoSdkVoiceSessionController", () => ({
+  default: ({ children }: { children: (voice: unknown) => ReactNode }) =>
+    children({
     assistantText: "",
     error: null,
     interimTranscript: "1 lakh ke liye best FD batao",
@@ -15,7 +17,7 @@ vi.mock("@/hooks/useDuplexVoiceSession", () => ({
     start: vi.fn(),
     status: "listening",
     stop: vi.fn(),
-  })),
+  }),
 }));
 
 import VoiceAgentLayer from "@/components/voice/VoiceAgentLayer";

@@ -8,6 +8,12 @@ const mockRouteState = vi.hoisted(() => ({
     ELEVENLABS_VOICE_ID: undefined as string | undefined,
     GROQ_API_KEY: "",
     GROQ_MODEL: "llama-3.3-70b-versatile",
+    VIDEOSDK_API_KEY: "",
+    VIDEOSDK_SECRET_KEY: "",
+    VIDEOSDK_AUTH_TOKEN: "",
+    VIDEOSDK_ROOM_WEBHOOK_URL: undefined as string | undefined,
+    VOICE_AGENT_WORKER_URL: undefined as string | undefined,
+    VOICE_AGENT_WORKER_SECRET: undefined as string | undefined,
   },
 }));
 
@@ -68,10 +74,7 @@ vi.mock("@/lib/server/telemetry", () => ({
 import { POST as postDiagnostics } from "@/app/api/voice/diagnostics/route";
 import { PATCH as patchBooking, POST as postBooking } from "@/app/api/voice/booking/route";
 import { POST as postKyc } from "@/app/api/voice/booking/kyc/route";
-import { POST as postRespond } from "@/app/api/voice/respond/route";
-import { POST as postSession } from "@/app/api/voice/session/route";
-import { POST as postTranscribe } from "@/app/api/voice/transcribe/route";
-import { POST as postTts } from "@/app/api/voice/tts/route";
+import { POST as postRoom } from "@/app/api/voice/room/route";
 import { logServerInfo } from "@/lib/server/telemetry";
 
 const sampleRateCard = {
@@ -109,96 +112,43 @@ describe("voice API routes", () => {
     mockRouteState.serverEnv.ELEVENLABS_API_KEY = "";
     mockRouteState.serverEnv.GROQ_API_KEY = "";
     mockRouteState.serverEnv.GROQ_MODEL = "llama-3.3-70b-versatile";
+    mockRouteState.serverEnv.VIDEOSDK_API_KEY = "";
+    mockRouteState.serverEnv.VIDEOSDK_SECRET_KEY = "";
+    mockRouteState.serverEnv.VIDEOSDK_AUTH_TOKEN = "";
+    mockRouteState.serverEnv.VIDEOSDK_ROOM_WEBHOOK_URL = undefined;
+    mockRouteState.serverEnv.VOICE_AGENT_WORKER_URL = undefined;
+    mockRouteState.serverEnv.VOICE_AGENT_WORKER_SECRET = undefined;
   });
 
-  it("returns browser fallback metadata when neural TTS is not configured", async () => {
-    const response = await postTts(
-      jsonRequest("http://localhost/api/voice/tts", {
-        text: "1 lakh ke liye FD compare karo",
-        language: "hinglish",
-      })
-    );
-    const body = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(body.provider).toBe("browser-fallback");
-    expect(body.meta).toMatchObject({
-      fallback: true,
-      fallbackLanguage: "hi-IN",
-      naturalTtsConfigured: false,
-    });
-  });
-
-  it("returns a clear transcription setup failure when Deepgram is unavailable", async () => {
-    const response = await postTranscribe(
-      new Request("http://localhost/api/voice/transcribe", {
-        method: "POST",
-      })
-    );
-    const body = await response.json();
-
-    expect(response.status).toBe(503);
-    expect(body.error).toBe("Deepgram is not configured");
-  });
-
-  it("mints a temporary Deepgram browser token for duplex voice", async () => {
-    mockRouteState.serverEnv.DEEPGRAM_API_KEY = "dg-key";
+  it("creates a VideoSDK room and returns a scoped client token", async () => {
+    mockRouteState.serverEnv.VIDEOSDK_API_KEY = "videosdk-key";
+    mockRouteState.serverEnv.VIDEOSDK_SECRET_KEY = "videosdk-secret";
     const fetchMock = vi.fn(async () =>
-      Response.json({ access_token: "dg-temp-token", expires_in: 120 })
+      Response.json({ roomId: "abc-xyzw-lmno", id: "room-db-id", disabled: false })
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const response = await postSession(
-      new Request("http://localhost/api/voice/session", { method: "POST" })
+    const response = await postRoom(
+      jsonRequest("http://localhost/api/voice/room", {
+        language: "hinglish",
+        threadId: "thread-1",
+      })
     );
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.accessToken).toBe("dg-temp-token");
+    expect(body.roomId).toBe("abc-xyzw-lmno");
+    expect(body.token.split(".")).toHaveLength(3);
+    expect(body.meta).toMatchObject({ transport: "videosdk" });
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.deepgram.com/v1/auth/grant",
+      "https://api.videosdk.live/v2/rooms",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
-          Authorization: "Token dg-key",
+          Authorization: expect.any(String),
         }),
-        body: JSON.stringify({ ttl_seconds: 30 }),
       })
     );
-  });
-
-  it("returns a clear setup code when the Deepgram key lacks Member role", async () => {
-    mockRouteState.serverEnv.DEEPGRAM_API_KEY = "dg-default-role-key";
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () =>
-        new Response(
-          JSON.stringify({
-            err_code: "FORBIDDEN",
-            err_msg: "Insufficient permissions.",
-          }),
-          {
-            status: 403,
-            statusText: "Forbidden",
-            headers: { "Content-Type": "application/json" },
-          }
-        )
-      )
-    );
-
-    const response = await postSession(
-      new Request("http://localhost/api/voice/session", { method: "POST" })
-    );
-    const body = await response.json();
-
-    expect(response.status).toBe(503);
-    expect(body.error).toBe("Unable to create a secure voice session");
-    expect(body.details).toMatchObject({
-      code: "deepgram_key_requires_member_role",
-      upstream: 403,
-      requiredDeepgramRole: "member",
-    });
-    expect(JSON.stringify(body)).not.toContain("Insufficient permissions");
   });
 
   it("records sanitized browser voice diagnostics", async () => {
@@ -234,46 +184,6 @@ describe("voice API routes", () => {
         }),
       })
     );
-  });
-
-  it("streams a Groq voice response with browser TTS fallback events", async () => {
-    mockRouteState.serverEnv.GROQ_API_KEY = "groq-key";
-    const encoder = new TextEncoder();
-    const groqStream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(
-          encoder.encode(
-            'data: {"choices":[{"delta":{"content":"Namaste, "}}]}\n\n'
-          )
-        );
-        controller.enqueue(
-          encoder.encode(
-            'data: {"choices":[{"delta":{"content":"main dekh raha hoon."}}]}\n\n'
-          )
-        );
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        controller.close();
-      },
-    });
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response(groqStream, { status: 200 }))
-    );
-
-    const response = await postRespond(
-      jsonRequest("http://localhost/api/voice/respond", {
-        transcript: "FD rate batao",
-        language: "hinglish",
-        threadId: "voice-conv-1",
-      })
-    );
-    const text = await response.text();
-
-    expect(response.status).toBe(200);
-    expect(text).toContain('"type":"token"');
-    expect(text).toContain('"type":"audio_fallback"');
-    expect(text).toContain('"type":"done"');
-    expect(text).toContain("Namaste");
   });
 
   it("creates, confirms, and completes a mock KYC handoff draft", async () => {

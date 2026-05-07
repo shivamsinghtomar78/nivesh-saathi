@@ -1,24 +1,22 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  getDeepgramCloseMessage,
-  isRetriableDeepgramClose,
+  classifyVideoSdkTranscriptType,
+  mapVideoSdkAgentState,
 } from "@/hooks/useDuplexVoiceSession";
 
-describe("Deepgram voice socket close handling", () => {
-  it("does not retry policy or provider application closes", () => {
-    expect(isRetriableDeepgramClose({ code: 1008, wasClean: false })).toBe(false);
-    expect(isRetriableDeepgramClose({ code: 4003, wasClean: false })).toBe(false);
-    expect(getDeepgramCloseMessage({ code: 1008, wasClean: false })).toContain(
-      "Deepgram key role"
-    );
+describe("VideoSDK voice session helpers", () => {
+  it("maps VideoSDK agent states to the existing UI status model", () => {
+    expect(mapVideoSdkAgentState("LISTENING")).toBe("listening");
+    expect(mapVideoSdkAgentState("THINKING")).toBe("processing");
+    expect(mapVideoSdkAgentState("SPEAKING")).toBe("speaking");
+    expect(mapVideoSdkAgentState("IDLE")).toBe("listening");
   });
 
-  it("retries transient network and server closes", () => {
-    expect(isRetriableDeepgramClose({ code: 1006, wasClean: false })).toBe(true);
-    expect(isRetriableDeepgramClose({ code: 1011, wasClean: false })).toBe(true);
-    expect(getDeepgramCloseMessage({ code: 1006, wasClean: false })).toBe(
-      "Voice connection dropped. Please try again."
-    );
+  it("classifies agent transcript segment types defensively", () => {
+    expect(classifyVideoSdkTranscriptType("user_transcript_final")).toBe("final");
+    expect(classifyVideoSdkTranscriptType("assistant_response")).toBe("assistant");
+    expect(classifyVideoSdkTranscriptType("partial_user_transcript")).toBe("interim");
+    expect(classifyVideoSdkTranscriptType(undefined)).toBe("unknown");
   });
 });

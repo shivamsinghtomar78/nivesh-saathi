@@ -470,33 +470,6 @@ export default function VoiceScreen() {
     async (text: string, nextPhase: VoicePhase = "result") => {
       setSpokenText(text);
       stopSpeaking();
-      try {
-        const response = await fetch("/api/voice/tts", {
-          method: "POST",
-          headers: withCsrfHeaders({ "Content-Type": "application/json" }),
-          body: JSON.stringify({ text, language: speechLanguageRef.current }),
-        });
-        const payload = (await response.json()) as {
-          ok?: boolean;
-          audioUrl?: string | null;
-          provider?: "elevenlabs" | "browser-fallback";
-          fallbackLanguage?: string;
-        };
-
-        if (response.ok && payload.audioUrl) {
-          const audio = new Audio(payload.audioUrl);
-          audioRef.current = audio;
-          setAudioProvider(payload.provider ?? "elevenlabs");
-          setPhase("speaking");
-          audio.onended = () => setPhase(nextPhase);
-          audio.onerror = () => speakWithBrowser(text, nextPhase);
-          await audio.play();
-          return;
-        }
-      } catch {
-        // Fall through to browser speech.
-      }
-
       setAudioProvider("browser-fallback");
       speakWithBrowser(text, nextPhase);
     },

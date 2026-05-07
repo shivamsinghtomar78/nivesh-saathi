@@ -4,10 +4,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { LoaderCircle, Mic, Minus, RefreshCw, Volume2, VolumeX, X } from "lucide-react";
 
-import {
-  useDuplexVoiceSession,
-  type DuplexVoiceStatus,
-} from "@/hooks/useDuplexVoiceSession";
+import VideoSdkVoiceSessionController from "@/components/voice/VideoSdkVoiceSessionController";
+import type { DuplexVoiceStatus } from "@/hooks/useDuplexVoiceSession";
 import {
   usePredictivePrefetch,
   type PredictivePrefetchClientResult,
@@ -135,64 +133,70 @@ export default function VoiceAgentLayer({
     onPredictionStatus?.(predictive.status);
   }, [onPredictionStatus, predictive.status]);
 
-  const voice = useDuplexVoiceSession({
-    language,
-    threadId,
-    recentMessages,
-    onThreadId,
-    onUserTranscript,
-    onAssistantReply,
-    onInterimTranscript: predictive.schedulePrediction,
-    getPredictiveContext: () => {
-      const latest = latestPredictiveRef.current;
-      return latest
-        ? {
-            prefetchKey: latest.prefetchKey,
-            uiIntentHint: latest.ui,
-          }
-        : null;
-    },
-  });
+  const voiceOptions = useMemo(
+    () => ({
+      language,
+      threadId,
+      recentMessages,
+      onThreadId,
+      onUserTranscript,
+      onAssistantReply,
+      onInterimTranscript: predictive.schedulePrediction,
+      getPredictiveContext: () => {
+        const latest = latestPredictiveRef.current;
+        return latest
+          ? {
+              prefetchKey: latest.prefetchKey,
+              uiIntentHint: latest.ui,
+            }
+          : null;
+      },
+    }),
+    [
+      language,
+      onAssistantReply,
+      onThreadId,
+      onUserTranscript,
+      predictive.schedulePrediction,
+      recentMessages,
+      threadId,
+    ]
+  );
 
   useEffect(() => {
     if (!open) {
       predictive.reset();
-      return;
     }
-    void voice.start();
-    return () => {
-      voice.stop();
-      predictive.reset();
-    };
-    // The session should start exactly when the layer opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  const copy = statusCopy[voice.status];
-  const active =
-    voice.status === "listening" ||
-    voice.status === "processing" ||
-    voice.status === "speaking" ||
-    voice.status === "interrupted";
-  const audioScale = 1 + voice.level * 0.22;
-  const subtitle =
-    voice.error ||
-    voice.interimTranscript ||
-    (predictive.status === "loading" ? "Predicting the workspace..." : "") ||
-    voice.assistantText ||
-    voice.lastUserTranscript ||
-    copy.body;
-  const predictionLabel =
-    predictive.status === "loading"
-      ? "Predicting"
-      : predictive.result && predictive.result.prediction.confidence !== "low"
-        ? predictive.result.ui.mode.replace("-", " ")
-        : null;
+  }, [open, predictive]);
 
   return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
+    <VideoSdkVoiceSessionController open={open} options={voiceOptions}>
+      {(voice) => {
+        const copy = statusCopy[voice.status];
+        const active =
+          voice.status === "listening" ||
+          voice.status === "processing" ||
+          voice.status === "speaking" ||
+          voice.status === "interrupted";
+        const audioScale = 1 + voice.level * 0.22;
+        const subtitle =
+          voice.error ||
+          voice.interimTranscript ||
+          (predictive.status === "loading" ? "Predicting the workspace..." : "") ||
+          voice.assistantText ||
+          voice.lastUserTranscript ||
+          copy.body;
+        const predictionLabel =
+          predictive.status === "loading"
+            ? "Predicting"
+            : predictive.result && predictive.result.prediction.confidence !== "low"
+              ? predictive.result.ui.mode.replace("-", " ")
+              : null;
+
+        return (
+          <AnimatePresence>
+            {open ? (
+              <motion.div
           className="fixed inset-0 z-[80] flex items-end justify-center bg-black/58 p-3 backdrop-blur-2xl tablet:items-center tablet:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -380,7 +384,10 @@ export default function VoiceAgentLayer({
             </div>
           </motion.div>
         </motion.div>
-      ) : null}
-    </AnimatePresence>
+            ) : null}
+          </AnimatePresence>
+        );
+      }}
+    </VideoSdkVoiceSessionController>
   );
 }
