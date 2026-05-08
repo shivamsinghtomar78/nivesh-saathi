@@ -18,6 +18,7 @@ import {
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { logServerWarn } from "@/lib/server/telemetry";
 import { ROUTES } from "@/lib/routes";
+import { detectVoiceLanguageMode } from "@/lib/voice-flow";
 import {
   trackAnalyticsEvent,
   updateAssistantState,
@@ -70,7 +71,11 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const input = chatRequestSchema.parse(body);
+    const parsedInput = chatRequestSchema.parse(body);
+    const input = {
+      ...parsedInput,
+      language: detectVoiceLanguageMode(parsedInput.message, parsedInput.language),
+    };
     const userId = auth.session.uid;
 
     // Parse conversationId from body (not in chatRequestSchema, separate field)

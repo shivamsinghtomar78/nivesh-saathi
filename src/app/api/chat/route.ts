@@ -28,6 +28,7 @@ import {
 import { enforceRateLimit } from "@/lib/server/rate-limit";
 import { logServerWarn } from "@/lib/server/telemetry";
 import { ROUTES } from "@/lib/routes";
+import { detectVoiceLanguageMode } from "@/lib/voice-flow";
 import {
   requireCsrfProtection,
   requireFirebaseSession,
@@ -76,7 +77,11 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const input = chatRequestSchema.parse(body);
+    const parsedInput = chatRequestSchema.parse(body);
+    const input = {
+      ...parsedInput,
+      language: detectVoiceLanguageMode(parsedInput.message, parsedInput.language),
+    };
 
     if (input.userId && input.userId !== sessionResult.session.uid) {
       return jsonError("Chat user does not match the signed-in session.", 403);

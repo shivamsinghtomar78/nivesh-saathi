@@ -248,7 +248,6 @@ export async function upsertFdUser(input: {
     {
       $set: {
         email: input.email ?? null,
-        firebaseUid: input.userId,
         name: input.name ?? null,
         updatedAt: now,
       },

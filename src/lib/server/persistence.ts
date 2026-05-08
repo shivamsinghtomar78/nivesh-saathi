@@ -96,6 +96,20 @@ function toProfileChatSummary(session: StoredChatSession): ProfileChatSummary {
   };
 }
 
+function isMissingFirestoreIndexError(error: unknown) {
+  return (
+    error instanceof Error &&
+    /FAILED_PRECONDITION|requires an index|create_composite/i.test(error.message)
+  );
+}
+
+function sortChatSummariesByUpdatedAt(summaries: ProfileChatSummary[]) {
+  return [...summaries].sort(
+    (left, right) =>
+      Date.parse(right.updatedAt || "") - Date.parse(left.updatedAt || "")
+  );
+}
+
 function getMemoryChatSummaries(userId: string) {
   return Array.from(chatSessionMemoryStore.values())
     .filter((session) => session.userId === userId)
@@ -118,6 +132,36 @@ async function getFirebaseChatSummaries(userId: string) {
       toProfileChatSummary(doc.data() as StoredChatSession)
     );
   } catch (error) {
+    if (isMissingFirestoreIndexError(error)) {
+      try {
+        const fallbackSnapshot = await db
+          .collection("chatSessions")
+          .where("userId", "==", userId)
+          .limit(50)
+          .get();
+
+        logServerInfo("user_chat_summaries_index_fallback", {
+          userId,
+          source: "firebase",
+        });
+
+        return sortChatSummariesByUpdatedAt(
+          fallbackSnapshot.docs.map((doc) =>
+            toProfileChatSummary(doc.data() as StoredChatSession)
+          )
+        ).slice(0, 12);
+      } catch (fallbackError) {
+        logServerError("user_chat_summaries_lookup_failed", {
+          userId,
+          source: "firebase",
+          fallback: true,
+          error:
+            fallbackError instanceof Error ? fallbackError.message : "unknown",
+        });
+        return null;
+      }
+    }
+
     logServerError("user_chat_summaries_lookup_failed", {
       userId,
       source: "firebase",

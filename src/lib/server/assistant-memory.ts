@@ -209,7 +209,7 @@ export async function upsertAssistantMemory(input: {
         createdAt: now,
       },
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: "after" }
   ).lean<MemoryLean>();
 
   return doc ? toMemoryDto(doc) : null;
@@ -363,7 +363,7 @@ export async function upsertUserPreferences(
         createdAt: now,
       },
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: "after" }
   ).lean<UserPreferencesDto>();
 
   return doc;
@@ -395,7 +395,7 @@ export async function updateAssistantState(
         createdAt: now,
       },
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: "after" }
   ).lean<AssistantStateDto>();
 
   return doc;

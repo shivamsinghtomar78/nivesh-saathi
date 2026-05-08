@@ -143,13 +143,77 @@ function shouldTreatAsFinal(message: VapiMessage) {
   );
 }
 
-function buildStartupContext(options: VoiceSessionOptions) {
+export function buildVoiceLanguageInstruction(language: AppLanguage) {
+  if (language === "hi") {
+    return [
+      "Language lock for this call: Hindi.",
+      "Reply in conversational Hindi using Devanagari script on every turn.",
+      "FD, KYC, TDS, DICGC, bank names, rates, and tenure may stay as common finance terms, but the sentence flow must remain Hindi.",
+      "Do not drift into English during detailed FD explanations unless the user clearly asks for English.",
+    ].join(" ");
+  }
+
+  if (language === "hinglish") {
+    return [
+      "Language lock for this call: Hinglish.",
+      "Reply in natural Hinglish using Latin script on every turn.",
+      "Use simple Indian finance words like FD, rate, tenure, maturity, KYC, TDS, and DICGC, but keep the sentence flow Hindi/Hinglish.",
+      "Do not switch to full English during detailed FD explanations unless the user clearly asks for English.",
+    ].join(" ");
+  }
+
+  if (language === "ta") {
+    return [
+      "Language lock for this call: Tamil.",
+      "Reply in conversational Tamil on every turn unless the user clearly asks for another language.",
+      "Keep fixed-deposit terms short and speakable.",
+    ].join(" ");
+  }
+
+  if (language === "te") {
+    return [
+      "Language lock for this call: Telugu.",
+      "Reply in conversational Telugu on every turn unless the user clearly asks for another language.",
+      "Keep fixed-deposit terms short and speakable.",
+    ].join(" ");
+  }
+
+  return [
+    "Language lock for this call: English.",
+    "Reply in clear Indian English unless the user clearly switches language.",
+  ].join(" ");
+}
+
+export function buildVapiFirstMessage(language: AppLanguage) {
+  if (language === "hi") {
+    return "\u0928\u092e\u0938\u094d\u0924\u0947, \u092e\u0948\u0902 \u0928\u093f\u0935\u0947\u0936 \u0938\u093e\u0925\u0940 \u0939\u0942\u0902, \u0906\u092a\u0915\u093e FD voice advisor. \u0906\u091c FD compare, maturity, safety, \u092f\u093e booking handoff \u092e\u0947\u0902 \u0915\u094d\u092f\u093e help \u0915\u0930\u0942\u0902?";
+  }
+
+  if (language === "hinglish") {
+    return "Namaste, main Nivesh Saathi hoon, aapka FD voice advisor. Aaj FD compare, maturity, safety, ya booking handoff mein kya help karun?";
+  }
+
+  if (language === "ta") {
+    return "Vanakkam, I am Nivesh Saathi, your fixed deposit voice advisor. FD compare, maturity, safety, or booking handoff mein how can I help?";
+  }
+
+  if (language === "te") {
+    return "Namaskaram, I am Nivesh Saathi, your fixed deposit voice advisor. FD compare, maturity, safety, or booking handoff mein how can I help?";
+  }
+
+  return "Namaste, I am Nivesh Saathi, your fixed deposit voice advisor. What would you like to compare or calculate today?";
+}
+
+export function buildStartupContext(options: VoiceSessionOptions) {
   const recentMessages = options.recentMessages?.slice(-6) ?? [];
   const predictiveContext = options.getPredictiveContext?.() ?? null;
+  const languageInstruction = buildVoiceLanguageInstruction(options.language);
 
   return [
     "You are the Nivesh Saathi voice advisor for fixed deposit decisions in India.",
     `Current app language: ${options.language}.`,
+    languageInstruction,
+    "If automatic transcription detects a different language mid-turn, treat it as noise unless the user explicitly asks to switch languages.",
     options.threadId ? `Current conversation thread: ${options.threadId}.` : "",
     recentMessages.length
       ? `Recent chat context:\n${recentMessages
@@ -381,6 +445,8 @@ export default function VapiVoiceSessionController({
       };
 
       await vapi.start(vapiAssistantId, {
+        firstMessage: buildVapiFirstMessage(optionsRef.current.language),
+        firstMessageInterruptionsEnabled: true,
         metadata: {
           app: "nivesh-saathi",
           callProvider: "vapi",
@@ -389,6 +455,7 @@ export default function VapiVoiceSessionController({
         },
         variableValues: {
           language: optionsRef.current.language,
+          languageInstruction: buildVoiceLanguageInstruction(optionsRef.current.language),
           threadId: optionsRef.current.threadId ?? "",
         },
       });

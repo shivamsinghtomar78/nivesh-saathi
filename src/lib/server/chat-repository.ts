@@ -460,7 +460,7 @@ export async function updateConversationMetadata(input: {
       deletedAt: { $exists: false },
     },
     { $set: set },
-    { new: true }
+    { returnDocument: "after" }
   ).lean<ConversationDocument>();
 
   return doc ? toConversationDto(doc) : null;
