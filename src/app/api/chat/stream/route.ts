@@ -1,5 +1,5 @@
 import { chatRequestSchema } from "@/lib/server/advisor-schemas";
-import { getRequestIp, handleRouteError } from "@/lib/server/api";
+import { getRequestIp, handleRouteError, privateCorsHeaders } from "@/lib/server/api";
 import { invokeFdAdvisor } from "@/lib/server/fd-advisor-agent";
 import {
   assessPromptRisk,
@@ -31,14 +31,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const preferredRegion = "bom1";
 
-export async function OPTIONS() {
+export async function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization, x-nivesh-csrf",
-    },
+    headers: privateCorsHeaders(request, "POST, OPTIONS"),
   });
 }
 

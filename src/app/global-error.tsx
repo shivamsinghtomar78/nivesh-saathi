@@ -10,6 +10,8 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const isProduction = process.env.NODE_ENV === "production";
+
   return (
     <html lang="en">
       <body className="bg-app">
@@ -24,9 +26,13 @@ export default function GlobalError({
             <p className="mt-3 text-sm leading-6 text-text-muted">
               The app hit an unexpected error, but it is safe to retry.
             </p>
-            <p className="mt-4 break-words rounded-[var(--radius-input)] border border-outline bg-panel-strong px-4 py-3 text-left text-xs leading-6 text-text-muted">
-              {error.message}
-            </p>
+            {!isProduction ? (
+              <p className="mt-4 break-words rounded-[var(--radius-input)] border border-outline bg-panel-strong px-4 py-3 text-left text-xs leading-6 text-text-muted">
+                {error.message}
+              </p>
+            ) : error.digest ? (
+              <p className="mt-4 text-xs text-text-muted">Error ID: {error.digest}</p>
+            ) : null}
             <Button
               variant="primary"
               size="lg"

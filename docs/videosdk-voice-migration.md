@@ -1,8 +1,14 @@
-# VideoSDK Voice Migration
+# VideoSDK Voice Worker Notes
+
+> Production status: Vapi is the primary live voice path for this deployment. The
+> VideoSDK + Python worker implementation remains available as a secondary,
+> experimental/self-hosted path and should not be treated as active production
+> UI behavior unless `VoiceAgentLayer` is explicitly switched to
+> `VideoSdkVoiceSessionController`.
 
 ## 1. Full Migration Strategy
 
-The realtime voice path is now VideoSDK-first. The browser no longer opens Deepgram sockets, records MediaRecorder chunks, or streams audio over custom WebSockets. The user joins a short-lived VideoSDK room, the AI worker joins the same room as an agent participant, and all bidirectional audio moves over VideoSDK WebRTC.
+The repository contains a VideoSDK-first architecture for a future self-hosted realtime voice path. In the current production UI, Vapi remains primary. If the team later switches to VideoSDK, the browser should join a short-lived VideoSDK room, the AI worker should join the same room as an agent participant, and all bidirectional audio should move over VideoSDK WebRTC.
 
 ## 2. Backend Replacement Plan
 
@@ -13,7 +19,7 @@ The old Next.js realtime voice endpoints were removed:
 - `src/app/api/voice/transcribe/route.ts`
 - `src/app/api/voice/tts/route.ts`
 
-The replacement is:
+The secondary/self-hosted replacement path is:
 
 - `src/app/api/voice/room/route.ts`: creates a VideoSDK room, mints a scoped token, records the app voice session, and dispatches the Python worker.
 - `ai-worker/`: self-hosted Python VideoSDK AI Agent worker.
@@ -38,7 +44,7 @@ Already removed from the realtime path:
 
 ## 5. Files To Refactor
 
-- `src/components/voice/VoiceAgentLayer.tsx`: now uses `VideoSdkVoiceSessionController`.
+- `src/components/voice/VoiceAgentLayer.tsx`: currently uses `VapiVoiceSessionController` in production; switch this file only when deliberately rolling out VideoSDK.
 - `src/components/voice/VideoSdkVoiceSessionController.tsx`: owns VideoSDK room join/leave, mic track, agent audio, agent transcripts, and interruption commands.
 - `src/hooks/useDuplexVoiceSession.ts`: now only contains shared VideoSDK voice types/helpers.
 - `src/lib/server/videosdk.ts`: central VideoSDK token, room, and worker dispatch service.

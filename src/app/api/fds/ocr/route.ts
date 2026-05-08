@@ -20,6 +20,7 @@ export const preferredRegion = "bom1";
 
 const MAX_RECEIPT_BYTES = 6 * 1024 * 1024;
 const OCR_MODEL = "gemini-2.5-flash-lite";
+const ALLOWED_RECEIPT_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const ocrResultSchema = z.object({
   bankName: z.string().optional().nullable(),
@@ -82,6 +83,10 @@ export async function POST(request: Request) {
 
     if (receipt.size === 0 || receipt.size > MAX_RECEIPT_BYTES) {
       return jsonError("Receipt image is empty or exceeds the 6MB limit", 400);
+    }
+
+    if (!ALLOWED_RECEIPT_MIME_TYPES.includes(receipt.type)) {
+      return jsonError("Unsupported receipt file type. Upload a JPEG, PNG, or WebP image.", 400);
     }
 
     const bytes = Buffer.from(await receipt.arrayBuffer()).toString("base64");

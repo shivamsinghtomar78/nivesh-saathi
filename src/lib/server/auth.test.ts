@@ -1,16 +1,31 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const authEnv = vi.hoisted(() => ({
+  ADMIN_EMAILS: "",
+  ADMIN_UIDS: "",
+}));
 
 vi.mock("@/lib/server/firebase-admin", () => ({
   getFirebaseAdminAuth: () => null,
 }));
 
+vi.mock("@/lib/server/env", () => ({
+  serverEnv: authEnv,
+}));
+
 import {
   getCookieValue,
   hasValidCsrfHeader,
+  isAdminSession,
   isSameOriginRequest,
 } from "@/lib/server/auth";
 
 describe("server auth helpers", () => {
+  beforeEach(() => {
+    authEnv.ADMIN_EMAILS = "";
+    authEnv.ADMIN_UIDS = "";
+  });
+
   it("reads the Firebase session cookie from a request", () => {
     const request = new Request("https://app.example.test/api/chat", {
       headers: {
@@ -59,5 +74,35 @@ describe("server auth helpers", () => {
     });
 
     expect(isSameOriginRequest(request)).toBe(true);
+  });
+
+  it("allows admin sessions by UID or email allowlist", () => {
+    authEnv.ADMIN_UIDS = "admin-uid";
+    authEnv.ADMIN_EMAILS = "ops@example.com";
+
+    expect(
+      isAdminSession({
+        uid: "admin-uid",
+        email: "user@example.com",
+      } as never)
+    ).toBe(true);
+    expect(
+      isAdminSession({
+        uid: "other-uid",
+        email: "OPS@example.com",
+      } as never)
+    ).toBe(true);
+  });
+
+  it("rejects non-allowlisted admin sessions", () => {
+    authEnv.ADMIN_UIDS = "admin-uid";
+    authEnv.ADMIN_EMAILS = "ops@example.com";
+
+    expect(
+      isAdminSession({
+        uid: "other-uid",
+        email: "user@example.com",
+      } as never)
+    ).toBe(false);
   });
 });

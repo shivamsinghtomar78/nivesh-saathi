@@ -1,5 +1,8 @@
 import { ZodError } from "zod";
 
+import { serverEnv } from "@/lib/server/env";
+import { logServerError } from "@/lib/server/telemetry";
+
 export type ApiErrorBody = {
   ok: false;
   error: string;
@@ -57,10 +60,19 @@ export function handleRouteError(
     );
   }
 
+  logServerError("api_route_error", {
+    message: error instanceof Error ? error.message : "Unknown error",
+    fallbackMessage,
+  });
+
   return jsonError(
     fallbackMessage,
     500,
-    error instanceof Error ? error.message : "Unknown error"
+    process.env.NODE_ENV === "production"
+      ? undefined
+      : error instanceof Error
+        ? error.message
+        : "Unknown error"
   );
 }
 
@@ -72,4 +84,22 @@ export function getRequestIp(request: Request) {
     "unknown";
 
   return forwardedFor.split(",")[0]?.trim() || "unknown";
+}
+
+export function privateCorsHeaders(request: Request, methods: string) {
+  const origin = request.headers.get("origin");
+  const requestOrigin = new URL(request.url).origin;
+  const configuredOrigin = new URL(serverEnv.NEXT_PUBLIC_APP_URL).origin;
+  const allowedOrigin =
+    origin && (origin === requestOrigin || origin === configuredOrigin)
+      ? origin
+      : requestOrigin;
+
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": methods,
+    "Access-Control-Allow-Headers": "Content-Type, x-nivesh-csrf",
+    "Access-Control-Allow-Credentials": "true",
+    Vary: "Origin",
+  };
 }

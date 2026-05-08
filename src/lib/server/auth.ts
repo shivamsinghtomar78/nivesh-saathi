@@ -3,6 +3,7 @@ import type { DecodedIdToken } from "firebase-admin/auth";
 import { SESSION_COOKIE_NAME } from "@/lib/auth-constants";
 import { CSRF_HEADER_NAME, CSRF_HEADER_VALUE } from "@/lib/csrf";
 import { jsonError } from "@/lib/server/api";
+import { serverEnv } from "@/lib/server/env";
 import { getFirebaseAdminAuth } from "@/lib/server/firebase-admin";
 
 export { SESSION_COOKIE_NAME };
@@ -110,4 +111,55 @@ export async function requireFirebaseSession(request: Request): Promise<
       response: jsonError("Session expired. Please sign in again.", 401),
     };
   }
+}
+
+function parseCsvAllowlist(value?: string) {
+  return new Set(
+    (value ?? "")
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+  );
+}
+
+function parseEmailAllowlist(value?: string) {
+  return new Set(
+    Array.from(parseCsvAllowlist(value)).map((entry) => entry.toLowerCase())
+  );
+}
+
+export function isAdminSession(session: VerifiedSession) {
+  const allowedUids = parseCsvAllowlist(serverEnv.ADMIN_UIDS);
+  const allowedEmails = parseEmailAllowlist(serverEnv.ADMIN_EMAILS);
+  const email = session.email?.toLowerCase();
+
+  return (
+    (allowedUids.size > 0 && allowedUids.has(session.uid)) ||
+    (allowedEmails.size > 0 && email !== undefined && allowedEmails.has(email))
+  );
+}
+
+export async function requireAdminSession(request: Request): Promise<
+  | {
+      ok: true;
+      session: VerifiedSession;
+    }
+  | {
+      ok: false;
+      response: Response;
+    }
+> {
+  const auth = await requireFirebaseSession(request);
+  if (!auth.ok) {
+    return auth;
+  }
+
+  if (!isAdminSession(auth.session)) {
+    return {
+      ok: false,
+      response: jsonError("Admin access required", 403),
+    };
+  }
+
+  return auth;
 }

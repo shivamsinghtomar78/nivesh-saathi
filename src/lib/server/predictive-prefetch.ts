@@ -5,7 +5,6 @@ import { FD_RATES, type FDRate } from "@/lib/fd-data";
 import {
   advisorUiSchema,
   appLanguageSchema,
-  bankTypeFilterSchema,
   chatCompareSnapshotSchema,
   chatLadderPlanSchema,
   type AdvisorResponse,

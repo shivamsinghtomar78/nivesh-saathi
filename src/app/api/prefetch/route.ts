@@ -1,4 +1,10 @@
-import { getRequestIp, handleRouteError, jsonError, jsonSuccess } from "@/lib/server/api";
+import {
+  getRequestIp,
+  handleRouteError,
+  jsonError,
+  jsonSuccess,
+  privateCorsHeaders,
+} from "@/lib/server/api";
 import { requireCsrfProtection, requireFirebaseSession } from "@/lib/server/auth";
 import {
   predictivePrefetchRequestSchema,
@@ -10,14 +16,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const preferredRegion = "bom1";
 
-export async function OPTIONS() {
+export async function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization, x-nivesh-csrf",
-    },
+    headers: privateCorsHeaders(request, "POST, OPTIONS"),
   });
 }
 

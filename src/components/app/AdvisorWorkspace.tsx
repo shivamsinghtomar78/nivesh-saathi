@@ -471,7 +471,10 @@ export default function AdvisorWorkspace({ initialMode }: { initialMode: Convers
     return () => cancelSpeech();
   }, [cancelSpeech]);
 
-  const visibleMessages = streamingMessage ? [...messages, streamingMessage] : messages;
+  const visibleMessages = useMemo(
+    () => (streamingMessage ? [...messages, streamingMessage] : messages),
+    [messages, streamingMessage]
+  );
   const meaningfulMessages = messages.filter((message) => message.id !== "welcome");
   const showPromptChips = meaningfulMessages.length === 0;
   const latestWorkspaceMessage = useMemo(

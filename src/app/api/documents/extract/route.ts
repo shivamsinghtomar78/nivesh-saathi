@@ -148,15 +148,18 @@ export async function POST(request: Request) {
     );
 
     if (!geminiResponse.ok) {
-      const detail = await geminiResponse.text();
-      console.error("[documents/extract] Gemini Vision failed:", detail.slice(0, 500));
+      await geminiResponse.text().catch(() => "");
+      console.error("[documents/extract] Gemini Vision failed", {
+        status: geminiResponse.status,
+        statusText: geminiResponse.statusText,
+      });
       return jsonError("Unable to analyze document", 503);
     }
 
     const geminiPayload = (await geminiResponse.json()) as GeminiResponse;
 
     if (geminiPayload.error) {
-      console.error("[documents/extract] Gemini error:", geminiPayload.error.message);
+      console.error("[documents/extract] Gemini returned an error");
       return jsonError("Document analysis failed", 503);
     }
 
@@ -177,7 +180,9 @@ export async function POST(request: Request) {
         .trim();
       parsedResult = JSON.parse(cleanedText);
     } catch {
-      console.error("[documents/extract] Failed to parse Gemini JSON:", rawText.slice(0, 500));
+      console.error("[documents/extract] Failed to parse Gemini JSON", {
+        responseLength: rawText.length,
+      });
       return jsonError("Could not parse extracted data", 422);
     }
 

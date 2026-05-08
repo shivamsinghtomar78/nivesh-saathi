@@ -63,6 +63,8 @@ export const env = createEnv({
       .default("dual_firebase_primary"),
     FD_ALERT_CRON_SECRET: z.string().min(1).optional(),
     CRON_SECRET: z.string().min(1).optional(),
+    ADMIN_UIDS: z.string().min(1).optional(),
+    ADMIN_EMAILS: z.string().min(1).optional(),
     
     // LangSmith / LangChain tracing legacy and current vars
     LANGCHAIN_TRACING_V2: z.string().optional(),

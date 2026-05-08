@@ -1,5 +1,5 @@
 import { handleRouteError, jsonError, jsonSuccess } from "@/lib/server/api";
-import { requireFirebaseSession } from "@/lib/server/auth";
+import { requireCsrfProtection, requireFirebaseSession } from "@/lib/server/auth";
 import { appLanguageSchema } from "@/lib/server/advisor-schemas";
 import {
   createConversation,
@@ -14,6 +14,9 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: Request) {
   try {
+    const csrfError = requireCsrfProtection(request);
+    if (csrfError) return csrfError;
+
     const auth = await requireFirebaseSession(request);
     if (!auth.ok) return auth.response;
 
