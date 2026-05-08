@@ -1,158 +1,177 @@
 # Nivesh Saathi
 
-Voice-first, multilingual Fixed Deposit advisor for Hindi, Tamil, Bengali, and English users. The application has been redesigned with a premium, minimal aesthetic, focusing on smooth interactions and high-quality user experience.
+Nivesh Saathi is a voice-first fixed-deposit companion for Indian savers. It helps people compare FD rates, calculate maturity, track existing deposits, understand confusing bank terms, scan FD receipts, and ask money questions in chat or voice.
 
-- **Explore & Compare**: Clean interface to filter and compare fixed deposit options.
-- **Save a Shortlist**: Seamlessly carry your selections across devices and chat sessions.
-- **Intelligent Assistant**: Ask Saathi via text or voice for personalized financial advice and jargon explanations.
-- **Seamless Authentication**: Sign in with Email/Password, Phone, or Google to keep context across devices.
+The product is built for users who trust FDs but do not want to decode bank pages, jargon, tax language, and premature-withdrawal rules alone. It is not a trading app or a generic finance dashboard. It is a focused assistant for one common, high-trust savings decision.
 
-## Stack & Design System
+## Founder Note
 
-- **Next.js 16 App Router**
-- **TypeScript & Tailwind CSS**
-- **Framer Motion**: Smooth entrance and layout animations across all screens.
-- **Three.js (@react-three/fiber, @react-three/drei)**: Lightweight 3D interactive hero background.
-- **Firebase**: Client SDK and Firebase Admin hooks for Auth plus FCM notifications.
-- **MongoDB**: Primary application database for users, FD data, chat history, shortlists, calculations, feedback, and shared responses.
-- **LangGraph advisor flow**: Powered by Gemini 2.5 Flash-Lite primary model.
-- **OpenRouter & Deepgram**: Fallbacks for LLM and speech transcription.
-- **Zustand**: Persisted client state management.
+**Problem** - Fixed deposits are still where many Indian families park emergency savings, retirement income, and money they cannot afford to lose, but choosing one is harder than it should be. A first-time saver, a parent managing household money, or a senior citizen comparing rates has to jump between bank websites, English-heavy financial language, tenure rules, tax terms, and unclear withdrawal conditions. That confusion matters because a small misunderstanding can change liquidity, returns, or trust at exactly the moment people are trying to be careful.
 
-## What Is Implemented
+**Solution** - Nivesh Saathi turns FD decision-making into a calmer guided experience. Users can compare rates, estimate maturity, save shortlists, track deposits, scan FD receipts, and ask practical questions through multilingual chat or voice. The app uses Firebase authentication, MongoDB persistence, Gemini-backed advisory flows, and Vapi-powered production voice sessions so the experience feels less like a spreadsheet and more like a patient financial companion.
 
-- **Premium UI Redesign**: Dark-theme mobile-first landing, compare, chat, voice, and login flows with a cohesive, polished design system.
-- **Framer Motion Interactivity**: Staggered fades, layout animations, and fluid transitions across the AppShell and content modules.
-- **3D Hero Integration**: Interactive glass-like Torus Knot on the landing page for a state-of-the-art feel.
-- **Firebase Authentication**: Email/Password, Phone, and Google auth UI with session-cookie exchange route.
-- **Persisted Context**: Mongo-backed shortlist, profile memory, and chat state that seamlessly transition between text and voice bots.
-- **LangGraph Advisor**: Prompt-injection guard, terminology explanation, and intelligent rate comparisons.
-- **PWA Ready**: Manifest, service worker registration, and mobile-optimized layouts.
-- **Lucide Icons**: Unified icon system for consistent visual language.
+**Approach** - I chose to build a focused FD advisor instead of another broad personal-finance dashboard because trust comes faster when the product does one high-stakes job clearly. I chose the web so it can run on ordinary phones without app-install friction, Firebase session cookies for secure sign-in, MongoDB for durable user history, and Vapi as the primary voice layer because it is the most production-ready path in the current stack. I considered a native app, a fully custom WebRTC voice stack, and a wider investment marketplace, but rejected them for this version because they would make the demo bigger while making the product less reliable.
 
-## Local Setup
+**What's next** - With another month, the first priority is data trust: live or regularly verified FD-rate feeds, stronger admin review workflows, and clearer disclosures around eligibility, tax, and withdrawal conditions. After that comes deeper voice QA across Hindi, Tamil, Bengali, and English, better personalization for senior citizens and goal-based saving, and production observability so failures are visible before users feel them. The goal is not to make Nivesh Saathi louder; it is to make it calmer, more accurate, and worthy of the decisions people bring to it.
 
-1. Install dependencies:
+## What You Can Do
+
+- Compare FD rates across banks and categories.
+- Calculate maturity value, interest earned, and tenure outcomes.
+- Chat with an FD-focused assistant for plain-language guidance.
+- Use voice mode for a conversational advisory flow.
+- Save and manage shortlisted FD options.
+- Track existing FDs, maturity dates, and renewal reminders.
+- Upload or scan FD receipts for structured extraction.
+- View insights, portfolio splits, maturity timelines, and shared summaries.
+
+## Tech Stack
+
+- **Framework:** Next.js 16 App Router, React 19, TypeScript
+- **Styling/UI:** Tailwind CSS 4, custom components, Radix slider, Framer Motion, Lucide icons
+- **Auth:** Firebase client auth plus Firebase Admin session cookies
+- **Database:** MongoDB with Firebase migration/dual-store support
+- **AI:** Google Gemini through server-side advisor flows, LangChain/LangGraph utilities, optional LangSmith tracing
+- **Voice:** Vapi for production voice sessions; VideoSDK/Python worker remains secondary experimental infrastructure
+- **State:** Zustand stores and React hooks
+- **Testing:** Vitest, Testing Library, jsdom
+- **Deployment:** Vercel for the Next.js app; optional Render service for the voice worker
+
+## Run It On Your Device
+
+Use Node `^20.19.0`, `^22.13.0`, or `>=24`. Start from the GitHub codebase:
 
 ```powershell
-npm.cmd install
-```
-
-2. Create local env values:
-
-```powershell
+git clone <your-github-repo-url>
+cd nivesh-saathi
+npm install
 Copy-Item .env.example .env.local
+npm run dev
 ```
 
-3. Fill `.env.local` with local-only credentials. This file is ignored by Git.
+Open `http://localhost:3000`.
 
-4. Start the app:
+On macOS/Linux:
 
-```powershell
-npm.cmd run dev
+```bash
+git clone <your-github-repo-url>
+cd nivesh-saathi
+npm install
+cp .env.example .env.local
+npm run dev
 ```
 
-The app runs at [http://localhost:3000](http://localhost:3000).
+The app can start with partial configuration, but full functionality needs Firebase, MongoDB, Gemini, and Vapi values in `.env.local`.
 
-## Required Environment Variables
+## Required Configuration
 
-| Variable | Purpose |
-| --- | --- |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase browser SDK config. |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase browser SDK config. |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project id. |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket. |
-| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender id. |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase web app id. |
-| `NEXT_PUBLIC_APP_URL` | Public app URL used by OpenRouter metadata and install context. |
+Minimum local app setup:
 
-## Optional Environment Variables
+- `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `FIREBASE_ADMIN_PROJECT_ID`
+- `FIREBASE_ADMIN_CLIENT_EMAIL`
+- `FIREBASE_ADMIN_PRIVATE_KEY` or `FIREBASE_SERVICE_ACCOUNT_JSON`
+- `MONGODB_URI`
+- `MONGODB_ENCRYPTION_KEY`
+- `GEMINI_API_KEY`
+- `NEXT_PUBLIC_VAPI_PUBLIC_KEY`
+- `NEXT_PUBLIC_VAPI_ASSISTANT_ID`
 
-| Variable | Purpose |
-| --- | --- |
-| `GEMINI_API_KEY` | Primary Gemini API key for the advisor and document/OCR features. If omitted, deterministic advisor fallbacks still work and Gemini-only APIs return a 503. |
-| `GEMINI_MODEL` | Defaults to `gemini-2.5-flash-lite`. |
-| `OPENROUTER_API_KEY` | Fallback LLM key if Gemini fails or times out. |
-| `OPENROUTER_MODEL` | Defaults to `openrouter/free`. |
-| `DEEPGRAM_API_KEY` | Speech-to-text fallback for browsers without reliable native STT. |
-| `UPSTASH_REDIS_REST_URL` | Shared cache and shared production rate limiting. |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash auth token. |
-| `FIREBASE_ADMIN_PROJECT_ID` | Required for server session cookies and Firestore writes. |
-| `FIREBASE_ADMIN_CLIENT_EMAIL` | Firebase Admin service account email. |
-| `FIREBASE_ADMIN_PRIVATE_KEY` | Firebase Admin private key with escaped newlines. |
-| `MONGODB_URI` | MongoDB Atlas/local connection string. The URI path selects the database, defaulting to `nivesh_saathi`. |
-| `DATASTORE_MODE` | Migration phase: `dual_firebase_primary`, `mongo_primary_fallback`, or `mongo_only`. |
-| `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | Optional Firebase Analytics id. |
-| `NEXT_PUBLIC_VAPI_PUBLIC_KEY` | Vapi browser SDK public key for live voice calls. |
-| `NEXT_PUBLIC_VAPI_ASSISTANT_ID` | Vapi assistant id used by the live voice layer. |
+Admin-only FD-rate writes require at least one allowlist:
 
-## API Routes
+- `ADMIN_UIDS`
+- `ADMIN_EMAILS`
 
-| Route | Purpose |
-| --- | --- |
-| `POST /api/chat` | LangGraph FD advisor response with prompt guard and rate limiting. |
-| `GET /api/fd-rates` | Filtered FD rates from seeded data and cache. |
-| `POST /api/maturity` | FD maturity calculator. |
-| `GET /api/calculations` | Recent Mongo-backed maturity calculation history. |
-| `GET /api/shortlist` / `PUT /api/shortlist` | Cross-device Mongo-backed shortlist sync. |
-| `POST /api/voice/transcribe` | Deepgram-backed speech transcription fallback with rate limiting. |
-| `GET /api/jargon/[termId]` | Localized finance term explanation. |
-| `POST /api/auth/session` | Exchanges Firebase id token for an HTTP-only session cookie. |
-| `DELETE /api/auth/session` | Clears the session cookie. |
+Optional services include Upstash Redis rate limiting, LangSmith tracing, VideoSDK, Deepgram, ElevenLabs, and the Python voice worker.
 
-## MongoDB Migration Commands
+## Useful Commands
 
-```powershell
-npm.cmd run db:seed:rates
-npm.cmd run db:migrate:firebase-to-mongo
-npm.cmd run db:migrate:firebase-to-mongo -- --apply
-npm.cmd run db:validate:migration
+```bash
+npm run dev
+npm run lint
+npm run test
+npm run build
+npm run start
+npm run db:seed:rates
+npm run db:migrate:firebase-to-mongo
+npm run db:validate:migration
 ```
 
-The migration command is a dry run unless `-- --apply` is provided. Use `dual_firebase_primary` for the first deploy, switch to `mongo_primary_fallback` after migration validation, and move to `mongo_only` after monitoring confirms MongoDB reads are healthy.
+For the optional Python worker:
 
-## Vercel Deployment Notes
-
-To ensure the production environment works correctly, follow these configuration steps in the Vercel Dashboard:
-
-1.  **Environment Variables**:
-    *   Set `NEXT_PUBLIC_APP_URL` to your production domain (e.g., `https://nivesh-saathi.vercel.app`).
-    *   When adding `FIREBASE_ADMIN_PRIVATE_KEY`, paste the raw value **without** wrapping double quotes. The application handles the newline characters automatically.
-2.  **Firebase Authorized Domains**:
-    *   Go to **Firebase Console** > **Authentication** > **Settings** > **Authorized Domains**.
-    *   Add your Vercel deployment domain (e.g., `nivesh-saathi.vercel.app`) to the list. This is required for Google Sign-In and Phone Authentication to function in production.
-
-## Verification
-
-```powershell
-npm.cmd run lint
-npm.cmd run test
-npm.cmd run build
+```bash
+python -m compileall ai-worker
 ```
 
-Verified in this workspace:
-
-- `eslint` passed with no errors.
-- `vitest` passed successfully.
-- `next build` passed successfully.
-
-Known runtime note:
-
-- `next build` emits a `punycode` deprecation warning from a dependency during static generation. The build still completes successfully.
-- Firebase auth depends on the Email/Password, Phone, and Google providers being enabled in the Firebase console for the deployment domain.
-
-## Render Deployment Notes
-
-Render does not read `.env.local`, so add the required variables in **Render Dashboard > Service > Environment** before deploying:
+## Architecture
 
 ```text
-NEXT_PUBLIC_FIREBASE_API_KEY
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-NEXT_PUBLIC_FIREBASE_PROJECT_ID
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-NEXT_PUBLIC_FIREBASE_APP_ID
-NEXT_PUBLIC_APP_URL
+Browser
+  -> Next.js App Router pages
+  -> React client components and Zustand stores
+  -> Next.js API routes
+  -> Firebase Admin session verification
+  -> MongoDB repositories and services
+  -> Gemini / Vapi / optional external services
 ```
 
-Set `NEXT_PUBLIC_APP_URL` to the Render service URL, and add that same domain in **Firebase Console > Authentication > Settings > Authorized domains** for production sign-in.
+The frontend lives under `src/app`, `src/components`, `src/hooks`, and `src/stores`. Public and protected pages are rendered by the App Router, while interactive workspaces use client components for chat, voice, comparison, tracking, and insights.
+
+The backend lives mainly under `src/app/api` and `src/lib/server`. API routes validate requests, enforce auth or CSRF where needed, call service/repository modules, and return sanitized responses. Shared server utilities handle Firebase sessions, MongoDB access, rate limiting, telemetry, prompt safety, assistant memory, FD calculations, and voice-session helpers.
+
+MongoDB is the main persistence layer for conversations, user memory, FD tracker data, rates, shortlists, share links, feedback, and analytics-style records. Firebase remains responsible for identity, session verification, and migration compatibility.
+
+## Main Workflow
+
+1. A user signs in with Firebase on `/login`.
+2. The client exchanges the Firebase token for an HTTP-only session cookie through `/api/auth/session`.
+3. Protected pages load inside the app shell.
+4. The user compares FDs, chats, starts voice, uploads receipts, saves shortlists, or tracks deposits.
+5. Client calls include credentials and CSRF headers for mutating routes.
+6. API routes verify the session, validate input, call domain services, and persist data in MongoDB.
+7. AI routes build a guarded FD context, call the configured model provider, and return structured guidance.
+8. Voice sessions use Vapi in the browser and server routes for summaries, booking intents, diagnostics, and persistence.
+
+## Folder Guide
+
+```text
+src/app                 App Router pages, layouts, loading/error states, and API routes
+src/components          Product UI grouped by feature area
+src/hooks               Client hooks for chat, voice, resizing, prefetching, and notifications
+src/lib                 Shared business logic, client helpers, FD math, routes, language data
+src/lib/server          Server-only auth, DB, AI, rate limiting, repositories, telemetry
+src/stores              Zustand stores for auth, chat, compare, ladder, onboarding
+src/test                Integration test setup and cross-feature tests
+ai-worker               Optional secondary voice worker infrastructure
+scripts                Database seed, migration, and validation scripts
+docs                   Supporting architecture and voice migration notes
+public                 Static public assets
+```
+
+## Core Product Areas
+
+- `/` - public landing experience
+- `/login` - Firebase sign-in
+- `/home` - authenticated dashboard
+- `/compare` - FD comparison workspace
+- `/chat` - text advisor
+- `/voice` - voice advisor
+- `/fds` - FD tracker and maturity dashboard
+- `/insights` - document scanner and portfolio insight tools
+- `/profile` - user profile and memory controls
+- `/share/[id]` - shared FD/advisor summary
+
+## Production Notes
+
+- Mutating private APIs use CSRF checks.
+- Admin FD-rate writes are restricted by `ADMIN_UIDS` or `ADMIN_EMAILS`.
+- Production errors are logged server-side and sanitized client-side.
+- Security headers are configured in `next.config.ts`.
+- `.env.local` is ignored and should never be committed.
+- Vapi is the production voice path; VideoSDK is documented as secondary/experimental unless deliberately switched later.
+
+ 
