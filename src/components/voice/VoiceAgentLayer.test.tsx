@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ConversationMessage } from "@/stores/conversationStore";
 
-vi.mock("@/components/voice/VideoSdkVoiceSessionController", () => ({
+vi.mock("@/components/voice/VapiVoiceSessionController", () => ({
   default: ({ children }: { children: (voice: unknown) => ReactNode }) =>
     children({
     assistantText: "",

@@ -83,6 +83,8 @@ The app runs at [http://localhost:3000](http://localhost:3000).
 | `MONGODB_URI` | MongoDB Atlas/local connection string. The URI path selects the database, defaulting to `nivesh_saathi`. |
 | `DATASTORE_MODE` | Migration phase: `dual_firebase_primary`, `mongo_primary_fallback`, or `mongo_only`. |
 | `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | Optional Firebase Analytics id. |
+| `NEXT_PUBLIC_VAPI_PUBLIC_KEY` | Vapi browser SDK public key for live voice calls. |
+| `NEXT_PUBLIC_VAPI_ASSISTANT_ID` | Vapi assistant id used by the live voice layer. |
 
 ## API Routes
 

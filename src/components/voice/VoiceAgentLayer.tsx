@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { LoaderCircle, Mic, Minus, RefreshCw, Volume2, VolumeX, X } from "lucide-react";
 
-import VideoSdkVoiceSessionController from "@/components/voice/VideoSdkVoiceSessionController";
+import VapiVoiceSessionController from "@/components/voice/VapiVoiceSessionController";
 import type { DuplexVoiceStatus } from "@/hooks/useDuplexVoiceSession";
 import {
   usePredictivePrefetch,
@@ -170,7 +170,7 @@ export default function VoiceAgentLayer({
   }, [open, predictive]);
 
   return (
-    <VideoSdkVoiceSessionController open={open} options={voiceOptions}>
+    <VapiVoiceSessionController open={open} options={voiceOptions}>
       {(voice) => {
         const copy = statusCopy[voice.status];
         const active =
@@ -388,6 +388,6 @@ export default function VoiceAgentLayer({
           </AnimatePresence>
         );
       }}
-    </VideoSdkVoiceSessionController>
+    </VapiVoiceSessionController>
   );
 }
