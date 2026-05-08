@@ -1,4 +1,4 @@
-videosdk-agents[deepgram,openai,elevenlabs,silero,turn_detector]>=1.0.0
+videosdk-agents[deepgram,openai,elevenlabs,silero,turn-detector]>=1.0.12
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 python-dotenv>=1.0.1

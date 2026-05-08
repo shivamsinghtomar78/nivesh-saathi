@@ -7,38 +7,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type Vapi from "@vapi-ai/web";
 
 import { env } from "@/env";
-import type { DuplexVoiceStatus, VoiceHistoryMessage } from "@/hooks/useDuplexVoiceSession";
-import type { AdvisorUi, AppLanguage } from "@/lib/server/advisor-schemas";
+import type {
+  DuplexVoiceSessionState,
+  DuplexVoiceStatus,
+  VoiceSessionOptions,
+} from "@/hooks/useDuplexVoiceSession";
+import type { AppLanguage } from "@/lib/server/advisor-schemas";
+import { recordVoiceDiagnostic } from "@/lib/voice-diagnostics";
+import { TranscriptStabilizer } from "@/lib/voice-transcript";
 
-type VoiceSessionOptions = {
-  language: AppLanguage;
-  threadId?: string | null;
-  recentMessages?: VoiceHistoryMessage[];
-  onThreadId?: (threadId: string) => void;
-  onUserTranscript?: (transcript: string) => void;
-  onInterimTranscript?: (transcript: string) => void;
-  onAssistantReply?: (reply: string) => void;
-  onError?: (message: string) => void;
-  getPredictiveContext?: () =>
-    | {
-        prefetchKey?: string;
-        uiIntentHint?: AdvisorUi;
-      }
-    | null;
-};
-
-export type VapiVoiceSessionState = {
-  assistantText: string;
-  error: string | null;
-  interimTranscript: string;
-  interruptAssistant: () => void;
-  lastUserTranscript: string;
-  level: number;
-  retry: () => void;
-  start: () => Promise<void>;
-  status: DuplexVoiceStatus;
-  stop: () => void;
-};
+export type VapiVoiceSessionState = DuplexVoiceSessionState;
 
 type VapiMessage = {
   call?: {
@@ -249,6 +227,7 @@ export default function VapiVoiceSessionController({
   const lastAssistantTextRef = useRef("");
   const lastUserTranscriptRef = useRef("");
   const optionsRef = useRef(options);
+  const transcriptStabilizerRef = useRef(new TranscriptStabilizer());
   const vapiRef = useRef<VapiControls | null>(null);
 
   useEffect(() => {
@@ -262,22 +241,25 @@ export default function VapiVoiceSessionController({
   }, []);
 
   const handleUserTranscript = useCallback((transcript: string, isFinal: boolean) => {
-    const normalized = normalizeTranscript(transcript);
-    if (!normalized) return;
+    const stabilized = transcriptStabilizerRef.current.accept({
+      isFinal,
+      text: transcript,
+    });
+    if (!stabilized.accepted || !stabilized.text) return;
 
     if (!isFinal) {
-      setInterimTranscript(normalized);
-      optionsRef.current.onInterimTranscript?.(normalized);
+      setInterimTranscript(stabilized.text);
+      optionsRef.current.onInterimTranscript?.(stabilized.text);
       return;
     }
 
-    if (normalized === lastUserTranscriptRef.current) return;
+    if (stabilized.text === lastUserTranscriptRef.current) return;
 
-    lastUserTranscriptRef.current = normalized;
-    setLastUserTranscript(normalized);
+    lastUserTranscriptRef.current = stabilized.text;
+    setLastUserTranscript(stabilized.text);
     setInterimTranscript("");
     setStatus("processing");
-    optionsRef.current.onUserTranscript?.(normalized);
+    optionsRef.current.onUserTranscript?.(stabilized.text);
   }, []);
 
   const handleAssistantReply = useCallback((reply: string) => {
@@ -298,17 +280,23 @@ export default function VapiVoiceSessionController({
     setError(null);
     setInterimTranscript("");
     setLevel(0);
+    transcriptStabilizerRef.current.reset();
   }, []);
 
   const start = useCallback(async () => {
     stop();
     setStatus("connecting");
+    recordVoiceDiagnostic({
+      event: "mic_start",
+      metadata: { provider: "vapi", language: optionsRef.current.language },
+    });
     setError(null);
     setAssistantText("");
     setInterimTranscript("");
     setLastUserTranscript("");
     lastAssistantTextRef.current = "";
     lastUserTranscriptRef.current = "";
+    transcriptStabilizerRef.current.reset();
 
     if (!vapiPublicKey || !vapiAssistantId) {
       setVoiceError(
@@ -459,6 +447,10 @@ export default function VapiVoiceSessionController({
           threadId: optionsRef.current.threadId ?? "",
         },
       });
+      recordVoiceDiagnostic({
+        event: "session_started",
+        metadata: { provider: "vapi" },
+      });
 
       vapi.send({
         type: "add-message",
@@ -470,7 +462,12 @@ export default function VapiVoiceSessionController({
       });
     } catch (caught) {
       stop();
-      setVoiceError(getErrorMessage(caught));
+      const message = getErrorMessage(caught);
+      recordVoiceDiagnostic({
+        event: "session_failed",
+        metadata: { provider: "vapi", reason: message },
+      });
+      setVoiceError(message);
     }
   }, [handleAssistantReply, handleUserTranscript, setVoiceError, stop]);
 
@@ -514,6 +511,7 @@ export default function VapiVoiceSessionController({
       interruptAssistant,
       lastUserTranscript,
       level,
+      provider: "vapi",
       retry,
       start,
       status,

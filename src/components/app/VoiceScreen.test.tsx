@@ -50,6 +50,10 @@ vi.mock("@/components/auth/AuthGate", () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
+vi.mock("@/components/voice/VoiceAgentLayer", () => ({
+  default: ({ open }: { open: boolean }) => (open ? <div>Live AI Voice</div> : null),
+}));
+
 vi.mock("@/hooks/useStreamingChat", () => ({
   useStreamingChat: vi.fn(() => ({
     isStreaming: false,

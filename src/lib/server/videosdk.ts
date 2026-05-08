@@ -168,9 +168,12 @@ export async function dispatchVoiceAgentWorker(input: {
   conversationId?: string | null;
   language: string;
   participantId: string;
+  prefetchKey?: string;
+  recentMessages?: Array<{ role: "user" | "assistant"; content: string }>;
   roomId: string;
   sessionId: string;
   threadId?: string | null;
+  uiIntentHint?: unknown;
   userId: string;
 }): Promise<VoiceAgentWorkerDispatch> {
   if (!serverEnv.VOICE_AGENT_WORKER_URL) {

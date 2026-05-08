@@ -58,6 +58,35 @@ vi.mock("@/lib/server/chat-repository", () => ({
   insertMessage: vi.fn(async () => ({ id: "msg-1" })),
 }));
 
+vi.mock("@/lib/server/fd-advisor-agent", () => ({
+  invokeFdAdvisor: vi.fn(async (input: { threadId?: string }) => ({
+    threadId: input.threadId ?? "voice-conv-1",
+    response: {
+      text: "Top FD option is ready. Please verify the final rate before booking.",
+      rateCards: [],
+      actions: [],
+      glossary: [],
+      warnings: [],
+      tone: "informative",
+      suggestedChips: [],
+      modeSwitchSuggestion: undefined,
+      followUpPrompt: "Do you want to compare tenure?",
+      portfolioSplit: undefined,
+      showCalculator: false,
+      showTimeMachine: false,
+      ui: {
+        mode: "conversational",
+        expand: false,
+        entities: [],
+        dataType: "general",
+        visualizations: [],
+        componentHints: [],
+        actionButtons: [],
+      },
+    },
+  })),
+}));
+
 vi.mock("@/lib/server/assistant-memory", () => ({
   recordVoiceTurn: vi.fn(async () => true),
   startVoiceSession: vi.fn(async () => ({ sessionId: "voice-session-1" })),
@@ -75,6 +104,8 @@ import { POST as postDiagnostics } from "@/app/api/voice/diagnostics/route";
 import { PATCH as patchBooking, POST as postBooking } from "@/app/api/voice/booking/route";
 import { POST as postKyc } from "@/app/api/voice/booking/kyc/route";
 import { POST as postRoom } from "@/app/api/voice/room/route";
+import { POST as postTurn } from "@/app/api/voice/turn/route";
+import { recordVoiceTurn } from "@/lib/server/assistant-memory";
 import { logServerError, logServerInfo } from "@/lib/server/telemetry";
 
 const sampleRateCard = {
@@ -218,6 +249,40 @@ describe("voice API routes", () => {
           accessToken: "[redacted]",
           chunks: { count: 4, bytes: 12000 },
         }),
+      })
+    );
+  });
+
+  it("accepts authenticated worker voice turns and records app-aware memory", async () => {
+    mockRouteState.serverEnv.VOICE_AGENT_WORKER_SECRET = "worker-secret-1234";
+
+    const response = await postTurn(
+      new Request("http://localhost/api/voice/turn", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-worker-secret": "worker-secret-1234",
+        },
+        body: JSON.stringify({
+          userId: "user-1",
+          sessionId: "voice-session-1",
+          threadId: "voice-conv-1",
+          transcript: "Compare SBI FD rates",
+          language: "hinglish",
+          latency: { sttMs: 140 },
+        }),
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.threadId).toBe("voice-conv-1");
+    expect(body.text).toContain("Top FD option");
+    expect(recordVoiceTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "voice-session-1",
+        transcript: "Compare SBI FD rates",
+        latency: expect.objectContaining({ sttMs: 140 }),
       })
     );
   });

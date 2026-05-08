@@ -23,6 +23,7 @@ import AppShell from "@/components/app/AppShell";
 import AuthGate from "@/components/auth/AuthGate";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import VoiceAgentLayer from "@/components/voice/VoiceAgentLayer";
 import { useStreamingChat, type StreamMeta } from "@/hooks/useStreamingChat";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { LANGUAGE_LABELS } from "@/lib/copy";
@@ -369,6 +370,7 @@ export default function VoiceScreen() {
   const [clarificationChips, setClarificationChips] = useState<string[]>([]);
   const [bookingDraft, setBookingDraft] = useState<VoiceBookingDraft | null>(null);
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
+  const [voiceLayerOpen, setVoiceLayerOpen] = useState(false);
   const [lastQueryContext, setLastQueryContext] = useState<{
     amount?: number | null;
     tenorMonths?: number | null;
@@ -770,6 +772,7 @@ export default function VoiceScreen() {
   const displayError = localizeVoiceError(voice.error ?? error, language);
 
   const callStatus = useMemo(() => {
+    if (voiceLayerOpen) return copy.listening;
     if (voice.isListening) return copy.listening;
     if (phase === "thinking") return copy.thinking;
     if (phase === "speaking") return copy.speaking;
@@ -778,7 +781,7 @@ export default function VoiceScreen() {
     if (phase === "kyc") return copy.kycHandoff;
     if (phase === "completed") return copy.journeyComplete;
     return copy.ready;
-  }, [copy, displayError, displayPhase, phase, voice.isListening]);
+  }, [copy, displayError, displayPhase, phase, voice.isListening, voiceLayerOpen]);
 
   const visibleRateCards = rateCards.slice(0, 3);
   const rateFreshness = useMemo(
@@ -795,13 +798,12 @@ export default function VoiceScreen() {
       stopSpeaking();
       return;
     }
-    if (voice.isListening) {
-      voice.stopListening();
+    if (voiceLayerOpen) {
+      setVoiceLayerOpen(false);
       return;
     }
     stopSpeaking();
-    voice.resetTranscript();
-    void voice.startListening();
+    setVoiceLayerOpen(true);
   };
 
   return (
@@ -859,17 +861,17 @@ export default function VoiceScreen() {
                 disabled={phase === "thinking" || isStreaming || voice.isProcessing}
                 className={cn(
                   "relative flex h-36 w-36 items-center justify-center rounded-full border text-accent shadow-[0_24px_80px_rgba(0,0,0,0.32)] transition hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-60",
-                  voice.isListening
+                  voiceLayerOpen || voice.isListening
                     ? "animate-mic-pulse border-accent bg-accent text-on-accent"
                     : phase === "speaking"
                       ? "border-accent/35 bg-surface-dark text-on-dark"
                       : "border-accent/25 bg-accent-soft"
                 )}
-                aria-label={voice.isListening ? "Stop listening" : "Start voice call"}
+                aria-label={voiceLayerOpen || voice.isListening ? "Stop listening" : "Start voice call"}
               >
                 {phase === "thinking" || voice.isProcessing ? (
                   <LoaderCircle className="h-14 w-14 animate-spin" />
-                ) : voice.isListening ? (
+                ) : voiceLayerOpen || voice.isListening ? (
                   <MicOff className="h-14 w-14" />
                 ) : phase === "speaking" ? (
                   <VolumeX className="h-14 w-14" />
@@ -1146,6 +1148,23 @@ export default function VoiceScreen() {
             ) : null}
           </section>
         ) : null}
+        <VoiceAgentLayer
+          open={voiceLayerOpen}
+          language={language}
+          threadId={threadId}
+          messages={[]}
+          onClose={() => setVoiceLayerOpen(false)}
+          onMinimize={() => setVoiceLayerOpen(false)}
+          onThreadId={setThreadId}
+          onUserTranscript={(transcript) => {
+            setLastTranscript(transcript);
+            setPhase("thinking");
+          }}
+          onAssistantReply={(reply) => {
+            setSpokenText(reply);
+            setPhase("result");
+          }}
+        />
       </AuthGate>
     </AppShell>
   );

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { LoaderCircle, Mic, Minus, RefreshCw, Volume2, VolumeX, X } from "lucide-react";
 
-import VapiVoiceSessionController from "@/components/voice/VapiVoiceSessionController";
+import UnifiedVoiceSessionController from "@/components/voice/UnifiedVoiceSessionController";
 import type { DuplexVoiceStatus } from "@/hooks/useDuplexVoiceSession";
 import {
   usePredictivePrefetch,
@@ -170,7 +170,7 @@ export default function VoiceAgentLayer({
   }, [open, predictive]);
 
   return (
-    <VapiVoiceSessionController open={open} options={voiceOptions}>
+    <UnifiedVoiceSessionController open={open} options={voiceOptions}>
       {(voice) => {
         const copy = statusCopy[voice.status];
         const active =
@@ -342,6 +342,12 @@ export default function VoiceAgentLayer({
                     {copy.label}
                     <span className="text-[#8D949E]">/</span>
                     <span className="text-[#B8BDC5]">{LANGUAGE_LABELS[language]}</span>
+                    {voice.provider ? (
+                      <>
+                        <span className="text-[#8D949E]">/</span>
+                        <span className="text-[#B8BDC5]">{voice.provider}</span>
+                      </>
+                    ) : null}
                     {predictionLabel ? (
                       <>
                         <span className="text-[#8D949E]">/</span>
@@ -388,6 +394,6 @@ export default function VoiceAgentLayer({
           </AnimatePresence>
         );
       }}
-    </VapiVoiceSessionController>
+    </UnifiedVoiceSessionController>
   );
 }

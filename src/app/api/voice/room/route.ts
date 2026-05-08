@@ -145,9 +145,12 @@ export async function POST(request: Request) {
       conversationId,
       language: input.language,
       participantId,
+      prefetchKey: input.prefetchKey,
+      recentMessages: input.recentMessages ?? [],
       roomId: room.roomId,
       sessionId,
       threadId: input.threadId ?? null,
+      uiIntentHint: input.uiIntentHint,
       userId: auth.session.uid,
     });
 

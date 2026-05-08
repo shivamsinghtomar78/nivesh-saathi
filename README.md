@@ -32,7 +32,7 @@ The product is built for users who trust FDs but do not want to decode bank page
 - **Auth:** Firebase client auth plus Firebase Admin session cookies
 - **Database:** MongoDB with Firebase migration/dual-store support
 - **AI:** Google Gemini through server-side advisor flows, LangChain/LangGraph utilities, optional LangSmith tracing
-- **Voice:** Vapi for production voice sessions; VideoSDK/Python worker remains secondary experimental infrastructure
+- **Voice:** VideoSDK/Python worker for controllable realtime voice; Vapi remains the rollout fallback
 - **State:** Zustand stores and React hooks
 - **Testing:** Vitest, Testing Library, jsdom
 - **Deployment:** Vercel for the Next.js app; optional Render service for the voice worker
@@ -61,7 +61,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The app can start with partial configuration, but full functionality needs Firebase, MongoDB, Gemini, and Vapi values in `.env.local`.
+The app can start with partial configuration, but full functionality needs Firebase, MongoDB, Gemini, and voice provider values in `.env.local`.
 
 ## Required Configuration
 
@@ -86,7 +86,7 @@ Admin-only FD-rate writes require at least one allowlist:
 - `ADMIN_UIDS`
 - `ADMIN_EMAILS`
 
-Optional services include Upstash Redis rate limiting, LangSmith tracing, VideoSDK, Deepgram, ElevenLabs, and the Python voice worker.
+Optional services include Upstash Redis rate limiting, LangSmith tracing, Vapi fallback, VideoSDK, Deepgram, ElevenLabs, and the Python voice worker.
 
 ## Useful Commands
 
@@ -134,7 +134,7 @@ MongoDB is the main persistence layer for conversations, user memory, FD tracker
 5. Client calls include credentials and CSRF headers for mutating routes.
 6. API routes verify the session, validate input, call domain services, and persist data in MongoDB.
 7. AI routes build a guarded FD context, call the configured model provider, and return structured guidance.
-8. Voice sessions use Vapi in the browser and server routes for summaries, booking intents, diagnostics, and persistence.
+8. Voice sessions use the unified VideoSDK-first provider with Vapi fallback, server routes for summaries, booking intents, diagnostics, and persistence.
 
 ## Folder Guide
 
@@ -172,6 +172,6 @@ public                 Static public assets
 - Production errors are logged server-side and sanitized client-side.
 - Security headers are configured in `next.config.ts`.
 - `.env.local` is ignored and should never be committed.
-- Vapi is the production voice path; VideoSDK is documented as secondary/experimental unless deliberately switched later.
+- The realtime voice architecture is documented in `docs/voice-agent.md`.
 
  

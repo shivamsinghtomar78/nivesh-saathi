@@ -43,6 +43,17 @@ export const env = createEnv({
     VIDEOSDK_ROOM_WEBHOOK_URL: z.string().url().optional(),
     VOICE_AGENT_WORKER_URL: optionalWorkerUrlSchema,
     VOICE_AGENT_WORKER_SECRET: z.string().min(16).optional(),
+    VOICE_AGENT_STT_PRIMARY: z.string().min(1).default("flux-general-multi"),
+    VOICE_AGENT_STT_FALLBACK: z.string().min(1).default("nova-3"),
+    VOICE_AGENT_EOT_THRESHOLD: z.coerce.number().min(0.5).max(0.9).default(0.78),
+    VOICE_AGENT_EAGER_EOT_THRESHOLD: z.coerce.number().min(0.3).max(0.9).default(0.55),
+    VOICE_AGENT_EOT_TIMEOUT_MS: z.coerce.number().int().min(500).max(10000).default(8000),
+    VOICE_AGENT_SEMANTIC_NO_PUNCTUATION_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(1200),
+    VOICE_AGENT_SEMANTIC_FILLER_MS: z.coerce.number().int().positive().default(1800),
     DEEPGRAM_API_KEY: z.string().min(1).optional(),
     ELEVENLABS_API_KEY: z.string().min(1).optional(),
     ELEVENLABS_VOICE_ID: z.string().min(1).optional(),
@@ -93,6 +104,7 @@ export const env = createEnv({
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: optionalPublicString,
     NEXT_PUBLIC_VAPI_PUBLIC_KEY: optionalPublicString,
     NEXT_PUBLIC_VAPI_ASSISTANT_ID: optionalPublicString,
+    NEXT_PUBLIC_VOICE_PROVIDER: z.enum(["auto", "videosdk", "vapi"]).default("auto"),
   },
   experimental__runtimeEnv: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
@@ -109,6 +121,7 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
     NEXT_PUBLIC_VAPI_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY,
     NEXT_PUBLIC_VAPI_ASSISTANT_ID: process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID,
+    NEXT_PUBLIC_VOICE_PROVIDER: process.env.NEXT_PUBLIC_VOICE_PROVIDER,
   },
   emptyStringAsUndefined: true,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

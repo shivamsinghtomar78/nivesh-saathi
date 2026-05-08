@@ -1,5 +1,8 @@
 "use client";
 
+import type { AdvisorUi, AppLanguage } from "@/lib/server/advisor-schemas";
+import type { VoiceProvider } from "@/lib/voice-provider";
+
 export type DuplexVoiceStatus =
   | "idle"
   | "connecting"
@@ -13,6 +16,38 @@ export type DuplexVoiceStatus =
 export type VoiceHistoryMessage = {
   role: "user" | "assistant";
   content: string;
+};
+
+export type VoiceSessionOptions = {
+  language: AppLanguage;
+  threadId?: string | null;
+  recentMessages?: VoiceHistoryMessage[];
+  onThreadId?: (threadId: string) => void;
+  onUserTranscript?: (transcript: string) => void;
+  onInterimTranscript?: (transcript: string) => void;
+  onAssistantReply?: (reply: string) => void;
+  onError?: (message: string) => void;
+  onProviderChange?: (provider: Exclude<VoiceProvider, "auto">, reason?: string) => void;
+  getPredictiveContext?: () =>
+    | {
+        prefetchKey?: string;
+        uiIntentHint?: AdvisorUi;
+      }
+    | null;
+};
+
+export type DuplexVoiceSessionState = {
+  assistantText: string;
+  error: string | null;
+  interimTranscript: string;
+  interruptAssistant: () => void;
+  lastUserTranscript: string;
+  level: number;
+  provider?: Exclude<VoiceProvider, "auto">;
+  retry: () => void;
+  start: () => Promise<void>;
+  status: DuplexVoiceStatus;
+  stop: () => void;
 };
 
 export type VideoSdkVoiceRoom = {

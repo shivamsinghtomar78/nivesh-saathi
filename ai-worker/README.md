@@ -2,7 +2,7 @@
 
 This is the self-hosted Python worker for the app's realtime voice agent. The Next.js app creates a VideoSDK room and calls this worker at `POST /sessions`; the worker joins the same room as the AI participant and runs:
 
-User microphone in VideoSDK room -> Deepgram STT -> Groq `llama-3.3-70b-versatile` -> ElevenLabs TTS -> AI audio back into the VideoSDK room.
+User microphone in VideoSDK room -> Deepgram STT -> Silero VAD / turn detector -> Groq `llama-3.3-70b-versatile` -> ElevenLabs TTS -> AI audio back into the VideoSDK room. Completed turns are also reported to the Next.js app at `/api/voice/turn` for conversation memory and analytics.
 
 ## Local Run
 
@@ -15,7 +15,7 @@ copy .env.example .env
 python -m nivesh_voice_agent serve --host 0.0.0.0 --port 8080
 ```
 
-Set `VOICE_AGENT_WORKER_URL=http://localhost:8080` and the same `VOICE_AGENT_WORKER_SECRET` in the Next.js `.env.local`.
+Set `VOICE_AGENT_WORKER_URL=http://localhost:8080` and the same `VOICE_AGENT_WORKER_SECRET` in the Next.js `.env.local`. Set `VOICE_AGENT_APP_URL=http://localhost:3000` in the worker `.env` so turn reports can reach the app.
 
 ## Deployment
 
@@ -48,8 +48,16 @@ GROQ_BASE_URL=https://api.groq.com/openai/v1
 ELEVENLABS_API_KEY=
 ELEVENLABS_VOICE_ID=
 ELEVENLABS_MODEL=eleven_flash_v2_5
+VOICE_AGENT_APP_URL=
 VOICE_AGENT_WORKER_SECRET=
 VOICE_AGENT_NAME=Nivesh Saathi
+VOICE_AGENT_STT_PRIMARY=flux-general-multi
+VOICE_AGENT_STT_FALLBACK=nova-3
+VOICE_AGENT_EOT_THRESHOLD=0.78
+VOICE_AGENT_EAGER_EOT_THRESHOLD=0.55
+VOICE_AGENT_EOT_TIMEOUT_MS=8000
+VOICE_AGENT_SEMANTIC_NO_PUNCTUATION_MS=1200
+VOICE_AGENT_SEMANTIC_FILLER_MS=1800
 ```
 
 After deploy, verify:

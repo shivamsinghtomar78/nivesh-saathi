@@ -14,43 +14,18 @@ import {
 
 import {
   classifyVideoSdkTranscriptType,
+  type DuplexVoiceSessionState,
   mapVideoSdkAgentState,
   type DuplexVoiceStatus,
   type VideoSdkVoiceRoom,
-  type VoiceHistoryMessage,
+  type VoiceSessionOptions,
 } from "@/hooks/useDuplexVoiceSession";
 import { withCsrfHeaders } from "@/lib/csrf";
-import type { AdvisorUi, AppLanguage } from "@/lib/server/advisor-schemas";
+import { recordVoiceDiagnostic } from "@/lib/voice-diagnostics";
+import { normalizeVoiceEventType } from "@/lib/voice-events";
+import { TranscriptStabilizer } from "@/lib/voice-transcript";
 
-type VoiceSessionOptions = {
-  language: AppLanguage;
-  threadId?: string | null;
-  recentMessages?: VoiceHistoryMessage[];
-  onThreadId?: (threadId: string) => void;
-  onUserTranscript?: (transcript: string) => void;
-  onInterimTranscript?: (transcript: string) => void;
-  onAssistantReply?: (reply: string) => void;
-  onError?: (message: string) => void;
-  getPredictiveContext?: () =>
-    | {
-        prefetchKey?: string;
-        uiIntentHint?: AdvisorUi;
-      }
-    | null;
-};
-
-export type VideoSdkVoiceSessionState = {
-  assistantText: string;
-  error: string | null;
-  interimTranscript: string;
-  interruptAssistant: () => void;
-  lastUserTranscript: string;
-  level: number;
-  retry: () => void;
-  start: () => Promise<void>;
-  status: DuplexVoiceStatus;
-  stop: () => void;
-};
+export type VideoSdkVoiceSessionState = DuplexVoiceSessionState;
 
 type RuntimeControls = {
   interrupt: () => void;
@@ -224,12 +199,15 @@ function VideoSdkMeetingRuntime({
           type?: string;
         };
         const text = payload.text?.trim();
+        const eventType = normalizeVoiceEventType(payload.type);
         if (payload.threadId) onThreadId?.(payload.threadId);
-        if (payload.type === "assistant_reply" && text) onAssistantReply(text);
-        if (payload.type === "assistant_delta" && text) onAssistantReply(text);
-        if (payload.type === "user_transcript_final" && text) onUserTranscript(text);
-        if (payload.type === "user_transcript_interim" && text) onInterimTranscript(text);
-        if (payload.type === "agent_error" && text) onError(text);
+        if (eventType === "assistant_delta" && text) onAssistantReply(text);
+        if (eventType === "user_transcript_final" && text) onUserTranscript(text);
+        if (eventType === "user_transcript_partial" && text) onInterimTranscript(text);
+        if (eventType === "session_failed" && text) onError(text);
+        if (eventType === "assistant_speech_start") onStatus("speaking");
+        if (eventType === "assistant_interrupted") onStatus("interrupted");
+        if (eventType === "session_reconnecting") onStatus("reconnecting");
       } catch {
         // Ignore non-JSON messages on the shared room topic.
       }
@@ -291,10 +269,14 @@ function VideoSdkMeetingRuntime({
 
 export default function VideoSdkVoiceSessionController({
   children,
+  fallbackOnStartError = false,
+  onFallbackRequested,
   options,
   open,
 }: {
   children: (voice: VideoSdkVoiceSessionState) => ReactNode;
+  fallbackOnStartError?: boolean;
+  onFallbackRequested?: (reason: string) => void;
   options: VoiceSessionOptions;
   open: boolean;
 }) {
@@ -312,6 +294,7 @@ export default function VideoSdkVoiceSessionController({
   const lastAssistantTextRef = useRef("");
   const lastUserTranscriptRef = useRef("");
   const optionsRef = useRef(options);
+  const transcriptStabilizerRef = useRef(new TranscriptStabilizer());
 
   useEffect(() => {
     optionsRef.current = options;
@@ -328,6 +311,7 @@ export default function VideoSdkVoiceSessionController({
     setError(null);
     setInterimTranscript("");
     setLevel(0);
+    transcriptStabilizerRef.current.reset();
   }, []);
 
   const setVoiceError = useCallback((message: string) => {
@@ -337,13 +321,18 @@ export default function VideoSdkVoiceSessionController({
   }, []);
 
   const handleUserTranscript = useCallback((transcript: string) => {
-    const normalized = transcript.replace(/\s+/g, " ").trim();
-    if (!normalized || normalized === lastUserTranscriptRef.current) return;
+    const stabilized = transcriptStabilizerRef.current.accept({
+      isFinal: true,
+      text: transcript,
+    });
+    if (!stabilized.accepted || !stabilized.text) return;
+    if (stabilized.text === lastUserTranscriptRef.current) return;
 
-    lastUserTranscriptRef.current = normalized;
-    setLastUserTranscript(normalized);
+    lastUserTranscriptRef.current = stabilized.text;
+    setLastUserTranscript(stabilized.text);
     setInterimTranscript("");
-    optionsRef.current.onUserTranscript?.(normalized);
+    setStatus("processing");
+    optionsRef.current.onUserTranscript?.(stabilized.text);
   }, []);
 
   const handleAssistantReply = useCallback((reply: string) => {
@@ -356,19 +345,28 @@ export default function VideoSdkVoiceSessionController({
   }, []);
 
   const handleInterimTranscript = useCallback((transcript: string) => {
-    const normalized = transcript.replace(/\s+/g, " ").trim();
-    setInterimTranscript(normalized);
-    optionsRef.current.onInterimTranscript?.(normalized);
+    const stabilized = transcriptStabilizerRef.current.accept({
+      isFinal: false,
+      text: transcript,
+    });
+    if (!stabilized.accepted) return;
+    setInterimTranscript(stabilized.text);
+    optionsRef.current.onInterimTranscript?.(stabilized.text);
   }, []);
 
   const start = useCallback(async () => {
     stop();
     setStatus("connecting");
+    recordVoiceDiagnostic({
+      event: "mic_start",
+      metadata: { provider: "videosdk", language: optionsRef.current.language },
+    });
     setError(null);
     setAssistantText("");
     setInterimTranscript("");
     lastAssistantTextRef.current = "";
     lastUserTranscriptRef.current = "";
+    transcriptStabilizerRef.current.reset();
 
     try {
       const nextAudioTrack = await createMicrophoneAudioTrack({
@@ -400,22 +398,42 @@ export default function VideoSdkVoiceSessionController({
       if (!response.ok || !payload.roomId || !payload.token || !payload.participantId) {
         throw new Error(payload.error || "Unable to create a VideoSDK voice room.");
       }
+      if (!payload.worker?.ok || payload.worker.status !== "dispatched") {
+        throw new Error(payload.worker?.error || "VideoSDK voice worker is not ready.");
+      }
 
+      recordVoiceDiagnostic({
+        event: "room_created",
+        metadata: { provider: "videosdk", worker: payload.worker.status },
+        sessionId: payload.voiceSessionId,
+      });
       setRoom(payload);
     } catch (caught) {
       stopTrack(audioTrackRef.current);
       audioTrackRef.current = null;
       setAudioTrack(null);
       setRoom(null);
-      setVoiceError(
+      const message =
         caught instanceof DOMException && caught.name === "NotAllowedError"
           ? "Microphone blocked. Allow mic access in your browser and try again."
           : caught instanceof Error
             ? caught.message
-            : "Unable to start VideoSDK voice."
-      );
+            : "Unable to start VideoSDK voice.";
+      if (fallbackOnStartError) {
+        recordVoiceDiagnostic({
+          event: "provider_fallback",
+          metadata: { from: "videosdk", reason: message },
+        });
+        onFallbackRequested?.(message);
+        return;
+      }
+      recordVoiceDiagnostic({
+        event: "session_failed",
+        metadata: { provider: "videosdk", reason: message },
+      });
+      setVoiceError(message);
     }
-  }, [setVoiceError, stop]);
+  }, [fallbackOnStartError, onFallbackRequested, setVoiceError, stop]);
 
   const interruptAssistant = useCallback(() => {
     controlsRef.current?.interrupt();
@@ -452,6 +470,7 @@ export default function VideoSdkVoiceSessionController({
       interruptAssistant,
       lastUserTranscript,
       level,
+      provider: "videosdk",
       retry,
       start,
       status,

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
+import time
 from contextlib import suppress
 from typing import Any
 
@@ -13,10 +15,12 @@ from videosdk.plugins.silero import SileroVAD
 from videosdk.plugins.turn_detector import TurnDetector
 
 from nivesh_voice_agent.agent import NiveshSaathiAgent
+from nivesh_voice_agent.app_client import report_voice_turn
 from nivesh_voice_agent.config import Settings
 from nivesh_voice_agent.events import RoomEventBus
 from nivesh_voice_agent.logging import get_logger
 from nivesh_voice_agent.schemas import VoiceSessionRequest
+from nivesh_voice_agent.turns import endpoint_decision, is_backchannel, remove_repeated_words
 
 logger = get_logger(__name__)
 
@@ -37,14 +41,7 @@ def build_pipeline(settings: Settings, request: VoiceSessionRequest) -> Pipeline
     )
 
     return Pipeline(
-        stt=DeepgramSTT(
-            model="nova-2",
-            language=settings.deepgram_language(request.language),
-            interim_results=True,
-            punctuate=True,
-            smart_format=True,
-            endpointing=320,
-        ),
+        stt=DeepgramSTT(**settings.deepgram_stt_options(request.language)),
         llm=OpenAILLM(
             model=settings.groq_model,
             api_key=settings.groq_api_key.get_secret_value(),
@@ -67,20 +64,61 @@ def build_pipeline(settings: Settings, request: VoiceSessionRequest) -> Pipeline
 def attach_pipeline_hooks(
     pipeline: Pipeline,
     event_bus: RoomEventBus,
+    settings: Settings,
     request: VoiceSessionRequest,
 ) -> None:
+    turn_state: dict[str, Any] = {
+        "started_at": None,
+        "transcript": "",
+        "reported_transcript": "",
+    }
+
     @pipeline.on("stt")
     async def on_stt(text: str) -> str:
-        normalized = text.strip()
+        normalized = remove_repeated_words(text)
         if normalized:
+            decision = endpoint_decision(
+                normalized,
+                no_punctuation_ms=settings.semantic_no_punctuation_ms,
+                filler_ms=settings.semantic_filler_ms,
+                max_silence_ms=settings.eot_timeout_ms,
+            )
+            turn_state["transcript"] = normalized
             await event_bus.publish(
                 {
-                    "type": "user_transcript_final",
+                    "type": "endpoint_candidate",
                     "text": normalized,
                     "threadId": request.thread_id,
                     "sessionId": request.session_id,
+                    "confidence": {"low": 0.35, "medium": 0.64, "high": 0.88}[
+                        decision.confidence
+                    ],
+                    "metadata": {
+                        "reason": decision.reason,
+                        "waitMs": decision.wait_ms,
+                        "shouldEndpoint": decision.should_endpoint,
+                    },
                 }
             )
+            if not is_backchannel(normalized):
+                await event_bus.publish(
+                    {
+                        "type": "user_transcript_final",
+                        "text": normalized,
+                        "threadId": request.thread_id,
+                        "sessionId": request.session_id,
+                    }
+                )
+            else:
+                await event_bus.publish(
+                    {
+                        "type": "user_transcript_partial",
+                        "text": normalized,
+                        "threadId": request.thread_id,
+                        "sessionId": request.session_id,
+                        "metadata": {"backchannel": True},
+                    }
+                )
         return normalized
 
     @pipeline.on("tts")
@@ -95,13 +133,29 @@ def attach_pipeline_hooks(
                     "sessionId": request.session_id,
                 }
             )
+            transcript = turn_state.get("transcript") or ""
+            if transcript and transcript != turn_state.get("reported_transcript"):
+                turn_state["reported_transcript"] = transcript
+                latency = {}
+                if turn_state.get("started_at"):
+                    latency["turnMs"] = int((time.perf_counter() - turn_state["started_at"]) * 1000)
+                asyncio.create_task(
+                    report_voice_turn(
+                        settings,
+                        request,
+                        transcript=transcript,
+                        assistant_text=normalized,
+                        latency=latency,
+                    )
+                )
         return normalized
 
     @pipeline.on("user_turn_start")
     async def on_user_turn_start(*_: Any) -> None:
+        turn_state["started_at"] = time.perf_counter()
         await event_bus.publish(
             {
-                "type": "user_turn_start",
+                "type": "user_speech_start",
                 "sessionId": request.session_id,
             }
         )
@@ -110,10 +164,31 @@ def attach_pipeline_hooks(
     async def on_agent_turn_start(*_: Any) -> None:
         await event_bus.publish(
             {
-                "type": "agent_turn_start",
+                "type": "assistant_speech_start",
                 "sessionId": request.session_id,
             }
         )
+
+    @pipeline.on("user_interrupted")
+    async def on_user_interrupted(*_: Any) -> None:
+        await event_bus.publish(
+            {
+                "type": "assistant_interrupted",
+                "sessionId": request.session_id,
+            }
+        )
+
+
+def build_app_context(request: VoiceSessionRequest) -> str | None:
+    context = {
+        "threadId": request.thread_id,
+        "recentMessages": [message.model_dump() for message in request.recent_messages[-6:]],
+        "uiIntentHint": request.ui_intent_hint,
+        "prefetchKey": request.prefetch_key,
+    }
+    if not any(context.values()):
+        return None
+    return json.dumps(context, ensure_ascii=True)[:2200]
 
 
 async def run_agent_session(
@@ -123,7 +198,7 @@ async def run_agent_session(
 ) -> None:
     _configure_provider_env(settings)
     pipeline = build_pipeline(settings, request)
-    agent = NiveshSaathiAgent(language=request.language)
+    agent = NiveshSaathiAgent(language=request.language, app_context=build_app_context(request))
     session = AgentSession(agent=agent, pipeline=pipeline)
     room_options = RoomOptions(
         room_id=request.room_id,
@@ -132,7 +207,7 @@ async def run_agent_session(
     )
     context = JobContext(room_options=room_options)
     event_bus = RoomEventBus(context=context, topic=settings.events_topic)
-    attach_pipeline_hooks(pipeline, event_bus, request)
+    attach_pipeline_hooks(pipeline, event_bus, settings, request)
 
     logger.info(
         "voice_agent_session_starting",
@@ -149,7 +224,7 @@ async def run_agent_session(
         event_bus.start()
         await event_bus.publish(
             {
-                "type": "agent_joined",
+                "type": "session_started",
                 "text": "Nivesh Saathi is connected.",
                 "sessionId": request.session_id,
                 "threadId": request.thread_id,
@@ -172,7 +247,7 @@ async def run_agent_session(
         with suppress(Exception):
             await event_bus.publish(
                 {
-                    "type": "agent_error",
+                    "type": "session_failed",
                     "text": "Voice agent had a backend issue.",
                     "sessionId": request.session_id,
                     "detail": str(exc)[:240],
