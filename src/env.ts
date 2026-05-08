@@ -11,6 +11,19 @@ const appUrlSchema = z.preprocess((value) => {
 
 const optionalPublicString = z.string().min(1).optional();
 
+const optionalWorkerUrlSchema = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}, z.string().url().optional());
+
 export const env = createEnv({
   server: {
     GEMINI_API_KEY: z.string().min(1).optional(),
@@ -23,7 +36,7 @@ export const env = createEnv({
     VIDEOSDK_SECRET_KEY: z.string().min(1).optional(),
     VIDEOSDK_AUTH_TOKEN: z.string().min(1).optional(),
     VIDEOSDK_ROOM_WEBHOOK_URL: z.string().url().optional(),
-    VOICE_AGENT_WORKER_URL: z.string().url().optional(),
+    VOICE_AGENT_WORKER_URL: optionalWorkerUrlSchema,
     VOICE_AGENT_WORKER_SECRET: z.string().min(16).optional(),
     DEEPGRAM_API_KEY: z.string().min(1).optional(),
     ELEVENLABS_API_KEY: z.string().min(1).optional(),
