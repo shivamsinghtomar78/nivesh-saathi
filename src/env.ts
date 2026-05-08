@@ -16,7 +16,12 @@ const optionalWorkerUrlSchema = z.preprocess((value) => {
     return value;
   }
 
-  const trimmed = value.trim();
+  const trimmed = value
+    .trim()
+    .replace(/^VOICE_AGENT_WORKER_URL\s*=\s*/i, "")
+    .trim()
+    .replace(/^["']|["']$/g, "");
+
   if (trimmed.length === 0) {
     return undefined;
   }
