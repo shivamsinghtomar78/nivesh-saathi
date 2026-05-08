@@ -39,6 +39,20 @@ export type VapiVoiceSessionState = {
 };
 
 type VapiMessage = {
+  call?: {
+    id?: string;
+  };
+  endedReason?: string;
+  input?: string;
+  messages?: Array<{
+    content?: unknown;
+    message?: string;
+    role?: string;
+  }>;
+  messagesOpenAIFormatted?: Array<{
+    content?: unknown;
+    role?: string;
+  }>;
   type?: string;
   role?: string;
   transcript?: string;
@@ -47,6 +61,7 @@ type VapiMessage = {
   delta?: string;
   status?: string;
   message?: unknown;
+  output?: unknown;
 };
 
 type VapiControls = Pick<
@@ -59,6 +74,40 @@ const vapiAssistantId = env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
 
 function normalizeTranscript(value?: string | null) {
   return value?.replace(/\s+/g, " ").trim() ?? "";
+}
+
+function getTextFromUnknown(value: unknown): string {
+  if (typeof value === "string") {
+    return normalizeTranscript(value);
+  }
+
+  if (Array.isArray(value)) {
+    return normalizeTranscript(value.map(getTextFromUnknown).filter(Boolean).join(" "));
+  }
+
+  if (typeof value === "object" && value !== null) {
+    const candidate = value as {
+      content?: unknown;
+      delta?: unknown;
+      input?: unknown;
+      message?: unknown;
+      output?: unknown;
+      text?: unknown;
+      transcript?: unknown;
+    };
+
+    return (
+      getTextFromUnknown(candidate.transcript) ||
+      getTextFromUnknown(candidate.text) ||
+      getTextFromUnknown(candidate.delta) ||
+      getTextFromUnknown(candidate.input) ||
+      getTextFromUnknown(candidate.message) ||
+      getTextFromUnknown(candidate.content) ||
+      getTextFromUnknown(candidate.output)
+    );
+  }
+
+  return "";
 }
 
 function getErrorMessage(error: unknown) {
@@ -79,10 +128,12 @@ function getErrorMessage(error: unknown) {
 }
 
 function shouldTreatAsFinal(message: VapiMessage) {
+  const type = String(message.type ?? "").toLowerCase();
   const transcriptType = String(message.transcriptType ?? "").toLowerCase();
   const status = String(message.status ?? "").toLowerCase();
 
   return (
+    type.includes("transcripttype='final'") ||
     transcriptType.includes("final") ||
     transcriptType.includes("complete") ||
     status.includes("final") ||
@@ -211,12 +262,30 @@ export default function VapiVoiceSessionController({
       const onSpeechEnd = () => setStatus("listening");
       const onVolumeLevel = (volume: number) => setLevel(Math.max(0, Math.min(1, volume)));
       const onError = (caught: unknown) => setVoiceError(getErrorMessage(caught));
+      const handleConversationUpdate = (message: VapiMessage) => {
+        const history = message.messages ?? message.messagesOpenAIFormatted ?? [];
+        const latest = [...history].reverse().find((entry) => {
+          const role = String(entry.role ?? "").toLowerCase();
+          return (role === "user" || role === "assistant") && getTextFromUnknown(entry);
+        });
+
+        if (!latest) return;
+
+        const role = String(latest.role ?? "").toLowerCase();
+        const text = getTextFromUnknown(latest);
+        if (role === "assistant") {
+          handleAssistantReply(text);
+          return;
+        }
+
+        handleUserTranscript(text, true);
+      };
       const onMessage = (message: VapiMessage) => {
         if (!message || typeof message !== "object") return;
 
         const type = String(message.type ?? "").toLowerCase();
-        if (type === "transcript") {
-          const transcript = normalizeTranscript(message.transcript ?? message.text);
+        if (type.startsWith("transcript")) {
+          const transcript = getTextFromUnknown(message.transcript ?? message.text);
           const role = String(message.role ?? "").toLowerCase();
           if (role === "assistant") {
             if (shouldTreatAsFinal(message)) handleAssistantReply(transcript);
@@ -228,17 +297,66 @@ export default function VapiVoiceSessionController({
           return;
         }
 
+        if (type === "conversation-update") {
+          handleConversationUpdate(message);
+          return;
+        }
+
+        if (type === "voice-input") {
+          const input = getTextFromUnknown(message.input);
+          if (input) handleUserTranscript(input, true);
+          return;
+        }
+
         if (type === "model-output") {
-          setAssistantText(
-            normalizeTranscript(message.text ?? message.delta ?? String(message.message ?? ""))
+          const output = getTextFromUnknown(
+            message.output ?? message.text ?? message.delta ?? message.message
           );
+          if (output) setAssistantText(output);
           return;
         }
 
         if (type === "speech-update") {
           const nextStatus = String(message.status ?? "").toLowerCase();
-          if (nextStatus.includes("start")) setStatus("speaking");
-          if (nextStatus.includes("stop") || nextStatus.includes("end")) setStatus("listening");
+          const role = String(message.role ?? "").toLowerCase();
+
+          if (role === "assistant") {
+            if (nextStatus.includes("start")) setStatus("speaking");
+            if (nextStatus.includes("stop") || nextStatus.includes("end")) {
+              setStatus("listening");
+            }
+            return;
+          }
+
+          if (role === "user") {
+            if (nextStatus.includes("start")) {
+              setStatus("listening");
+              setLevel((current) => Math.max(current, 0.42));
+            }
+            if (nextStatus.includes("stop") || nextStatus.includes("end")) {
+              setStatus((current) => (current === "listening" ? "processing" : current));
+            }
+            return;
+          }
+        }
+
+        if (type === "status-update") {
+          const nextStatus = String(message.status ?? "").toLowerCase();
+          if (nextStatus === "in-progress") setStatus("listening");
+          if (nextStatus === "ended") {
+            setStatus("idle");
+            if (message.endedReason && !message.endedReason.includes("customer-ended")) {
+              setVoiceError(`Voice call ended: ${message.endedReason}`);
+            }
+          }
+          return;
+        }
+
+        if (type === "user-interrupted") {
+          setStatus("interrupted");
+          window.setTimeout(() => {
+            setStatus((current) => (current === "interrupted" ? "listening" : current));
+          }, 420);
         }
       };
 
@@ -263,6 +381,7 @@ export default function VapiVoiceSessionController({
       await vapi.start(vapiAssistantId, {
         metadata: {
           app: "nivesh-saathi",
+          callProvider: "vapi",
           language: optionsRef.current.language,
           threadId: optionsRef.current.threadId ?? undefined,
         },

@@ -43,15 +43,15 @@ const statusCopy: Record<DuplexVoiceStatus, { label: string; body: string }> = {
   },
   connecting: {
     label: "Connecting",
-    body: "Preparing a secure live voice session.",
+    body: "Connecting to the voice assistant. Allow microphone access if your browser asks.",
   },
   listening: {
     label: "Listening",
-    body: "Speak naturally.",
+    body: "I am listening. Speak naturally in your preferred language.",
   },
   processing: {
     label: "Thinking",
-    body: "Saathi is preparing a short spoken answer.",
+    body: "Got it. Saathi is preparing a short spoken answer.",
   },
   speaking: {
     label: "Speaking",
@@ -59,7 +59,7 @@ const statusCopy: Record<DuplexVoiceStatus, { label: string; body: string }> = {
   },
   interrupted: {
     label: "Interrupted",
-    body: "Listening again.",
+    body: "Interrupted. Listening again.",
   },
   reconnecting: {
     label: "Reconnecting",
@@ -340,11 +340,11 @@ export default function VoiceAgentLayer({
                       )}
                     />
                     {copy.label}
-                    <span className="text-[#8D949E]">·</span>
+                    <span className="text-[#8D949E]">/</span>
                     <span className="text-[#B8BDC5]">{LANGUAGE_LABELS[language]}</span>
                     {predictionLabel ? (
                       <>
-                        <span className="text-[#8D949E]">·</span>
+                        <span className="text-[#8D949E]">/</span>
                         <span className="max-w-[9rem] truncate text-success">
                           {predictionLabel}
                         </span>
