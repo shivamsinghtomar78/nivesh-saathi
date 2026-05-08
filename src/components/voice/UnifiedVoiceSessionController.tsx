@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import VapiVoiceSessionController from "@/components/voice/VapiVoiceSessionController";
 import VideoSdkVoiceSessionController from "@/components/voice/VideoSdkVoiceSessionController";
@@ -55,6 +55,18 @@ export default function UnifiedVoiceSessionController({
   );
   const [fallbackReason, setFallbackReason] = useState<string | null>(null);
   const activeProvider = requestedProvider === "auto" ? resolvedAutoProvider : requestedProvider;
+  const onErrorRef = useRef(options.onError);
+  const onProviderChangeRef = useRef(options.onProviderChange);
+  const fallbackReasonRef = useRef(fallbackReason);
+
+  useEffect(() => {
+    onErrorRef.current = options.onError;
+    onProviderChangeRef.current = options.onProviderChange;
+  }, [options.onError, options.onProviderChange]);
+
+  useEffect(() => {
+    fallbackReasonRef.current = fallbackReason;
+  }, [fallbackReason]);
 
   useEffect(() => {
     if (!open) return;
@@ -65,9 +77,9 @@ export default function UnifiedVoiceSessionController({
         if (cancelled) return;
         const provider = chooseVoiceProvider(status);
         setResolvedAutoProvider(provider);
-        options.onProviderChange?.(
+        onProviderChangeRef.current?.(
           provider,
-          status?.providers[provider].reason ?? fallbackReason ?? undefined
+          status?.providers[provider].reason ?? fallbackReasonRef.current ?? undefined
         );
       });
       return () => {
@@ -75,23 +87,23 @@ export default function UnifiedVoiceSessionController({
       };
     }
 
-    options.onProviderChange?.(requestedProvider);
+    onProviderChangeRef.current?.(requestedProvider);
     return () => {
       cancelled = true;
     };
-  }, [fallbackReason, open, options, requestedProvider]);
+  }, [open, requestedProvider]);
 
   const fallbackToVapi = useCallback(
     (reason: string) => {
       setFallbackReason(reason);
       if (requestedProvider === "auto" && isVapiClientConfigured()) {
         setResolvedAutoProvider("vapi");
-        options.onProviderChange?.("vapi", reason);
+        onProviderChangeRef.current?.("vapi", reason);
       } else {
-        options.onError?.(reason);
+        onErrorRef.current?.(reason);
       }
     },
-    [options, requestedProvider]
+    [requestedProvider]
   );
 
   const connectingVoice = useMemo<DuplexVoiceSessionState>(

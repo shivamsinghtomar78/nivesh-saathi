@@ -96,6 +96,25 @@ function trimText(text: string, maxLength: number) {
   return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength - 3).trim()}...` : cleaned;
 }
 
+function omitUndefinedValues<T extends Record<string, unknown>>(input: T) {
+  return Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined)
+  ) as Partial<T>;
+}
+
+function omitConflictingInsertDefaults<T extends Record<string, unknown>>(
+  defaults: T,
+  set: Record<string, unknown>
+) {
+  const safeDefaults = { ...defaults };
+
+  for (const path of Object.keys(set)) {
+    delete safeDefaults[path.split(".")[0] as keyof T];
+  }
+
+  return safeDefaults;
+}
+
 function analyticsExpiresAt() {
   return new Date(Date.now() + serverEnv.ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000);
 }
@@ -338,30 +357,35 @@ export async function upsertUserPreferences(
   if (!models) return null;
 
   const now = new Date();
+  const set = omitUndefinedValues({
+    ...updates,
+    userId,
+    updatedAt: now,
+  });
+  const setOnInsert = omitConflictingInsertDefaults(
+    {
+      _id: userId,
+      languagePreference: "en",
+      tonePreference: "warm",
+      communicationStyle: "simple",
+      memoryEnabled: true,
+      voiceAutoSpeak: true,
+      themePreference: "system",
+      financialPreferences: {},
+      privacy: {
+        analyticsEnabled: true,
+        voiceHistoryEnabled: true,
+      },
+      metadata: {},
+      createdAt: now,
+    },
+    set
+  );
   const doc = await models.UserPreferences.findOneAndUpdate(
     { userId },
     {
-      $set: {
-        ...updates,
-        userId,
-        updatedAt: now,
-      },
-      $setOnInsert: {
-        _id: userId,
-        languagePreference: "en",
-        tonePreference: "warm",
-        communicationStyle: "simple",
-        memoryEnabled: true,
-        voiceAutoSpeak: true,
-        themePreference: "system",
-        financialPreferences: {},
-        privacy: {
-          analyticsEnabled: true,
-          voiceHistoryEnabled: true,
-        },
-        metadata: {},
-        createdAt: now,
-      },
+      $set: set,
+      $setOnInsert: setOnInsert,
     },
     { upsert: true, returnDocument: "after" }
   ).lean<UserPreferencesDto>();
@@ -377,23 +401,28 @@ export async function updateAssistantState(
   if (!models) return null;
 
   const now = new Date();
+  const set = omitUndefinedValues({
+    ...updates,
+    userId,
+    lastSeenAt: updates.lastSeenAt ?? now,
+    updatedAt: now,
+  });
+  const setOnInsert = omitConflictingInsertDefaults(
+    {
+      _id: userId,
+      lastInteractionMode: "chat",
+      contextSummary: "",
+      retrievalContext: {},
+      metadata: {},
+      createdAt: now,
+    },
+    set
+  );
   const doc = await models.AssistantState.findOneAndUpdate(
     { userId },
     {
-      $set: {
-        ...updates,
-        userId,
-        lastSeenAt: updates.lastSeenAt ?? now,
-        updatedAt: now,
-      },
-      $setOnInsert: {
-        _id: userId,
-        lastInteractionMode: "chat",
-        contextSummary: "",
-        retrievalContext: {},
-        metadata: {},
-        createdAt: now,
-      },
+      $set: set,
+      $setOnInsert: setOnInsert,
     },
     { upsert: true, returnDocument: "after" }
   ).lean<AssistantStateDto>();
