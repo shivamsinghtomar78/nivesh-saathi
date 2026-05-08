@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: nivesh-saathi-ai-worker
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./ai-worker/Dockerfile
+    dockerContext: ./ai-worker
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: VIDEOSDK_API_KEY
+        sync: false
+      - key: VIDEOSDK_SECRET_KEY
+        sync: false
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GROQ_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_VOICE_ID
+        sync: false
+      - key: ELEVENLABS_MODEL
+        value: eleven_flash_v2_5
+      - key: VOICE_AGENT_WORKER_SECRET
+        sync: false
+      - key: VOICE_AGENT_NAME
+        value: Nivesh Saathi
+      - key: VOICE_AGENT_LOG_LEVEL
+        value: INFO

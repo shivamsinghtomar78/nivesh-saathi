@@ -34,11 +34,14 @@ export type VoiceAgentWorkerDispatch =
   | {
       ok: true;
       status: "dispatched";
+      endpoint: string;
     }
   | {
       ok: false;
       status: "not_configured" | "failed";
       error?: string;
+      endpoint?: string;
+      upstreamStatus?: number;
     };
 
 function base64Url(input: Buffer | string) {
@@ -175,9 +178,10 @@ export async function dispatchVoiceAgentWorker(input: {
   }
 
   const endpoint = new URL("/sessions", serverEnv.VOICE_AGENT_WORKER_URL);
+  const endpointUrl = endpoint.toString();
 
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch(endpointUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -193,15 +197,18 @@ export async function dispatchVoiceAgentWorker(input: {
       return {
         ok: false,
         status: "failed",
+        endpoint: endpointUrl,
+        upstreamStatus: response.status,
         error: detail.slice(0, 500) || response.statusText,
       };
     }
 
-    return { ok: true, status: "dispatched" };
+    return { ok: true, status: "dispatched", endpoint: endpointUrl };
   } catch (error) {
     return {
       ok: false,
       status: "failed",
+      endpoint: endpointUrl,
       error: error instanceof Error ? error.message.slice(0, 500) : "Worker dispatch failed",
     };
   }

@@ -23,13 +23,18 @@ Run this as a long-lived service on Render, Fly.io, ECS, Kubernetes, or a VM. Sc
 
 ### Render
 
-1. Push this repo to GitHub.
-2. In Render, create a new **Web Service** from the repo.
-3. Select **Docker** as the runtime.
-4. Set the Dockerfile path to `ai-worker/Dockerfile`.
-5. Set the root/build context to `ai-worker` if Render asks for one.
-6. Add the environment variables below.
-7. Deploy, then copy the generated `https://*.onrender.com` URL into Vercel as `VOICE_AGENT_WORKER_URL`.
+Use the root `render.yaml` Blueprint, or configure the service manually with these settings:
+
+- Runtime: **Docker**
+- Dockerfile path: `./ai-worker/Dockerfile`
+- Docker context: `./ai-worker`
+- Health check path: `/health`
+
+If the Render logs show `npm run start` or `next start`, the service is using the repo root Node app instead of this Python worker.
+
+For realtime voice, use a non-sleeping Render instance type when possible. A sleeping free instance can make the first room dispatch too slow.
+
+After deploy, copy the generated `https://*.onrender.com` URL into Vercel as `VOICE_AGENT_WORKER_URL`.
 
 Required worker env:
 

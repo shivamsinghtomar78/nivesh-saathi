@@ -11,6 +11,6 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY nivesh_voice_agent ./nivesh_voice_agent
 
-EXPOSE 8080
+EXPOSE 10000
 
-CMD ["python", "-m", "nivesh_voice_agent", "serve", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["sh", "-c", "python -m nivesh_voice_agent serve --host 0.0.0.0 --port ${PORT:-10000}"]

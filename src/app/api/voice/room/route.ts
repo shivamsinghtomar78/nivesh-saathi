@@ -38,7 +38,13 @@ const videoSdkVoiceRoomSchema = z.object({
 });
 
 function redactWorkerDispatch(dispatch: Awaited<ReturnType<typeof dispatchVoiceAgentWorker>>) {
-  if (dispatch.ok) return dispatch;
+  if (dispatch.ok) {
+    return {
+      ok: true,
+      status: dispatch.status,
+    };
+  }
+
   return {
     ok: false,
     status: dispatch.status,
@@ -151,6 +157,8 @@ export async function POST(request: Request) {
         roomId: room.roomId,
         status: worker.status,
         error: worker.error,
+        endpoint: worker.endpoint,
+        upstreamStatus: worker.upstreamStatus,
       });
     } else {
       logServerInfo("videosdk_voice_room_created", {
